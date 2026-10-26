@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom'
 import { useProfileEdit, useNotify } from '../_lib/editContext'
 import { EVIDENCE_TYPES, FAMILY_LABELS, familyForType } from '@/lib/evidenceTypes'
 import { RELATIONSHIP_TYPES } from '@/lib/testimonialTypes'
+import DirectionPicker from './DirectionPicker'
 
 // ============================================================================
 // THE PANES BEHIND A MANAGE LIST
@@ -222,6 +223,56 @@ function BrandSelect({ id, value, options, onChange, placeholder = 'Choose oneâ€
 // ---------------------------------------------------------------------------
 // ONE PIECE OF EVIDENCE
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// WHERE THIS APPEARS
+//
+// Shared by both panes, because it is the same question about two
+// collections. The lead switch above it is about this direction; this is
+// about the item, everywhere, which is why it reads from the record rather
+// than from the direction's rows.
+//
+// The write is optimistic in one direction only: the control shows what was
+// asked for while the request is in flight, and a failure reports through the
+// page's own toast and re-reads. There is no local truth to drift.
+// ---------------------------------------------------------------------------
+function DirectionsRow({ item, onSave, busy, idPrefix }) {
+  const edit = useProfileEdit()
+  const notify = useNotify()
+  const [pending, setPending] = useState(null)
+
+  const lenses = edit?.allLenses || edit?.lenses || []
+  const scope = pending ? pending.scope : (item.placement_scope === 'selected' ? 'selected' : 'all')
+  const lensIds = pending ? pending.lensIds : (item.lens_ids || [])
+
+  if (!onSave) return null
+
+  return (
+    <div className="hp-manage-pane-stack">
+      <span className="hp-manage-pane-label">Where this appears</span>
+      <DirectionPicker
+        lenses={lenses}
+        scope={scope}
+        lensIds={lensIds}
+        disabled={Boolean(busy)}
+        idPrefix={idPrefix}
+        onChange={async (nextScope, nextIds) => {
+          setPending({ scope: nextScope, lensIds: nextIds })
+          try {
+            await onSave(item.id, nextScope, nextIds)
+          } catch (err) {
+            notify?.({
+              type: 'error',
+              message: err?.message || "We couldn't save where that appears. Please try again."
+            })
+          } finally {
+            setPending(null)
+          }
+        }}
+      />
+    </div>
+  )
+}
+
 export function EvidenceEditPane({ item, lensId, isFeatured, onBack }) {
   const edit = useProfileEdit()
   const notify = useNotify()
@@ -252,6 +303,13 @@ export function EvidenceEditPane({ item, lensId, isFeatured, onBack }) {
   return (
     <div className="hp-manage-pane">
       <PaneHead title={item.title || 'Untitled'} />
+
+      <DirectionsRow
+        item={item}
+        busy={busy}
+        idPrefix={`hp-ev-dir-${item.id}`}
+        onSave={edit?.onSetEvidenceDirections}
+      />
 
       {/* The lead is a property of this direction rather than of the item, so
           it sits with the direction's own controls rather than in the fields
@@ -527,6 +585,15 @@ export function TestimonialEditPane({ item, onBack }) {
           </button>
         </div>
       ) : null}
+
+      {/* Beside publishing, because they are the two halves of the same
+          review: whether this goes on the profile, and which parts of it. */}
+      <DirectionsRow
+        item={item}
+        busy={busy}
+        idPrefix={`hp-te-dir-${item.id}`}
+        onSave={edit?.onSetTestimonialDirections}
+      />
 
       {/* ---- THE WAY OUT OF EACH ONE ----
           Two different acts wearing one word. Cancelling a request nobody has

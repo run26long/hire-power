@@ -672,6 +672,30 @@ export default function CareerVaultPage() {
         .update({ is_active: true })
         .eq('id', resumeId);
       if (error) throw error;
+
+      // Put it back with the direction it was standing for, where that
+      // direction still exists, has not been thrown away, and has not taken
+      // another core since. The route decides all three; this only asks.
+      //
+      // After the restore, because the route refuses a resume that is not
+      // active: an unarchived core is not one a direction can point at.
+      //
+      // Not fatal. A resume that comes back unlinked is a state the hub
+      // already renders, and the owner can rebuild from the direction's tile.
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        await fetch('/api/profile-lenses/relink', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({ resumeId })
+        });
+      } catch (relinkErr) {
+        console.error('Lens relink failed (non-blocking):', relinkErr);
+      }
+
       router.push(`/resume/${resumeId}`);
     } catch (err) {
       console.error('Restore core resume failed:', err);
@@ -693,6 +717,30 @@ export default function CareerVaultPage() {
         .eq('id', resume.id)
         .eq('user_id', user.id);
       if (error) throw error;
+
+      // Let go of the direction this resume was standing for, if it was
+      // standing for one. The same call the Resume Writer hub makes when it
+      // deletes a core, for the same reason.
+      //
+      // After the archive, never before: releasing first and then failing to
+      // archive would leave a direction offering to build a core it already
+      // has. Not fatal to the archive either - the resume is away either way,
+      // and a lens still holding the id is recoverable.
+      if (resume.resume_type === 'core') {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          await fetch('/api/profile-lenses/release', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ resumeId: resume.id })
+          });
+        } catch (releaseErr) {
+          console.error('Lens release failed (non-blocking):', releaseErr);
+        }
+      }
 
       // Update local state
       setActiveResumes(prev => prev.filter(r => r.id !== resume.id));

@@ -4,6 +4,8 @@ import { UPGRADE_HREF, UPGRADE_LABEL, upgradeCopyFor } from '@/lib/profileTier'
 import { COLOR_MODES, normalizeColorMode } from '@/lib/profileColorMode'
 import { ACCENTS, DEFAULT_ACCENT, OFFERED_ACCENTS, accentFor } from '@/lib/profileAccent'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { DeleteSessionModal } from '@/app/components/interview/PracticeLeftPanel'
 
 // ============================================================================
 // SETTINGS
@@ -129,13 +131,60 @@ export default function SettingsDrawer({
   lenses,
   onLensVisibility,
   onLensReorder,
-  onLensCreate
+  onLensCreate,
+  onLensDelete,
+  onLensDeletePreview
 }) {
   const closeRef = useRef(null)
 
   // Which row is mid-write, so one toggle disables itself without freezing the
   // rest of the list.
   const [lensBusy, setLensBusy] = useState(null)
+
+  // ---- DELETING A DIRECTION THE OWNER NAMED ----
+  //
+  // Held as the row being deleted rather than a boolean, so the dialog can
+  // name it and the list underneath stays exactly where it was. `pending` is
+  // what the deletion would leave on no direction, fetched while the dialog
+  // opens: it arrives a moment after the dialog does, which is the right way
+  // round - the question is answerable without it, and waiting on a request
+  // before showing anything would make the trash button feel broken.
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleteCost, setDeleteCost] = useState(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
+
+  const askDelete = useCallback(async (lens) => {
+    setDeleteTarget(lens)
+    setDeleteCost(null)
+    if (!onLensDeletePreview) return
+    const cost = await onLensDeletePreview(lens.id)
+    // Still the same dialog. A second trash button pressed while the first
+    // request was in flight would otherwise label this one with that one's
+    // cost.
+    setDeleteTarget(current => {
+      if (current?.id === lens.id) setDeleteCost(cost)
+      return current
+    })
+  }, [onLensDeletePreview])
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget || deleteBusy || !onLensDelete) return
+    setDeleteBusy(true)
+    try {
+      await onLensDelete(deleteTarget.id)
+      setDeleteTarget(null)
+      setDeleteCost(null)
+    } catch (err) {
+      // The drawer's own toast, like every other failure here. The dialog
+      // stays open so the control that failed is still where they left it.
+      notify?.({
+        type: 'error',
+        message: err?.message || "We couldn't delete that career direction. Please try again."
+      })
+    } finally {
+      setDeleteBusy(false)
+    }
+  }, [deleteTarget, deleteBusy, onLensDelete, notify])
 
   // A direction the owner names themselves. The refusal lives here rather than
   // in a toast: being told the career data does not reach is information about
@@ -155,12 +204,26 @@ export default function SettingsDrawer({
       // An answer of "no" comes back as an ordinary result, not a throw: the
       // request worked, the career data did not reach.
       if (result?.ok === false) {
-        setCreateNote(result.message || "There isn't enough career data to support that direction yet.")
+        // Two refusals, two answers. "Not enough data" tells somebody their
+        // career does not reach a direction yet; "you already have it" tells
+        // them it does and they are looking at it. Showing the first for the
+        // second would send them off to build evidence they already have.
+        setCreateNote(
+          result.code === 'DUPLICATE'
+            ? {
+                title: 'You already have this direction',
+                body: `This overlaps with ${result.overlapsWith}.`
+              }
+            : {
+                title: 'Not enough career data yet',
+                body: `We don’t have enough evidence in your career data to support “${name}.” Your strongest supported directions are suggested above.`
+              }
+        )
         return
       }
       setCustomName('')
     } catch (err) {
-      setCreateNote(err?.message || "We couldn't create that direction. Please try again.")
+      setCreateNote({ title: null, body: err?.message || "We couldn't create that direction. Please try again." })
     } finally {
       setCreating(false)
     }
@@ -794,6 +857,28 @@ export default function SettingsDrawer({
                       >
                         <span className="hp-ed-switch-knob" aria-hidden="true" />
                       </button>
+
+                      {/* ---- Only a direction they named, and only off the
+                          profile, and only with no resume behind it. The route
+                          enforces all three again; this is about not offering
+                          something that would be refused.
+
+                          Deliberately always visible rather than appearing on
+                          hover: on a phone there is no hover, and this drawer
+                          is full width there. */}
+                      {onLensDelete
+                        && lens.source === 'user_created'
+                        && !lens.core_resume_id ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); askDelete(lens); }}
+                          className="w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all flex-shrink-0"
+                          title={`Delete ${lens.name}`}
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      ) : null}
                     </div>
                   )
                 })}
@@ -801,14 +886,14 @@ export default function SettingsDrawer({
 
               {canReorder ? (
                 <p className="hp-ed-soon">
-                  Drag to reorder. The first career direction is your primary and loads first for visitors.
+                  Drag to reorder. Your first direction is primary, always stays on, and loads first for visitors. Turn any other direction off anytime. Everything written for it stays ready to restore.
                 </p>
               ) : null}
 
               {offeredRows.length > 0 && (
                 <>
                   <hr className="hp-ed-lens-split" />
-                  <p className="hp-ed-lens-make-label">Add a career direction identified from coaching</p>
+                  <p className="hp-ed-lens-make-label">Add a career direction identified from career data</p>
                   <div className="hp-ed-lenses">
                     {offeredRows.map(({ lens }) => {
                       const busy = lensBusy === lens.id
@@ -886,13 +971,12 @@ export default function SettingsDrawer({
                   )}
                 </div>
                 {creating && (
-                  <p className="hp-ed-hint">
-                    Reading your career data and writing the direction. This takes a few seconds.
+                  <p className="hp-ed-lens-make-building">
+                    Building this direction from your career data...
                   </p>
                 )}
                 {createNote && !creating && (
-                  <p className="hp-ed-lens-make-note">
-                    <span>{createNote}</span>
+                  <div className="hp-ed-lens-make-note" role="status">
                     <button
                       type="button"
                       className="hp-ed-lens-make-note-x"
@@ -901,24 +985,30 @@ export default function SettingsDrawer({
                     >
                       ×
                     </button>
-                  </p>
+                    {createNote.title ? (
+                      <p className="hp-ed-lens-make-note-title">{createNote.title}</p>
+                    ) : null}
+                    <p className="hp-ed-lens-make-note-body">{createNote.body}</p>
+                  </div>
                 )}
               </div>
 
-              {/* Three answers, because there are three situations. A free
-                  account is told what the section is and what adds to it; a
-                  Vault account is told that what it built stays and that
-                  adding is Pro, which is what the visibility route enforces;
-                  Pro is told about the three slots. */}
-              <p className="hp-ed-soon">
-                {!canCustomise
-                  ? upgradeCopyFor('lenses')
-                  : !isPro
-                    ? upgradeCopyFor('lenses_vault')
-                    : slotsFull
-                      ? `Your Career Profile shows ${MAX_ACTIVE_WORD} career directions at a time. Turn one off to add another. Everything written for it stays ready to restore.`
-                      : 'Your primary career direction always shows. Turn another one off anytime. Everything written for it stays ready to restore.'}
-              </p>
+              {/* Three answers, because there are three situations the copy
+                  beside the rows cannot cover. A free account is told what the
+                  section is and what adds to it; a Vault account is told that
+                  what it built stays and that adding is Pro, which is what the
+                  visibility route enforces; a full profile is told what the
+                  three slots cost. An account with room is told nothing here,
+                  because the reorder copy above has already said it. */}
+              {(!canCustomise || !isPro || slotsFull) ? (
+                <p className="hp-ed-soon">
+                  {!canCustomise
+                    ? upgradeCopyFor('lenses')
+                    : !isPro
+                      ? upgradeCopyFor('lenses_vault')
+                      : `Your Career Profile shows ${MAX_ACTIVE_WORD} career directions at a time. Turn one off to add another. Everything written for it stays ready to restore.`}
+                </p>
+              ) : null}
             </Group>
           )}
 
@@ -1013,6 +1103,47 @@ export default function SettingsDrawer({
           )}
         </div>
       </aside>
+
+      {/* ---- The confirmation, above the drawer ----
+          Through a portal to document.body, because the drawer is fixed at
+          z-index 55 and this dialog is one of the app's own at z-50: rendered
+          inside the drawer it would sit behind the panel it was asked from.
+          A portal moves it out from under that stacking context without
+          changing the dialog, which Interview Practice is still using. */}
+      {deleteTarget && typeof document !== 'undefined'
+        ? createPortal(
+            <DeleteSessionModal
+              deleting={deleteBusy}
+              onCancel={() => { if (!deleteBusy) { setDeleteTarget(null); setDeleteCost(null) } }}
+              onConfirm={confirmDelete}
+              title="Delete this direction?"
+              body={`Everything written for ${deleteTarget.name} will be removed from your Career Profile. This can't be undone.`}
+              secondary={orphanSentence(deleteCost)}
+              confirmLabel="Delete"
+            />,
+            document.body
+          )
+        : null}
     </>
   )
+}
+
+// ---------------------------------------------------------------------------
+// WHAT ELSE GOES WITH IT
+//
+// Named, not counted. "2 items" sends somebody to go and look, which is the
+// work the sentence was supposed to save them - and the decision they are
+// making turns on which items, not how many.
+//
+// Nothing at all returns null, and the dialog renders no second paragraph
+// rather than an empty one.
+// ---------------------------------------------------------------------------
+function orphanSentence(cost) {
+  const names = [...(cost?.evidence || []), ...(cost?.testimonials || [])]
+  if (names.length === 0) return null
+  const list = names.length === 1
+    ? names[0]
+    : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+  const verb = names.length === 1 ? 'appears' : 'appear'
+  return `${list} only ${verb} on this direction. They'll stay in your library, but won't show on your profile until you add them to another direction.`
 }

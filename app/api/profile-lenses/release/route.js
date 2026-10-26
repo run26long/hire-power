@@ -60,6 +60,45 @@ export async function POST(request) {
       return Response.json({ error: 'resumeId is required' }, { status: 400 })
     }
 
+    // ---- WHICH DIRECTION IT WAS STANDING FOR ----
+    //
+    // Read before the release, because the release is what destroys the
+    // answer: once core_resume_id is null nothing records that these two were
+    // ever a pair, and restoring the resume from the Vault brings back a core
+    // with no direction and a direction offering to build one it already has.
+    //
+    // Written onto the resume rather than kept on the lens, because the lens
+    // has to let go - that is the whole point of this route - and the resume
+    // is the half that survives. resumes.lens_id is a foreign key with ON
+    // DELETE SET NULL, so a direction deleted later takes the memory with it
+    // and leaves the resume alone, which is the right way round.
+    const { data: holders, error: holderError } = await supabase
+      .from('profile_lenses')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('core_resume_id', resumeId)
+      .limit(1)
+
+    if (holderError) {
+      console.error('Lens holder lookup failed:', holderError)
+      return Response.json({ error: 'RELEASE_FAILED' }, { status: 500 })
+    }
+
+    const heldBy = holders?.[0]?.id || null
+    if (heldBy) {
+      // Best effort. A resume that cannot be stamped is still a resume whose
+      // direction has to be released: failing here and stopping would leave
+      // the locked-on-one-page state this route exists to clear.
+      const { error: stampError } = await supabase
+        .from('resumes')
+        .update({ lens_id: heldBy })
+        .eq('id', resumeId)
+        .eq('user_id', user.id)
+      if (stampError) {
+        console.error('Resume lens stamp failed (non-fatal):', stampError)
+      }
+    }
+
     // Ownership rides on the update, the way it does in ./dismiss and
     // ./restore. A resume id belonging to somebody else matches no lens of
     // theirs and releases nothing.

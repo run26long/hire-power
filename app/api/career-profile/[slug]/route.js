@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { apiError } from '@/lib/apiError'
 import { canUseProTools } from '@/lib/tiers'
+import { onDirection, rowsForDirection } from '@/app/p/[slug]/_lib/profileData'
 
 // ============================================================================
 // GET /api/career-profile/[slug]
@@ -148,7 +149,7 @@ export async function GET(request, { params }) {
       // things a link holder gets.
       supabase
         .from('profile_testimonials')
-        .select('id, polished_text, recipient_name, recipient_title, relationship')
+        .select('id, polished_text, recipient_name, recipient_title, relationship, placement_scope')
         .eq('profile_id', profile.id)
         .eq('status', 'published')
         .order('created_at', { ascending: true }),
@@ -169,7 +170,7 @@ export async function GET(request, { params }) {
           // Read to be turned into a boolean below, never to be sent. The
           // Portfolio needs to know a preview exists so it can ask for one; it
           // has no business knowing where it is.
-          'thumbnail_path, duration_seconds'
+          'thumbnail_path, duration_seconds, placement_scope'
         )
         .eq('profile_id', profile.id)
         .eq('privacy', 'public')
@@ -314,7 +315,11 @@ export async function GET(request, { params }) {
       // seconds. Only ever used to label a video mat; a row without one gets
       // no badge rather than a badge reading zero.
       duration_seconds: Number.isFinite(item.duration_seconds) ? item.duration_seconds : null,
-      sort_order: item.sort_order
+      sort_order: item.sort_order,
+      // Which directions this is on, before any row is consulted. 'all' means
+      // every direction the profile shows; 'selected' means the ones it holds
+      // a row for, and with no rows, none.
+      placement_scope: item.placement_scope === 'selected' ? 'selected' : 'all'
     }))
 
     // A placement is only worth sending if it resolves: the item has to be one
@@ -324,110 +329,75 @@ export async function GET(request, { params }) {
     if (placementRes?.error && placementRes.error.code !== '42P01') {
       console.error('[career-profile] Evidence placement lookup failed (non-fatal):', placementRes.error)
     }
-    // ---- PLACEMENTS, BEFORE AND AFTER THE MIGRATION ----
-    //
-    // `hidden` arrives with scripts/create-testimonial-placements.sql. Until
-    // that has been run the column is not there and the select above fails,
-    // which would take every piece of evidence off the page with it - the
-    // eligibility rule below drops anything with no placement. So the query
-    // is asked again without the column, and a database that has not caught
-    // up renders exactly what it rendered before.
-    let placementRows = placementRes.error ? [] : (placementRes.data || [])
-    if (isMissingColumnError(placementRes.error)) {
-      console.warn(
-        '[career-profile] profile_evidence_placements has no hidden column, reading without it. ' +
-        'Has scripts/create-testimonial-placements.sql been run?'
-      )
-      const { data: base } = await supabase
-        .from('profile_evidence_placements')
-        .select('evidence_id, lens_id, sort_order, featured')
-        .eq('profile_id', profile.id)
-        .order('sort_order', { ascending: true })
-      placementRows = base || []
-    } else if (placementRes.error) {
+    if (placementRes?.error) {
       console.error('[career-profile] Placement lookup failed (non-fatal):', placementRes.error)
     }
+    const placementRows = placementRes?.error ? [] : (placementRes?.data || [])
 
     const byOrderT = (a, b) => a.sort_order - b.sort_order
-    const evidencePlacements = {}
-    const evidenceShared = []
+
+    // ---- WHERE EACH DIRECTION PUTS EACH ITEM ----
+    //
+    // A flat list rather than a map per direction, because the page no longer
+    // looks a direction's list up and render it - it asks, item by item,
+    // whether this direction shows that item, and the answer needs the rows
+    // and the item's own scope together.
+    //
+    // HIDDEN ROWS TRAVEL NOW, which they did not before. They used to be
+    // dropped on the way out, and that was safe while absence meant absence.
+    // It is not safe any more: an item that says 'all' is on a direction
+    // unless a row there says otherwise, so dropping the row that says
+    // otherwise would put the item back on the page. What keeps a hidden item
+    // out of a reader's payload is the eligibility rule below, which drops
+    // anything no visible direction shows.
+    const evidencePlacements = []
     {
       const eligibleIds = new Set(eligibleEvidence.map(item => item.id))
       const shownLensIds = new Set(visibleLenses.map(lens => lens.id))
-      const rows = placementRows
-      for (const row of rows) {
+      for (const row of placementRows) {
         if (!eligibleIds.has(row.evidence_id)) continue
-        // Hidden is the owner having taken this off this direction. It is not
-        // a deletion and the row is still here, but nothing about it belongs
-        // in a payload a reader gets.
-        if (row.hidden === true) continue
-        const place = {
+        if (!row.lens_id || !shownLensIds.has(row.lens_id)) continue
+        evidencePlacements.push({
           evidence_id: row.evidence_id,
+          lens_id: row.lens_id,
           sort_order: row.sort_order ?? 0,
-          featured: row.featured === true
-        }
-        if (row.lens_id === null) { evidenceShared.push(place); continue }
-        if (!shownLensIds.has(row.lens_id)) continue
-        if (!evidencePlacements[row.lens_id]) evidencePlacements[row.lens_id] = []
-        evidencePlacements[row.lens_id].push(place)
+          featured: row.featured === true,
+          hidden: row.hidden === true
+        })
       }
-      const byOrder = (a, b) => a.sort_order - b.sort_order
-      evidenceShared.sort(byOrder)
-      for (const list of Object.values(evidencePlacements)) list.sort(byOrder)
+      evidencePlacements.sort(byOrderT)
     }
 
-    // ---- WHICH TESTIMONIALS EACH DIRECTION SHOWS ----
+    // ---- WHERE EACH DIRECTION PUTS EACH TESTIMONIAL ----
     //
-    // The same fallback shape as evidence: a direction's own list if it has
-    // one, the shared layer if it does not. Ids and positions only - the
-    // words themselves travel once, in `testimonials` below.
+    // The same shape as evidence, and for the same reason. There is no shared
+    // layer to fall back to any more: a testimonial that says 'all' is on
+    // every direction because it says so, not because nothing else was found.
     //
-    // A profile whose database has not had the placement migration run yet
-    // gets empty objects here, and the page falls back to the behaviour it
-    // has always had: every published testimonial on every direction, in
-    // whatever order the synthesis suggested.
-    const testimonialPlacements = {}
-    // Ids the shared layer has been told to hide. A filter and nothing more:
-    // the shared layer never orders the page.
-    const testimonialHidden = []
+    // A direction with no rows still reads in the synthesis's own ranking.
+    // That used to be the fallback branch; it is now simply the order an
+    // unarranged direction has, which is the same thing said without a
+    // fallback.
+    const testimonialPlacements = []
     {
       if (testimonialPlacementRes?.error) {
         console.error(
-          '[career-profile] Testimonial placement lookup failed (non-fatal). ' +
-          'Has scripts/create-testimonial-placements.sql been run?',
+          '[career-profile] Testimonial placement lookup failed (non-fatal):',
           testimonialPlacementRes.error
         )
       }
       const shownLensIds = new Set(visibleLenses.map(lens => lens.id))
       const rows = testimonialPlacementRes?.error ? [] : (testimonialPlacementRes?.data || [])
       for (const row of rows) {
-        // THE SHARED LAYER DOES NOT ORDER THE PAGE.
-        //
-        // Every testimonial sits in it - that is what the backfill wrote, and
-        // it is what they all effectively were before there was a table. If
-        // it were read as a running order it would replace the synthesis's
-        // ranking the moment the migration ran, and the whole point of that
-        // backfill was that running it changes nothing anybody can see.
-        //
-        // So only a direction's own list is an arrangement. The shared layer
-        // contributes one thing: an item hidden there is hidden everywhere,
-        // which is a filter and never a position.
-        if (row.lens_id === null) {
-          if (row.hidden === true) testimonialHidden.push(row.testimonial_id)
-          continue
-        }
-        // Hidden is the owner having taken this off this direction. The row
-        // survives so it can be put back where it was; nothing about it
-        // belongs in a payload a reader gets.
-        if (row.hidden === true) continue
-        if (!shownLensIds.has(row.lens_id)) continue
-        if (!testimonialPlacements[row.lens_id]) testimonialPlacements[row.lens_id] = []
-        testimonialPlacements[row.lens_id].push({
+        if (!row.lens_id || !shownLensIds.has(row.lens_id)) continue
+        testimonialPlacements.push({
           testimonial_id: row.testimonial_id,
-          sort_order: row.sort_order ?? 0
+          lens_id: row.lens_id,
+          sort_order: row.sort_order ?? 0,
+          hidden: row.hidden === true
         })
       }
-      for (const list of Object.values(testimonialPlacements)) list.sort(byOrderT)
+      testimonialPlacements.sort(byOrderT)
     }
 
     // Only what something on this profile actually shows. An item that is
@@ -435,11 +405,21 @@ export async function GET(request, { params }) {
     // not in the shared layer is a row the owner has not put anywhere - its
     // title, its description and the fact that it exists are all still private,
     // and none of it has any business in a payload anyone can read.
-    const placedEvidenceIds = new Set([
-      ...evidenceShared.map(place => place.evidence_id),
-      ...Object.values(evidencePlacements).flatMap(list => list.map(place => place.evidence_id))
-    ])
-    const evidence = eligibleEvidence.filter(item => placedEvidenceIds.has(item.id))
+    //
+    // Asked through the same rule the page renders with, so an item in the
+    // payload is exactly an item something on this profile shows. An 'all'
+    // item holds no rows and is still shown; an 'all' item hidden on every
+    // visible direction is shown by none of them and does not travel.
+    // A profile with no visible direction still has a page, and it reads as
+    // one direction nobody has arranged: no rows, so scope alone decides.
+    // Without this an account that has turned every direction off would lose
+    // its evidence section rather than show the items that are on all of them.
+    const evidenceRowsByLens = visibleLenses.length
+      ? visibleLenses.map(lens => rowsForDirection(evidencePlacements, lens.id, 'evidence_id'))
+      : [new Map()]
+    const evidence = eligibleEvidence.filter(item =>
+      evidenceRowsByLens.some(rows => onDirection(item, rows))
+    )
 
     // A missing table (42P01) reads the same as no row: the section is simply
     // not there yet. Worth naming, because this table is newer than the rest
@@ -592,8 +572,6 @@ export async function GET(request, { params }) {
       evidence,
       evidencePlacements,
       testimonialPlacements,
-      testimonialHidden,
-      evidenceShared,
       collectiveImpact,
       collectiveImpacts,
       skillProofs

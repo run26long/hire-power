@@ -12,23 +12,29 @@ import { requireCustomise } from '../../_lib/requireCustomise'
 // to take the star with it, and reordering has to leave a sequence the next
 // reorder can still read.
 //
-//   assign   - put an item in a direction, or take it out
 //   hide     - stop a direction showing an item, without moving or losing it
 //   feature  - decide which item leads a direction, or that none does
 //   reorder  - move an item up or down within a direction
 //
-// HIDE IS NOT ASSIGN-OFF
-// assign-off deletes the placement: the item leaves the direction, its
-// position is renumbered away and its lead status goes with it. That is the
-// right write for "this does not belong here" and the wrong one for "not on
-// this direction just now", which is what the management modal asks for. hide
-// leaves the row where it is and stops it rendering, so restoring puts the
-// item back in its old place rather than at the end.
+// WHICH DIRECTIONS AN ITEM IS ON IS NOT ONE OF THESE
+// That is the item's own placement_scope, and it is set through
+// PUT /api/career-profile/evidence/[evidenceId]/directions, which writes the
+// scope and the rows together. There used to be an `assign` op here that
+// added or removed a single row; it had no UI, and it could not express
+// "all directions" at all, so it is gone rather than left as a second way to
+// say a thing that now has one.
 //
-// EDITING A DIRECTION THAT HAS NO LIST OF ITS OWN
-// A direction with no placements falls back to the shared layer, so there is
-// no row for a per-direction edit to change. hide and reorder therefore copy
-// the shared list into the direction first - see the note in _lib/placements.
+// HIDE IS STILL NOT THAT EITHER
+// hide leaves the row where it is and stops this one direction rendering it,
+// so restoring puts the item back in its old place rather than at the end.
+// For an item scoped to all directions it is also the only way off a single
+// one without narrowing it to a list.
+//
+// EDITING A DIRECTION THAT HAS NO ROWS OF ITS OWN
+// An unarranged direction has no rows, because the items on it are there by
+// scope. There is nothing for a per-direction edit to change, so hide and
+// reorder write rows for everything then on it first - see the note in
+// _lib/placements.
 //
 // WHOSE PLACEMENTS THESE ARE
 // The token's. Every id in the body is checked against the profile the token
@@ -146,55 +152,16 @@ export async function POST(request) {
     }
 
     const op = body?.op
-    // `lens_id` absent and `lens_id: null` both mean the shared layer, and are
-    // the same thing rather than two different silences.
-    const lensId = body?.lens_id === undefined ? null : body.lens_id
+    // Every one of these edits is about one direction. There is no layer left
+    // for a missing lens_id to mean.
+    const lensId = body?.lens_id
+    if (!isUuid(lensId)) {
+      return Response.json({ error: 'Invalid request.', code: 'INVALID' }, { status: 400 })
+    }
     const evidenceId = body?.evidence_id === undefined ? null : body.evidence_id
 
     const wrong = await belongsHere(supabase, profile, evidenceId, lensId)
     if (wrong) return Response.json({ error: wrong }, { status: 404 })
-
-    // ---- ASSIGN ----
-    if (op === 'assign') {
-      if (!evidenceId) return Response.json({ error: 'Not found.' }, { status: 404 })
-      if (typeof body?.on !== 'boolean') {
-        return Response.json({ error: 'Invalid request.', code: 'INVALID' }, { status: 400 })
-      }
-
-      // Materialised for the same reason: adding one item to a direction that
-      // was following the shared layer would otherwise give it a list of one
-      // and silently drop everything else it had been showing.
-      const rows = await evidencePlacements.materialise(supabase, profile.id, lensId)
-      const existing = rows.find(r => r.evidence_id === evidenceId)
-
-      if (body.on) {
-        // Already there is success, not a duplicate-key error: the button says
-        // "shown here", and it already is.
-        if (!existing) {
-          const { error } = await supabase
-            .from('profile_evidence_placements')
-            .insert({
-              profile_id: profile.id,
-              evidence_id: evidenceId,
-              lens_id: lensId,
-              sort_order: rows.length,
-              featured: false
-            })
-          if (error) throw error
-        }
-      } else if (existing) {
-        const { error } = await supabase
-          .from('profile_evidence_placements')
-          .delete()
-          .eq('id', existing.id)
-        if (error) throw error
-        // The star goes with it. A direction whose lead has been taken out
-        // does not keep pointing at something that is no longer in it.
-        await renumber(supabase, rows.filter(r => r.id !== existing.id))
-      }
-
-      return Response.json({ placements: await placementsFor(supabase, profile.id, lensId) })
-    }
 
     // ---- HIDE ----
     //

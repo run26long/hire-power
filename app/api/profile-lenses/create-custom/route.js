@@ -91,11 +91,15 @@ function normaliseName(raw) {
     .join(' ')
 }
 
-function buildSupportPrompt({ name, knowledge }) {
+function buildSupportPrompt({ name, knowledge, existingNames }) {
   const entries = knowledge.map((k, i) => {
     const source = [k.source_job_title, k.source_job_company].filter(Boolean).join(' at ')
     return `${i + 1}. [${k.knowledge_type || 'entry'}] ${k.content}${source ? ` (from ${source})` : ''}`
   }).join('\n')
+
+  const already = (existingNames || []).length
+    ? existingNames.map(one => `- ${one}`).join('\n')
+    : 'None yet.'
 
   return `A person wants to present themselves for this career direction: "${name}"
 
@@ -104,33 +108,48 @@ Below is their complete career knowledge base. Decide whether it genuinely suppo
 CAREER KNOWLEDGE BASE:
 ${entries}
 
+CAREER DIRECTIONS THEY ALREADY HAVE:
+${already}
+
 RULES:
 - Count only entries that are real evidence for this direction: work actually done in it, skills genuinely used for it, results that belong to it. A passing mention is not evidence. An adjacent skill is not evidence.
 - A direction is a career path someone applies for jobs under, not a skill or a task. "Business Development" is a direction. "Proposal Writing" is a skill used within one. If the name they typed is a skill, a tool or a task rather than a direction, say so.
-- Judge the career, not the words. If their evidence is in the same career under a different name, that counts: someone asking for "AI Engineering" whose evidence is machine learning work has the evidence.
+- Judge the career, not the words. If their EVIDENCE is in the same career under a different name, that counts: someone asking for "AI Engineering" whose evidence is machine learning work has the evidence.
+- The opposite test, on the other side. If the direction they typed is the same career direction as one they ALREADY HAVE, listed above, under a different name, it is a duplicate and must be rejected. "Technical Writer" when they already have "Technical Writing" is the same direction. "Sales Leadership" when they already have "Sales Management" is the same direction. Set overlaps_with to the existing name, copied exactly as it is written above.
+- These two rules do not conflict. The first is about their evidence matching the request under another name, which is support. The second is about an existing direction matching the request under another name, which is a repeat. A direction can be fully supported and still be a duplicate, and when it is, overlaps_with is the answer that matters.
+- A narrower or broader specialism within a direction they already have is still the same direction. A genuinely separate job search is not: "Technical Writing" and "Software Engineering" are different directions even for the same person. If you are not sure, set overlaps_with to null.
 - supporting_count is how many entries you actually counted, by their numbers.
 - reason is one plain sentence for the person themselves, naming what is missing. No jargon, no apology.
 
 Respond with ONLY valid JSON, no markdown, no explanation:
-{"is_direction": true|false, "supporting_count": 0, "supporting_entries": [1,2], "reason": "..."}`
+{"is_direction": true|false, "supporting_count": 0, "supporting_entries": [1,2], "reason": "...", "overlaps_with": null}`
 }
 
-async function assessSupport({ name, knowledge }) {
+async function assessSupport({ name, knowledge, existingNames }) {
   const message = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 600,
     temperature: 0,
-    messages: [{ role: 'user', content: buildSupportPrompt({ name, knowledge }) }]
+    messages: [{ role: 'user', content: buildSupportPrompt({ name, knowledge, existingNames }) }]
   })
 
   let json = message.content?.[0]?.text?.trim() || ''
   if (json.startsWith('```')) json = json.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
   const parsed = JSON.parse(json)
 
+  // Only a name the model was actually shown. A duplicate message naming a
+  // direction they do not have would be worse than no message: it would be
+  // the page telling them about something that is not there.
+  const claimed = typeof parsed?.overlaps_with === 'string' ? parsed.overlaps_with.trim() : ''
+  const overlapsWith = (existingNames || []).find(
+    one => one.toLowerCase() === claimed.toLowerCase()
+  ) || null
+
   return {
     isDirection: parsed?.is_direction !== false,
     count: Number.isFinite(Number(parsed?.supporting_count)) ? Number(parsed.supporting_count) : 0,
-    reason: typeof parsed?.reason === 'string' ? parsed.reason.trim() : ''
+    reason: typeof parsed?.reason === 'string' ? parsed.reason.trim() : '',
+    overlapsWith
   }
 }
 
@@ -225,15 +244,21 @@ export async function POST(request) {
       return Response.json({ error: "We couldn't check your directions just now." }, { status: 500 })
     }
 
+    // ---- ALREADY HAVE IT, BY THE LETTER ----
+    //
+    // 200 with ok:false, not 409. A duplicate is an ordinary answer to an
+    // ordinary question, and the same answer the model gives a moment later
+    // for a name that matches a direction rather than a slug. Two transports
+    // for one outcome meant the interface showed it two different ways
+    // depending on which check caught it first.
     const clash = (existing || []).find(l => l.slug === slug)
     if (clash) {
-      return Response.json(
-        {
-          error: `You already have a direction called ${clash.name}.`,
-          code: 'DUPLICATE'
-        },
-        { status: 409 }
-      )
+      return Response.json({
+        ok: false,
+        code: 'DUPLICATE',
+        overlapsWith: clash.name,
+        message: `You already have a direction called ${clash.name}.`
+      })
     }
 
     // Counted on active, because that is what the limit is about: what the
@@ -272,10 +297,38 @@ export async function POST(request) {
 
     let support
     try {
-      support = await assessSupport({ name, knowledge: entries })
+      support = await assessSupport({
+        name,
+        knowledge: entries,
+        // Every direction they hold, whatever its status. A hidden or
+        // dismissed one is still one they have: offering to build a second
+        // copy of something sitting in their own list would be the worst kind
+        // of duplicate, because the first one is invisible to them.
+        existingNames: (existing || []).map(l => l.name).filter(Boolean)
+      })
     } catch (e) {
       console.error('[create-custom] Support check failed:', e)
       return Response.json({ error: "We couldn't check that direction just now. Please try again." }, { status: 500 })
+    }
+
+    // ---- ALREADY HAVE IT, BY THE CAREER ----
+    //
+    // Before the support refusal, because it is the more useful answer when
+    // both are true. A name that duplicates an existing direction is usually
+    // well supported - it describes a career they are already presenting -
+    // so the support test would pass it, and the one that caught it is the
+    // one worth reporting.
+    //
+    // strongestDirections is deliberately not called. It is a second model
+    // call whose whole job is to suggest somewhere else to go, and the answer
+    // here already names somewhere: the direction they have.
+    if (support.overlapsWith) {
+      return Response.json({
+        ok: false,
+        code: 'DUPLICATE',
+        overlapsWith: support.overlapsWith,
+        message: `You already have a direction called ${support.overlapsWith}.`
+      })
     }
 
     if (!support.isDirection || support.count < MIN_SUPPORTING_ENTRIES) {
@@ -323,9 +376,23 @@ export async function POST(request) {
       .single()
 
     if (insertError) {
-      // 23505 is the slug already being taken between the check above and here.
+      // 23505 is the slug already being taken between the check above and
+      // here. The same shape as both checks above, so a duplicate looks
+      // identical however it was caught - including by losing a race.
       if (insertError.code === '23505') {
-        return Response.json({ error: `You already have a direction called ${name}.`, code: 'DUPLICATE' }, { status: 409 })
+        const { data: taken } = await supabase
+          .from('profile_lenses')
+          .select('name')
+          .eq('user_id', userId)
+          .eq('slug', slug)
+          .maybeSingle()
+        const held = taken?.name || name
+        return Response.json({
+          ok: false,
+          code: 'DUPLICATE',
+          overlapsWith: held,
+          message: `You already have a direction called ${held}.`
+        })
       }
       console.error('[create-custom] Lens insert failed:', insertError)
       return Response.json({ error: "We couldn't create that direction. Please try again." }, { status: 500 })

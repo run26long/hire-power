@@ -138,9 +138,12 @@ export async function POST(request) {
     }
 
     const op = body?.op
-    // `lens_id` absent and `lens_id: null` both mean the shared layer, and are
-    // the same thing rather than two different silences.
-    const lensId = body?.lens_id === undefined ? null : body.lens_id
+    // Both of these edits are about one direction. There is no shared layer
+    // left for a missing lens_id to mean.
+    const lensId = body?.lens_id
+    if (!isUuid(lensId)) {
+      return Response.json({ error: 'Invalid request.', code: 'INVALID' }, { status: 400 })
+    }
     const testimonialId = body?.testimonial_id === undefined ? null : body.testimonial_id
 
     const wrong = await belongsHere(supabase, profile, testimonialId, lensId)

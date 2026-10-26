@@ -439,8 +439,12 @@ export async function GET(req) {
     // have one generated; the rest carry whatever they already had.
     // How many cores this account holds, which is what decides whether the
     // account's direction can be taken to mean one particular document. The
-    // query above is already filtered to is_active, so this is that count.
-    const activeCoreCount = allCore.length;
+    // query above is already filtered to is_active, and isRealCore is what
+    // the server enforces the limit with. Counting every core row instead
+    // counted abandoned resume_chat attempts that spend no slot, so the
+    // number on screen could read three of three while the route would still
+    // allow a fourth.
+    const activeCoreCount = allCore.filter(isRealCore).length;
 
     const projectCore = (core, generatedThumbnail) => ({
       id: core.id,
@@ -474,8 +478,18 @@ export async function GET(req) {
     // which is the same rule the resume page breadcrumb switcher uses. That test
     // also subsumes the resume_chat check the single core above makes, since an
     // unfinished chat resume fails coaching_complete on its own.
+    // Which cores the hub will switch between. isRealCore, not
+    // coaching_complete: most people's main core is an upload sitting at
+    // 'review' and has never been coached, and testing the flag alone left
+    // such a core out of this list entirely. A direction pointing at one
+    // then matched none of the hub's three groups and rendered no tile -
+    // present on the public page, absent from the hub, with no way to build
+    // the core it was supposedly missing.
+    //
+    // The same test the build limit and /api/coach already count with, so a
+    // core the hub shows is a core the limit has counted.
     const allCoreData = allCore
-      .filter(r => r.coaching_complete === true)
+      .filter(isRealCore)
       .map(r => projectCore(r, r.id === coreResume?.id ? thumbnailUrl : null));
     
     // Format resume versions data (tier-specific)

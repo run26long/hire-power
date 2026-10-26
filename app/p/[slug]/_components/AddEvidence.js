@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useRef, useState } from 'react'
+import DirectionPicker from './DirectionPicker'
 import { useProfileEdit, useNotify } from '../_lib/editContext'
 import { EVIDENCE_TYPES, FAMILY_LABELS, familyForType } from '@/lib/evidenceTypes'
 import {
@@ -93,6 +94,7 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
   const [saved, setSaved] = useState(null)
   const [form, setForm] = useState(EMPTY)
   const [lensIds, setLensIds] = useState([])
+  const [scope, setScope] = useState('all')
   const [preview, setPreview] = useState(null)
   const [looking, setLooking] = useState(false)
   const [note, setNote] = useState(null)
@@ -115,7 +117,10 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
 
   if (!edit?.editing) return null
 
-  const lenses = edit.lenses || []
+  // Every direction the owner could place this on, which is more than the
+  // ones on the public page: a direction turned off is one they can turn back
+  // on, and filing something there now is reasonable.
+  const lenses = edit.allLenses || edit.lenses || []
   const set = (key, value) => setForm(f => ({ ...f, [key]: value }))
 
   function reset() {
@@ -202,6 +207,7 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
         evidence_type: form.evidence_type,
         organization: form.organization.trim() || null,
         date_label: form.date_label.trim() || null,
+        placement_scope: scope,
         lens_ids: lensIds
       }
       const created = file
@@ -223,9 +229,12 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
       setSaved({
         title: form.title.trim(),
         warning: created?.warning || null,
-        where: lenses.filter(l => lensIds.includes(l.id)).map(l => l.name)
+        where: scope === 'all'
+          ? null
+          : lenses.filter(l => lensIds.includes(l.id)).map(l => l.name)
       })
       setForm(EMPTY)
+      setScope('all')
       setLensIds([])
       setPreview(null)
       setNote(null)
@@ -543,27 +552,16 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
             {lenses.length > 0 && (
               <>
                 <p className="hp-ed-field-label">Show it in</p>
-                <ul className="hp-ed-lens-picks">
-                  {lenses.map(lens => (
-                    <li key={lens.id}>
-                      <label className="hp-ed-lens-pick">
-                        <input
-                          type="checkbox"
-                          checked={lensIds.includes(lens.id)}
-                          onChange={e => setLensIds(ids =>
-                            e.target.checked ? [...ids, lens.id] : ids.filter(id => id !== lens.id)
-                          )}
-                        />
-                        <span>{lens.name}</span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-                {lensIds.length === 0 ? (
-                  <p className="hp-ed-proof-note">
-                    Pick none and it is saved but shown nowhere. You can place it later.
-                  </p>
-                ) : null}
+                <DirectionPicker
+                  lenses={lenses}
+                  scope={scope}
+                  lensIds={lensIds}
+                  idPrefix="hp-add-evidence"
+                  onChange={(nextScope, nextIds) => {
+                    setScope(nextScope)
+                    setLensIds(nextIds)
+                  }}
+                />
               </>
             )}
           </>
@@ -574,9 +572,11 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
             <p className="hp-ed-add-title">Added.</p>
             <p className="hp-ed-add-saved">
               <strong>{saved.title}</strong>
-              {saved.where.length > 0
-                ? ` is now in ${saved.where.join(' and ')}.`
-                : ' is saved but not shown in any direction yet.'}
+              {saved.where === null
+                ? ' is now showing on all directions.'
+                : saved.where.length > 0
+                  ? ` is now in ${saved.where.join(' and ')}.`
+                  : ' is saved.'}
             </p>
             {/* Where it went, and why it may not be on screen. The collection
                 is shown a few at a time and a new piece joins the end of it. */}

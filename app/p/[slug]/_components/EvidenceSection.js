@@ -12,7 +12,7 @@ import { isEvidenceItem } from '@/lib/portfolio'
 import ManageList from './ManageList'
 import { EvidenceEditPane } from './ManagePanes'
 import { useCanShowEmpty, useCanEdit, useProfileEdit } from '../_lib/editContext'
-import { directionPlacements } from '../_lib/profileData'
+import { rowsForDirection, selectForDirection, unplacedItems } from '../_lib/profileData'
 
 // ============================================================================
 // EVIDENCE
@@ -129,22 +129,35 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
     setOverlay({ mode: 'manage' })
   }, [])
 
+  // Everything this direction holds, which now includes the items that are
+  // here by saying "all directions" and have no row of their own yet.
+  // includeHidden, because the switch for an item taken off this direction
+  // has to stay where the owner can turn it back on.
   const manageItems = useMemo(() => {
-    const byId = new Map((edit?.allEvidence || []).map(one => [one.id, one]))
-    return directionPlacements(edit?.allPlacements, lensId)
-      .map(place => {
-        const item = byId.get(place.evidence_id)
-        // Portfolio takes the visual uploads; this section is everything
-        // else, and the management list has to agree with what it renders.
-        if (!item || !isEvidenceItem(item)) return null
-        return {
-          id: item.id,
-          title: item.title || typeLabel(item),
-          meta: metaOf(item) || typeLabel(item),
-          hidden: place.hidden === true
-        }
-      })
-      .filter(Boolean)
+    const rows = rowsForDirection(edit?.allPlacements, lensId, 'evidence_id')
+    // Portfolio takes the visual uploads; this section is everything else,
+    // and the management list has to agree with what it renders.
+    const mine = (edit?.allEvidence || []).filter(isEvidenceItem)
+    const here = selectForDirection(mine, rows, { includeHidden: true }).map(item => ({
+      id: item.id,
+      title: item.title || typeLabel(item),
+      meta: metaOf(item) || typeLabel(item),
+      hidden: rows.get(item.id)?.hidden === true
+    }))
+
+    // On no direction at all, which the owner cannot otherwise see: the item
+    // is in their library and on nothing, and the only control that fixes it
+    // is the picker inside this row.
+    const orphans = unplacedItems(mine, edit?.allPlacements, 'evidence_id').map(item => ({
+      id: item.id,
+      title: item.title || typeLabel(item),
+      meta: metaOf(item) || typeLabel(item),
+      hidden: false,
+      status: 'Not shown on any direction',
+      statusTone: 'wait'
+    }))
+
+    return [...here, ...orphans]
   }, [edit?.allEvidence, edit?.allPlacements, lensId])
 
   // Every write reports through the page's own toast, the way the rest of
@@ -179,8 +192,9 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
 
   // Which item leads this direction, for the switch inside the pane.
   const featuredId = useMemo(() => {
-    const here = directionPlacements(edit?.allPlacements, lensId)
-    return here.find(place => place.featured)?.evidence_id || null
+    const rows = rowsForDirection(edit?.allPlacements, lensId, 'evidence_id')
+    for (const [id, row] of rows) if (row?.featured) return id
+    return null
   }, [edit?.allPlacements, lensId])
 
   const dropItem = useCallback((fromId, toId) => {

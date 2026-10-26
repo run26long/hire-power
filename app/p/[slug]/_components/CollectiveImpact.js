@@ -7,7 +7,7 @@ import ProfileModal from './ProfileModal'
 import ManageList from './ManageList'
 import { TestimonialEditPane, TestimonialRequestPane } from './ManagePanes'
 import { useCanShowEmpty, useProfileEdit } from '../_lib/editContext'
-import { directionPlacements } from '../_lib/profileData'
+import { rowsForDirection, selectForDirection } from '../_lib/profileData'
 
 // ============================================================================
 // COLLECTIVE IMPACT + FIRSTHAND ACCOUNTS
@@ -99,8 +99,22 @@ export default function CollectiveImpact({
   // are actually in.
   const manageItems = useMemo(() => {
     const all = edit?.testimonials || []
-    const places = directionPlacements(edit?.allTestimonialPlacements, lensId)
-    const placeOf = new Map(places.map((place, at) => [place.testimonial_id, { place, at }]))
+    const rows = rowsForDirection(edit?.allTestimonialPlacements, lensId, 'testimonial_id')
+
+    // The order this direction reads them in, which is the same call the
+    // public page makes: the rows where there are rows, the synthesis's own
+    // ranking for everything here without one. A testimonial on all
+    // directions holds no row and is still in this list, so its position has
+    // to come from the same place the page would put it.
+    //
+    // includeHidden, because a testimonial turned off here still has a row in
+    // the owner's list - that is where the switch to turn it back on lives.
+    const here = selectForDirection(
+      all.filter(item => item.status === 'published'),
+      rows,
+      { order: impact?.testimonialOrder, includeHidden: true }
+    )
+    const rankOf = new Map(here.map((item, at) => [item.id, at]))
 
     // ---- THE FOUR STATES ----
     //
@@ -113,13 +127,18 @@ export default function CollectiveImpact({
     // by nothing else. Reading the status alone is what produced "No response
     // yet" over a paragraph somebody had already written and sent.
     const rowFor = (item) => {
-      const found = placeOf.get(item.id)
       const published = item.status === 'published'
       const answered = Boolean(item.polished_text || item.raw_text)
-      const hidden = found ? found.place.hidden === true : false
+      const hidden = rows.get(item.id)?.hidden === true
+
+      // Published and on nothing: pinned to directions that have all since
+      // been deleted. Worth its own word, because "Published" over a
+      // testimonial nobody can see would be the page lying.
+      const unplaced = published && item.placement_scope === 'selected' && !rankOf.has(item.id)
 
       const state = !answered ? 'Requested'
         : !published ? 'Ready to review'
+        : unplaced ? 'Not shown on any direction'
         : hidden ? 'Hidden'
         : 'Published'
 
@@ -128,26 +147,26 @@ export default function CollectiveImpact({
         title: item.recipient_name || 'A referee',
         meta: [item.recipient_title, item.relationship].filter(Boolean).join(' · '),
         hidden,
-        // Placed means there is something on this direction to order and to
-        // show or hide, which only what is on the profile has. A placement row
-        // can exist for an unpublished one - the direction materialises them in
-        // a batch - and it still has no place in the profile's order.
-        placed: published && Boolean(found),
+        // Placed means this direction has something to order and to show or
+        // hide. That is now a question about membership rather than about a
+        // row: a testimonial on all directions is on this one and can be
+        // ordered here, whether or not anybody has arranged it yet.
+        placed: rankOf.has(item.id),
         status: state,
         statusTone: state === 'Published' ? 'live' : state === 'Ready to review' ? 'review' : 'wait',
         // Only what is on the profile takes part in the profile's order.
-        rank: published && found ? found.at : -1,
+        rank: rankOf.has(item.id) ? rankOf.get(item.id) : -1,
         at: item.created_at || '',
         // What the badge on the section's control counts.
         toReview: answered && !published
       }
     }
 
-    const rows = all.map(rowFor)
-    const pending = rows.filter(row => row.rank === -1).sort((a, b) => String(b.at).localeCompare(String(a.at)))
-    const placed = rows.filter(row => row.rank !== -1).sort((a, b) => a.rank - b.rank)
+    const listed = all.map(rowFor)
+    const pending = listed.filter(row => row.rank === -1).sort((a, b) => String(b.at).localeCompare(String(a.at)))
+    const placed = listed.filter(row => row.rank !== -1).sort((a, b) => a.rank - b.rank)
     return [...pending, ...placed]
-  }, [edit?.testimonials, edit?.allTestimonialPlacements, lensId])
+  }, [edit?.testimonials, edit?.allTestimonialPlacements, lensId, impact])
 
   // How many are waiting on the owner rather than on the person who was asked.
   // A request nobody has answered is not work for them and is deliberately not

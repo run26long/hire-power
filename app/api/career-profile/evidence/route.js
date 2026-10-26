@@ -160,17 +160,25 @@ export async function POST(request) {
     // Ids from the browser, so every one is checked against this profile's own
     // directions rather than trusted. Duplicates collapse: asking for the same
     // direction twice is one placement, not a unique-violation.
-    // Absent means none, which is a real choice: an item can be saved and
-    // placed later. Present but not a list is a caller that meant something,
-    // and quietly storing it in no direction at all would look like a save
-    // that worked.
-    if (body.lens_ids !== undefined && !Array.isArray(body.lens_ids)) {
+    // ---- WHICH DIRECTIONS ----
+    //
+    // The default is every direction, which is also what an older caller that
+    // sends nothing gets. Absent used to mean "none", and none meant the item
+    // was saved and shown nowhere: a quiet invisibility nobody picked on
+    // purpose. The picker now states the answer instead of making somebody
+    // tick their way to it.
+    const scope = body?.placement_scope === 'selected' ? 'selected' : 'all'
+
+    if (body?.lens_ids !== undefined && !Array.isArray(body.lens_ids)) {
       return Response.json(
         { error: 'Choose which directions to show it in.', code: 'INVALID', field: 'lens_ids' },
         { status: 400 }
       )
     }
-    const requested = Array.isArray(body.lens_ids)
+    // Only consulted for 'selected'. An item on all directions is on them by
+    // saying so, and a list sent alongside that would be a second answer to a
+    // question that already has one.
+    const requested = scope === 'selected' && Array.isArray(body.lens_ids)
       ? [...new Set(body.lens_ids.filter(id => typeof id === 'string' && id))]
       : []
     let lensIds = []
@@ -225,6 +233,7 @@ export async function POST(request) {
         embed_url: provider ? url.value : null,
         privacy: 'public',
         status: 'published',
+        placement_scope: scope,
         sort_order: (lastItem?.sort_order ?? -1) + 1
       })
       .select(RETURNED)
@@ -239,8 +248,13 @@ export async function POST(request) {
     // After the row, because a placement without its evidence is refused by the
     // foreign key. Nothing is featured here: leading a direction is a separate
     // decision with its own constraint, and it is made in the manager.
+    //
+    // An item on all directions gets no rows at all. Its scope already says
+    // where it is, and writing a row per direction would be the same claim
+    // made twice, in a form that stops being true the next time somebody adds
+    // a direction.
     let placements = []
-    if (lensIds.length > 0) {
+    if (scope === 'selected' && lensIds.length > 0) {
       const { data: existing } = await supabase
         .from('profile_evidence_placements')
         .select('lens_id, sort_order')

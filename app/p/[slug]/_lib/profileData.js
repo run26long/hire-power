@@ -193,10 +193,10 @@ export function resolveSkillProof(skillProofs, { evidence, testimonials, resumeD
 // ---------------------------------------------------------------------------
 // WHAT THIS DIRECTION HAS PLACED, SHOWN AND HIDDEN TOGETHER
 //
-// The management list's source. A direction's own placements where it has
-// any, the shared layer where it has none - the same fallback the public
-// route resolves with, so the modal opens on exactly what the page is
-// showing rather than on some other reading of the same table.
+// The management list's source: every placement this direction holds, in its
+// own order. There is no fallback to look through any more - what a direction
+// shows is decided by onDirection below, and this says only where the rows it
+// does have want things to sit.
 //
 // Hidden rows are kept. They are the whole reason the list exists: an item
 // off this direction is a switch to turn back on, and it can only be turned
@@ -204,34 +204,100 @@ export function resolveSkillProof(skillProofs, { evidence, testimonials, resumeD
 // ---------------------------------------------------------------------------
 export function directionPlacements(placements, lensId) {
   const rows = Array.isArray(placements) ? placements : []
-  const own = lensId ? rows.filter(r => r?.lens_id === lensId) : []
-  const use = own.length ? own : rows.filter(r => r?.lens_id === null)
-  return [...use].sort((x, y) => (x?.sort_order ?? 0) - (y?.sort_order ?? 0))
+  if (!lensId) return []
+  return rows
+    .filter(r => r?.lens_id === lensId)
+    .sort((x, y) => (x?.sort_order ?? 0) - (y?.sort_order ?? 0))
 }
 
-export function selectTestimonials(testimonials, placements) {
-  const list = Array.isArray(testimonials) ? testimonials : []
-  const placed = Array.isArray(placements) ? placements : []
-  if (placed.length === 0) return null
-
-  const byId = new Map(list.map(item => [item?.id, item]))
-  const out = []
-  const seen = new Set()
-  for (const place of placed) {
-    const id = place?.testimonial_id
-    if (!id || seen.has(id)) continue
-    const item = byId.get(id)
-    // An id that is unknown, withdrawn or unpublished resolves to nothing and
-    // is dropped, the same way the ranking above drops one.
-    if (!item) continue
-    out.push(item)
-    seen.add(id)
+// ---------------------------------------------------------------------------
+// THE ROWS ONE DIRECTION HOLDS, BY ITEM
+//
+// Every reader asks the same two questions of the same rows - is this item on
+// this direction, and where does it sit - so the lookup is built once and
+// handed to both rather than each caller filtering the whole list again.
+// ---------------------------------------------------------------------------
+export function rowsForDirection(placements, lensId, itemKey) {
+  const map = new Map()
+  if (!lensId) return map
+  for (const row of Array.isArray(placements) ? placements : []) {
+    if (!row || row.lens_id !== lensId) continue
+    map.set(row[itemKey], row)
   }
-  return out
+  return map
 }
 
-export function orderTestimonials(testimonials, order) {
-  const list = Array.isArray(testimonials) ? testimonials : []
+// ---------------------------------------------------------------------------
+// IS THIS ITEM ON THIS DIRECTION
+//
+// The one rule, in one place, so the public page, the manage panes and the
+// route that signs a file URL cannot answer it differently.
+//
+//   on(L) = (scope 'all' OR a row for L exists) AND NOT (that row is hidden)
+//
+// An item that says 'all' needs no row to be here - that is the whole point of
+// the flag, and it is what keeps a direction created tomorrow showing it. A
+// row still matters for such an item: it carries where it sits and whether it
+// leads, and a hidden row is how one direction takes an all-directions item
+// off without the item ceasing to be one.
+//
+// An item that says 'selected' is here only if it holds a row. With no rows
+// at all it is on no direction, which is where deleting a direction leaves
+// something that was only on that one.
+// ---------------------------------------------------------------------------
+export function onDirection(item, rowsForLens) {
+  const row = rowsForLens?.get?.(item?.id)
+  if (row?.hidden === true) return false
+  return item?.placement_scope === 'all' || Boolean(row)
+}
+
+// ---------------------------------------------------------------------------
+// WHAT A DIRECTION SHOWS, IN ORDER
+//
+// Two groups, never interleaved, because their positions are not on the same
+// scale. Items with a row for this direction sit where the row says. Items
+// here only by being 'all', with no row yet, follow behind in the order they
+// arrived - which for evidence is the collection's own sort_order and for
+// testimonials is the generated ranking passed as `order`.
+//
+// A direction nobody has arranged has no rows at all, so the first group is
+// empty and the whole section reads in that default order. The first reorder,
+// hide or star materialises rows for everything then on screen, after which
+// the first group is the section and the second is whatever has been added
+// since. That is why a new 'all' item appends at the end rather than landing
+// in the middle of an order somebody chose.
+// ---------------------------------------------------------------------------
+// `includeHidden` is the owner's reading rather than a reader's. Hiding is a
+// switch, and a switch has to be in front of somebody to be turned back on, so
+// the manage panes ask for the items this direction has hidden as well as the
+// ones it shows. The public page never passes it.
+export function selectForDirection(items, rowsForLens, { order = null, includeHidden = false } = {}) {
+  const here = (Array.isArray(items) ? items : []).filter(item => {
+    if (includeHidden) {
+      const row = rowsForLens?.get?.(item?.id)
+      return item?.placement_scope === 'all' || Boolean(row)
+    }
+    return onDirection(item, rowsForLens)
+  })
+  const rowed = []
+  const loose = []
+  for (const item of here) {
+    if (rowsForLens?.get?.(item.id)) rowed.push(item)
+    else loose.push(item)
+  }
+  rowed.sort((a, b) =>
+    (rowsForLens.get(a.id)?.sort_order ?? 0) - (rowsForLens.get(b.id)?.sort_order ?? 0)
+  )
+  return [...rowed, ...rankByIds(loose, order)]
+}
+
+// ---------------------------------------------------------------------------
+// A ranking by id, with everything it does not mention kept behind in the
+// order it already had. Shared by the testimonial ordering below and by the
+// tail of selectForDirection, which want the same thing of different lists.
+// ---------------------------------------------------------------------------
+function rankByIds(items, order) {
+  const list = Array.isArray(items) ? items : []
   const ranking = Array.isArray(order) ? order : []
   if (list.length === 0 || ranking.length === 0) return list
 
@@ -245,8 +311,11 @@ export function orderTestimonials(testimonials, order) {
     ranked.push(item)
     placed.add(id)
   }
-
   return [...ranked, ...list.filter(item => !placed.has(item?.id))]
+}
+
+export function orderTestimonials(testimonials, order) {
+  return rankByIds(testimonials, order)
 }
 
 // The bio arrives as one block at one volume. Its first sentence is the thesis
@@ -400,4 +469,24 @@ export function nameScaleFor(lines) {
   if (longest <= 10) return 'lg'
   if (longest <= 14) return 'md'
   return 'sm'
+}
+
+// ---------------------------------------------------------------------------
+// ON NO DIRECTION AT ALL
+//
+// Items pinned to particular directions that now hold none. Deleting the last
+// direction one was on is how this happens: the rows go with the direction,
+// the item stays in the library, and nothing shows it.
+//
+// They are listed in every direction's manage view rather than none, because
+// the only thing to do with one is put it somewhere, and the place that
+// offers to do that is the manage view of wherever the owner happens to be.
+// ---------------------------------------------------------------------------
+export function unplacedItems(items, placements, itemKey) {
+  const held = new Set(
+    (Array.isArray(placements) ? placements : []).map(row => row?.[itemKey]).filter(Boolean)
+  )
+  return (Array.isArray(items) ? items : []).filter(
+    item => item?.placement_scope === 'selected' && !held.has(item?.id)
+  )
 }

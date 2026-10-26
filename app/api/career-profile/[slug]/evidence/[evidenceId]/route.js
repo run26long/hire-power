@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { apiError } from '@/lib/apiError'
+import { onDirection, rowsForDirection } from '@/app/p/[slug]/_lib/profileData'
 
 const MEDIA_BUCKET = 'profile-media'
 
@@ -95,7 +96,7 @@ export async function GET(request, { params }) {
     // is not something this route can be talked into reading.
     const { data: item, error: itemError } = await supabase
       .from('profile_evidence')
-      .select('id, media_class, mime_type, storage_path, thumbnail_path, source_type')
+      .select('id, media_class, mime_type, storage_path, thumbnail_path, source_type, placement_scope')
       .eq('id', evidenceId)
       .eq('profile_id', profile.id)
       .eq('privacy', 'public')
@@ -129,41 +130,38 @@ export async function GET(request, { params }) {
 
     // A profile with directions has to be read through one of them. The only
     // request without a lens that means anything is one to a profile that has
-    // no visible directions at all, which is the case the page itself renders
-    // straight from the shared layer.
+    // no visible directions at all, which the page renders as a single
+    // direction nobody has arranged.
     if (lensId === null) {
       if (shownLensIds.size > 0) return notFound()
     } else if (!shownLensIds.has(lensId)) {
       return notFound()
     }
 
-    // The direction's own placements, and the shared layer, read separately -
-    // because which of the two applies depends on whether the first has any
-    // rows at all, and that question cannot be answered by a query filtered to
-    // one evidence id.
-    const [own, shared] = await Promise.all([
-      lensId === null
-        ? Promise.resolve({ data: [], error: null })
-        : supabase
-            .from('profile_evidence_placements')
-            .select('evidence_id')
-            .eq('profile_id', profile.id)
-            .eq('lens_id', lensId),
-      supabase
-        .from('profile_evidence_placements')
-        .select('evidence_id')
-        .eq('profile_id', profile.id)
-        .is('lens_id', null)
-    ])
+    // One row, for this item in this direction. The old pair of queries had to
+    // read the whole direction and the whole shared layer, because which of
+    // the two applied depended on whether the first had any rows at all. That
+    // question is gone: the item says which directions it is on, and the row
+    // only says what this direction has done about it.
+    const { data: rows, error: rowError } = lensId === null
+      ? { data: [], error: null }
+      : await supabase
+          .from('profile_evidence_placements')
+          .select('evidence_id, lens_id, hidden')
+          .eq('profile_id', profile.id)
+          .eq('lens_id', lensId)
+          .eq('evidence_id', item.id)
 
-    if (own.error || shared.error) {
-      console.error('[evidence-media] Placement lookup failed:', own.error || shared.error)
+    if (rowError) {
+      console.error('[evidence-media] Placement lookup failed:', rowError)
       return Response.json({ error: 'LOOKUP_FAILED' }, { status: 500 })
     }
 
-    // One set or the other, never both.
-    const effective = (own.data || []).length > 0 ? own.data : (shared.data || [])
-    if (!effective.some(row => row.evidence_id === item.id)) return notFound()
+    // The same rule the page renders with, so a file is signed for exactly the
+    // items a reader on this direction can already see.
+    if (!onDirection(item, rowsForDirection(rows || [], lensId, 'evidence_id'))) {
+      return notFound()
+    }
 
     // The path comes from the row, never from the request. A thumbnail is only
     // signed where the row actually carries one; there is no falling back to

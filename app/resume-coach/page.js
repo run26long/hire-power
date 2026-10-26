@@ -556,13 +556,25 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       });
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setCustomNote(payload?.error || "We couldn't create that direction. Please try again.");
+        setCustomNote({ title: null, body: payload?.error || "We couldn't create that direction. Please try again." });
         return;
       }
       // An answer of "no" is an ordinary result, not a failure: the request
-      // worked, the career data did not reach.
+      // worked, the career data did not reach. Two of them, and the drawer
+      // says the same two things in the same words - this is one feature on
+      // two pages and it should not read as two.
       if (payload?.ok === false) {
-        setCustomNote(payload.message || "There isn't enough career data to support that direction yet.");
+        setCustomNote(
+          payload.code === 'DUPLICATE'
+            ? {
+                title: 'You already have this direction',
+                body: `This overlaps with ${payload.overlapsWith}.`
+              }
+            : {
+                title: 'Not enough career data yet',
+                body: payload.message || "There isn't enough career data to support that direction yet."
+              }
+        );
         return;
       }
       setCustomName('');
@@ -583,7 +595,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       }
     } catch (err) {
       console.error('Custom lens create failed:', err);
-      setCustomNote("We couldn't create that direction. Please try again.");
+      setCustomNote({ title: null, body: "We couldn't create that direction. Please try again." });
     } finally {
       setCustomBusy(false);
     }
@@ -2189,8 +2201,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                       </p>
                                     )}
                                     {customNote && !customBusy && (
-                                      <p className="mt-2 flex items-start gap-2 text-[11px] leading-snug text-gray-600 border-l-2 border-purple-400 pl-2">
-                                        <span>{customNote}</span>
+                                      <div className="mt-2 flex items-start gap-2 text-[11px] leading-snug text-gray-600 border-l-2 border-purple-400 pl-2">
+                                        <span className="min-w-0">
+                                          {customNote.title ? (
+                                            <span className="block font-semibold text-gray-900">{customNote.title}</span>
+                                          ) : null}
+                                          <span className="block">{customNote.body}</span>
+                                        </span>
                                         <button
                                           type="button"
                                           onClick={() => { setCustomNote(null); setCustomName(''); }}
@@ -2199,7 +2216,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                         >
                                           ×
                                         </button>
-                                      </p>
+                                      </div>
                                     )}
                                   </div>
                                 ) : (

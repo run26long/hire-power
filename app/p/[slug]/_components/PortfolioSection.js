@@ -8,7 +8,7 @@ import PortfolioMat from './PortfolioMat'
 import AddEvidence from './AddEvidence'
 import { SlotGuide, SlotGhost, UpgradeNote, useEditSlot } from './EditAffordance'
 import { useCanShowEmpty, useCanEdit, useProfileEdit } from '../_lib/editContext'
-import { directionPlacements } from '../_lib/profileData'
+import { rowsForDirection, selectForDirection, unplacedItems } from '../_lib/profileData'
 import { PORTFOLIO_PREVIEW_DESKTOP, isPortfolioItem } from '@/lib/portfolio'
 import ManageList from './ManageList'
 import { EvidenceEditPane } from './ManagePanes'
@@ -106,21 +106,30 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
   }, [])
 
   const manageItems = useMemo(() => {
-    const byId = new Map((edit?.allEvidence || []).map(one => [one.id, one]))
-    return directionPlacements(edit?.allPlacements, lensId)
-      .map(place => {
-        const item = byId.get(place.evidence_id)
-        // Portfolio is the visual half of the same collection, so the list
-        // is filtered to what this section actually renders.
-        if (!item || !isPortfolioItem(item)) return null
-        return {
-          id: item.id,
-          title: item.title || 'Untitled',
-          meta: [item.organization, item.date_label].filter(Boolean).join(' · '),
-          hidden: place.hidden === true
-        }
-      })
-      .filter(Boolean)
+    const rows = rowsForDirection(edit?.allPlacements, lensId, 'evidence_id')
+    // Portfolio is the visual half of the same collection, so the list is
+    // filtered to what this section actually renders.
+    const mine = (edit?.allEvidence || []).filter(isPortfolioItem)
+    const here = selectForDirection(mine, rows, { includeHidden: true }).map(item => ({
+      id: item.id,
+      title: item.title || 'Untitled',
+      meta: [item.organization, item.date_label].filter(Boolean).join(' · '),
+      hidden: rows.get(item.id)?.hidden === true
+    }))
+
+    // On no direction at all, which the owner cannot otherwise see: the item
+    // is in their library and on nothing, and the only control that fixes it
+    // is the picker inside this row.
+    const orphans = unplacedItems(mine, edit?.allPlacements, 'evidence_id').map(item => ({
+      id: item.id,
+      title: item.title || 'Untitled',
+      meta: [item.organization, item.date_label].filter(Boolean).join(' · '),
+      hidden: false,
+      status: 'Not shown on any direction',
+      statusTone: 'wait'
+    }))
+
+    return [...here, ...orphans]
   }, [edit?.allEvidence, edit?.allPlacements, lensId])
 
   const run = useCallback(async (id, work) => {
@@ -150,8 +159,9 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
   )
 
   const featuredId = useMemo(() => {
-    const here = directionPlacements(edit?.allPlacements, lensId)
-    return here.find(place => place.featured)?.evidence_id || null
+    const rows = rowsForDirection(edit?.allPlacements, lensId, 'evidence_id')
+    for (const [id, row] of rows) if (row?.featured) return id
+    return null
   }, [edit?.allPlacements, lensId])
 
   const dropItem = useCallback((fromId, toId) => {

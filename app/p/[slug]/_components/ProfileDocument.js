@@ -14,9 +14,9 @@ import {
   BIO_COLLAPSE_AT,
   LENS_RAIL_SLOTS,
   groupSkills,
-  orderTestimonials,
-  selectTestimonials,
   resolveSkillProof,
+  rowsForDirection,
+  selectForDirection,
   truncateAtSentence
 } from '../_lib/profileData'
 import { splitCollection } from '@/lib/portfolio'
@@ -333,20 +333,21 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   // What this direction puts in Evidence, and in what order.
   //
   // Placements are references, so the items themselves are read out of the one
-  // canonical list the route sent. A direction with no placements of its own
-  // falls back to the shared layer - it does not borrow another direction's,
-  // and the two are never merged: a reader would have no way to tell which of
-  // the things in front of them this direction had actually chosen.
+  // canonical list the route sent, and the rows say only where they sit here.
+  //
+  // The two kinds combine. An item on all directions and an item picked for
+  // this one are both on this one, which is the thing the old shared-layer
+  // fallback could not express: it resolved to one list or the other and
+  // never to both.
   const directionEvidence = useMemo(() => {
-    const places = data?.evidencePlacements?.[selectedLens?.id] ?? data?.evidenceShared ?? []
-    const byId = new Map(evidence.map(item => [item.id, item]))
-    return places
-      .map(place => {
-        const item = byId.get(place.evidence_id)
-        return item ? { ...item, featured: place.featured === true } : null
-      })
-      .filter(Boolean)
-  }, [data?.evidencePlacements, data?.evidenceShared, selectedLens?.id, evidence])
+    const rows = rowsForDirection(data?.evidencePlacements, selectedLens?.id, 'evidence_id')
+    return selectForDirection(evidence, rows).map(item => ({
+      ...item,
+      // Leading this direction is a property of the row, so an item here
+      // without one is simply not the lead.
+      featured: rows.get(item.id)?.featured === true
+    }))
+  }, [data?.evidencePlacements, selectedLens?.id, evidence])
 
   // One collection, two sections. The rule lives in lib/portfolio and is
   // applied once, here, so Evidence is exactly what Portfolio did not take -
@@ -370,27 +371,19 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   // One shared, privacy-filtered collection, read in this direction's order.
   // The canonical list is what proof resolves against, so reordering here
   // changes what Firsthand shows first and nothing else.
-  // The owner's own arrangement for THIS direction, where they have made one.
-  // It both picks and orders, so it answers the whole question and the
-  // generated ranking is not consulted.
+  // The same rule as evidence, over the other collection, plus the one thing
+  // testimonials have that evidence does not: a generated reading order.
   //
-  // Deliberately not falling back to the shared layer. Every testimonial is
-  // in that layer and always has been; reading it as an order would replace
-  // the synthesis's ranking for every profile at once. Where a direction has
-  // no list of its own the synthesis still decides, which is what this page
-  // has always done.
-  const curatedTestimonials = data?.testimonialPlacements?.[selectedLens?.id] || null
-  const hiddenTestimonials = data?.testimonialHidden
-
+  // THE SYNTHESIS STILL ORDERS AN UNARRANGED DIRECTION. It used to do so from
+  // the fallback branch - the owner had curated nothing, so the ranking was
+  // consulted instead. There is no fallback now, so it is passed in as the
+  // order of the items that are here without a row of their own, which is
+  // every item in a direction nobody has arranged. Same output, reached
+  // without asking whether a curation exists.
   const orderedTestimonials = useMemo(() => {
-    const curated = selectTestimonials(testimonials, curatedTestimonials)
-    if (curated) return curated
-    // The one thing the shared layer does say: an item hidden there is off
-    // every direction. A filter, never a position.
-    const hidden = new Set(Array.isArray(hiddenTestimonials) ? hiddenTestimonials : [])
-    const visible = hidden.size ? testimonials.filter(t => !hidden.has(t?.id)) : testimonials
-    return orderTestimonials(visible, impact?.testimonialOrder)
-  }, [testimonials, curatedTestimonials, hiddenTestimonials, impact])
+    const rows = rowsForDirection(data?.testimonialPlacements, selectedLens?.id, 'testimonial_id')
+    return selectForDirection(testimonials, rows, { order: impact?.testimonialOrder })
+  }, [data?.testimonialPlacements, selectedLens?.id, testimonials, impact])
 
   // References become renderable proof here, against the evidence and
   // testimonials this page was already given and the resume it is showing.
@@ -587,7 +580,8 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       onUploadEvidence: edit.onUploadEvidence,
       allEvidence: edit.allEvidence,
       allPlacements: edit.allPlacements,
-      onAssignEvidence: edit.onAssignEvidence,
+      onSetEvidenceDirections: edit.onSetEvidenceDirections,
+      onSetTestimonialDirections: edit.onSetTestimonialDirections,
       onFeatureEvidence: edit.onFeatureEvidence,
       onReorderEvidence: edit.onReorderEvidence,
       onHideEvidence: edit.onHideEvidence,
@@ -635,7 +629,8 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   }, [
     edit?.editing, edit?.canCustomise, edit?.canUseProfileTools, edit?.notify,
     edit?.onPreviewUrl, edit?.onCreateEvidence, edit?.onUploadEvidence,
-    edit?.allEvidence, edit?.allPlacements, edit?.onAssignEvidence, edit?.onFeatureEvidence,
+    edit?.allEvidence, edit?.allPlacements, edit?.onSetEvidenceDirections,
+    edit?.onSetTestimonialDirections, edit?.onFeatureEvidence,
     edit?.onReorderEvidence, edit?.onEditEvidence, edit?.onDeleteEvidence,
     edit?.onHideEvidence, edit?.allTestimonialPlacements,
     edit?.onHideTestimonial, edit?.onReorderTestimonial,

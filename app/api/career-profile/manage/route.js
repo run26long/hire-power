@@ -60,7 +60,7 @@ const EVIDENCE_COLS =
   'id, family, evidence_type, kind, media_class, title, description, ' +
   'organization, date_label, source_type, url, provider, embed_url, ' +
   'mime_type, file_size, privacy, status, sort_order, storage_path, ' +
-  'thumbnail_path, created_at, updated_at'
+  'thumbnail_path, placement_scope, created_at, updated_at'
 
 const PLACEMENT_COLS = 'id, evidence_id, lens_id, sort_order, featured, hidden'
 
@@ -76,7 +76,7 @@ const TESTIMONIAL_PLACEMENT_COLS = 'id, testimonial_id, lens_id, sort_order, hid
 const TESTIMONIAL_COLS =
   'id, recipient_name, recipient_email, recipient_title, relationship, ' +
   'relationship_type, status, raw_text, polished_text, reference_consent, ' +
-  'reference_phone, submitted_at, lens_ids, created_at'
+  'reference_phone, submitted_at, placement_scope, created_at'
 
 export async function GET(request) {
   try {
@@ -195,25 +195,8 @@ export async function GET(request) {
       )
     }
 
-    // Same tolerance as the public route: without the migration the hidden
-    // column is not there, and a management page that will not load at all is
-    // a worse answer than one that loads without a column nothing has written
-    // to yet.
-    let placementRows = placementRes.error ? [] : (placementRes.data || [])
-    let placementFailed = placementRes.error || null
-    if (placementRes.error && /column .* does not exist|hidden/i.test(String(placementRes.error.message || ''))) {
-      console.warn(
-        '[career-profile/manage] profile_evidence_placements has no hidden column, reading without it. ' +
-        'Has scripts/create-testimonial-placements.sql been run?'
-      )
-      const retry = await supabase
-        .from('profile_evidence_placements')
-        .select('id, evidence_id, lens_id, sort_order, featured')
-        .eq('profile_id', profile.id)
-        .order('sort_order', { ascending: true })
-      placementRows = retry.data || []
-      placementFailed = retry.error || null
-    }
+    const placementRows = placementRes.error ? [] : (placementRes.data || [])
+    const placementFailed = placementRes.error || null
 
     const failed = [lensRes, evidenceRes, testimonialRes].find(r => r.error) || placementFailed
     if (failed) {

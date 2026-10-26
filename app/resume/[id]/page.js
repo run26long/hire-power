@@ -7,6 +7,7 @@ import { createClient } from '@/utils/supabase/client'
 import MainNav from '@/app/components/MainNav'
 import UpgradeModal from '@/app/components/UpgradeModal'
 import { canOpenResume, lockReason, LOCK_COPY } from '@/lib/resumeAccess'
+import { isRealCore } from '@/lib/coreResumes'
 import { UPGRADE_HREF, UPGRADE_LABEL } from '@/lib/tiers'
 import { getTemplateStyles } from '../../templates/getTemplateStyles'
 import Breadcrumb from '@/app/components/Breadcrumb'
@@ -1158,7 +1159,10 @@ if (data.ai_analysis) {
         const [{ data: cores }, { data: lenses }, { count: coreTotal }] = await Promise.all([
           supabase
             .from('resumes')
-            .select('id, display_name, coaching_complete, is_priority_core')
+            // created_via as well as coaching_complete: isRealCore reads both,
+            // and without it every abandoned chat attempt would pass the test
+            // by having an undefined column that is not 'resume_chat'.
+            .select('id, display_name, coaching_complete, created_via, is_priority_core')
             .eq('user_id', userId)
             .eq('resume_type', 'core')
             .eq('is_active', true)
@@ -1176,11 +1180,15 @@ if (data.ai_analysis) {
             .eq('is_active', true)
         ])
 
-        // The hub's own rule for which cores it will switch between: the ones
-        // that have finished coaching, plus the one it opens on. Keeping the
-        // two in step means a core you can reach from the hub is a core the
-        // breadcrumb will list, and one it will not is one you cannot land on
-        // there either.
+        // The hub's own rule for which cores it will switch between: the
+        // real ones, plus the one it opens on. isRealCore is that test, and
+        // it lives in lib/coreResumes so this and the hub cannot drift -
+        // they were both written as coaching_complete === true, which left
+        // an uploaded core nobody had coached out of both lists.
+        //
+        // Keeping the two in step means a core you can reach from the hub is
+        // a core the breadcrumb will list, and one it will not is one you
+        // cannot land on there either.
         //
         // The opening core is the flagged priority core where there is one and
         // the newest otherwise, which is what the ordering above already puts
@@ -1188,7 +1196,7 @@ if (data.ai_analysis) {
         const all = cores || []
         const opening = all[0] || null
         const switchable = all.filter(
-          c => c.coaching_complete === true || (opening && c.id === opening.id)
+          c => isRealCore(c) || (opening && c.id === opening.id)
         )
 
         setCoreResumes(switchable)

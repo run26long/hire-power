@@ -525,10 +525,40 @@ export default function CareerProfileEditorPage() {
     return payload
   }, [getAuthHeaders, afterEvidenceChange])
 
-  const assignEvidence = useCallback(
-    (evidenceId, lensId, on) => placementOp({ op: 'assign', evidence_id: evidenceId, lens_id: lensId, on }),
-    [placementOp]
-  )
+  // Which directions one item appears on: the scope and the rows in one
+  // request, because they are one decision. Sending them separately has an
+  // intermediate state where the item is on nothing, and a failure between
+  // the two leaves it there.
+  const setEvidenceDirections = useCallback(async (evidenceId, scope, lensIds) => {
+    const res = await fetch(
+      `/api/career-profile/evidence/${encodeURIComponent(evidenceId)}/directions`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        body: JSON.stringify({ scope, lens_ids: lensIds })
+      }
+    )
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload?.error || "We couldn't save where that appears.")
+    await afterEvidenceChange()
+    return payload
+  }, [getAuthHeaders, afterEvidenceChange])
+
+  const setTestimonialDirections = useCallback(async (testimonialId, scope, lensIds) => {
+    const res = await fetch(
+      `/api/career-profile/testimonials/${encodeURIComponent(testimonialId)}/directions`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        body: JSON.stringify({ scope, lens_ids: lensIds })
+      }
+    )
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload?.error || "We couldn't save where that appears.")
+    await afterEvidenceChange()
+    return payload
+  }, [getAuthHeaders, afterEvidenceChange])
+
   const featureEvidence = useCallback(
     (evidenceId, lensId) => placementOp({ op: 'feature', evidence_id: evidenceId, lens_id: lensId }),
     [placementOp]
@@ -840,6 +870,44 @@ export default function CareerProfileEditorPage() {
   // than throwing on a refusal: "your career data does not reach this yet" is
   // an ordinary outcome the drawer shows under the input, where a thrown error
   // would reach the same place as a failed save and read as a fault.
+  // What deleting a direction would leave on nothing, asked before the
+  // owner agrees to it rather than reported afterwards. A failure here is not
+  // worth stopping the confirmation for: the delete is still safe, the dialog
+  // just cannot name what it costs.
+  const previewLensDelete = useCallback(async (lensId) => {
+    try {
+      const res = await fetch(
+        `/api/profile-lenses/delete?lensId=${encodeURIComponent(lensId)}`,
+        { headers: await getAuthHeaders() }
+      )
+      if (!res.ok) return { evidence: [], testimonials: [] }
+      return await res.json()
+    } catch {
+      return { evidence: [], testimonials: [] }
+    }
+  }, [getAuthHeaders])
+
+  // Both halves, because a deleted direction is off the document as well as
+  // out of the drawer: the lens rail is drawn from one and the list from the
+  // other.
+  const deleteLens = useCallback(async (lensId) => {
+    const res = await fetch('/api/profile-lenses/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+      body: JSON.stringify({ lensId })
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(
+        payload?.code === 'LENS_IN_USE'
+          ? 'That career direction has a resume behind it. Delete the resume first.'
+          : payload?.error || "We couldn't delete that career direction. Please try again."
+      )
+    }
+    await Promise.all([reloadDocument(), reloadManage()])
+    return payload
+  }, [getAuthHeaders, reloadDocument, reloadManage])
+
   const createLens = useCallback(async (name) => {
     const res = await fetch('/api/profile-lenses/create-custom', {
       method: 'POST',
@@ -1073,7 +1141,8 @@ export default function CareerProfileEditorPage() {
           // a private item has no tile above and still has to be managed.
           allEvidence: manage?.evidence || [],
           allPlacements: manage?.placements || [],
-          onAssignEvidence: assignEvidence,
+          onSetEvidenceDirections: setEvidenceDirections,
+          onSetTestimonialDirections: setTestimonialDirections,
           onFeatureEvidence: featureEvidence,
           onReorderEvidence: reorderEvidence,
           onHideEvidence: hideEvidence,
@@ -1123,6 +1192,8 @@ export default function CareerProfileEditorPage() {
         onLensVisibility={setLensVisibility}
         onLensReorder={reorderLenses}
         onLensCreate={createLens}
+        onLensDelete={deleteLens}
+        onLensDeletePreview={previewLensDelete}
       />
 
       {/* Inside .hp-ed, which is where the workspace's colour tokens live: the

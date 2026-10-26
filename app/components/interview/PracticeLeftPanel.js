@@ -94,7 +94,18 @@ function formatDate(iso) {
 // gradient, because this one destroys rather than proceeds.
 // ============================================================================
 
-export function DeleteSessionModal({ onCancel, onConfirm, deleting }) {
+export function DeleteSessionModal({
+  onCancel,
+  onConfirm,
+  deleting,
+  title = 'Delete Practice Session',
+  body = 'This will permanently delete this practice session, including all scores, feedback, and audio recordings. This cannot be undone.',
+  // A second paragraph where there is one to say. Omitted entirely rather
+  // than rendered empty, so nothing leaves a gap under the first.
+  secondary = null,
+  confirmLabel = 'Delete Session',
+  busyLabel = 'Deleting...',
+}) {
   useEffect(() => {
     const handleKeyDown = (e) => { if (e.key === 'Escape') onCancel(); };
     window.addEventListener('keydown', handleKeyDown);
@@ -125,14 +136,19 @@ export function DeleteSessionModal({ onCancel, onConfirm, deleting }) {
             <div className="h-8 w-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-lg">🗑️</span>
             </div>
-            <h2 className="text-xl font-bold text-white">Delete Practice Session</h2>
+            <h2 className="text-xl font-bold text-white">{title}</h2>
           </div>
         </div>
 
         <div className="p-5">
           <p className="text-sm md:text-xs text-gray-700 leading-relaxed">
-            This will permanently delete this practice session, including all scores, feedback, and audio recordings. This cannot be undone.
+            {body}
           </p>
+          {secondary ? (
+            <p className="mt-3 text-sm md:text-xs text-gray-700 leading-relaxed">
+              {secondary}
+            </p>
+          ) : null}
         </div>
 
         <div className="px-6 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0 justify-center">
@@ -149,7 +165,7 @@ export function DeleteSessionModal({ onCancel, onConfirm, deleting }) {
             className="py-2 px-8 rounded-lg text-sm md:text-xs font-bold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
             style={{ backgroundColor: '#e57373' }}
           >
-            {deleting ? 'Deleting...' : 'Delete Session'}
+            {deleting ? busyLabel : confirmLabel}
           </button>
         </div>
       </div>

@@ -519,13 +519,25 @@ export async function PUT(request) {
       }
     }
 
+    // ---- WHICH DIRECTIONS ----
+    //
+    // The default is every direction, which is also what an older caller that
+    // sends nothing gets. Absent used to mean "none", and none meant the item
+    // was saved and shown nowhere: a quiet invisibility nobody picked on
+    // purpose. The picker now states the answer instead of making somebody
+    // tick their way to it.
+    const scope = body?.placement_scope === 'selected' ? 'selected' : 'all'
+
     if (body?.lens_ids !== undefined && !Array.isArray(body.lens_ids)) {
       return Response.json(
         { error: 'Choose which directions to show it in.', code: 'INVALID', field: 'lens_ids' },
         { status: 400 }
       )
     }
-    const requested = Array.isArray(body?.lens_ids)
+    // Only consulted for 'selected'. An item on all directions is on them by
+    // saying so, and a list sent alongside that would be a second answer to a
+    // question that already has one.
+    const requested = scope === 'selected' && Array.isArray(body.lens_ids)
       ? [...new Set(body.lens_ids.filter(id => typeof id === 'string' && id))]
       : []
     let lensIds = []
@@ -619,6 +631,7 @@ export async function PUT(request) {
         duration_seconds: durationSeconds,
         privacy: 'public',
         status: 'published',
+        placement_scope: scope,
         sort_order: (lastItem?.sort_order ?? -1) + 1
       })
       .select(RETURNED)
@@ -633,8 +646,11 @@ export async function PUT(request) {
       return Response.json({ error: "We couldn't save that. Please try again." }, { status: 500 })
     }
 
+    // No rows for an item on all directions: its scope already says where
+    // it is, and a row per direction would stop being true the next time one
+    // is added.
     let placements = []
-    if (lensIds.length > 0) {
+    if (scope === 'selected' && lensIds.length > 0) {
       const { data: existing } = await supabase
         .from('profile_evidence_placements')
         .select('lens_id, sort_order')

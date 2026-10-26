@@ -2150,6 +2150,61 @@ html:has(.hp-ed) {
 
 .hp-ed-lens-pick input { accent-color: rgb(var(--profile-accent-rgb) / 1); }
 
+/* ---- Which directions this appears on ----
+   Collapsed to a sentence and a way in, because the default answer is right
+   far more often than it is wrong and the panel is the exception. */
+.hp-ed-dirpick { margin-top: 10px; }
+
+.hp-ed-dirpick-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hp-ed-dirpick-summary {
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ed-body);
+}
+
+/* On no direction at all, which is where a deleted direction leaves something
+   that was only on it. Said plainly rather than left looking like a blank. */
+.hp-ed-dirpick-summary[data-empty="true"] { color: var(--ed-muted); }
+
+.hp-ed-dirpick-toggle {
+  appearance: none;
+  margin-left: auto;
+  flex-shrink: 0;
+  /* A touch target, not a text link. This control is the only way to the
+     panel and it has to be reachable with a thumb. */
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid var(--ed-line);
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ed-accent);
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.hp-ed-dirpick-toggle:hover:not(:disabled),
+.hp-ed-dirpick-toggle:focus-visible {
+  border-color: var(--ed-accent);
+  background: rgb(var(--profile-accent-rgb) / 0.1);
+}
+
+.hp-ed-dirpick-toggle:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.hp-ed-dirpick-list { margin-top: 8px; }
+
+/* The same reason the toggle has one: a checkbox in a pill is a tap target. */
+.hp-ed-dirpick-list .hp-ed-lens-pick { min-height: 34px; }
+
 /* A select on a dark ground needs its own arrow; the platform one is drawn
    for a light control and disappears. */
 .hp-profile select.hp-ed-input {
@@ -4148,24 +4203,62 @@ html:has(.hp-ed) {
 /* The refusal. Set in the accent rather than in an error colour: being told
    the career data does not reach yet is information about their own material,
    not a fault, and red would make it read as something gone wrong. */
-.hp-ed-lens-make-note {
+/* Something is happening right now, which is a different claim from the
+   advice around it - so it carries the accent rather than the quiet grey, and
+   the italic marks it as the one line on screen that is about to stop being
+   true. */
+.hp-ed-lens-make-building {
   margin: 8px 0 0;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--ed-muted);
-  border-left: 2px solid var(--ed-accent);
-  padding-left: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--ed-accent);
 }
+
+.hp-ed-lens-make-note {
+  position: relative;
+  margin: 10px 0 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border-left: 3px solid var(--ed-accent);
+  /* The tint the drawer already keeps for an accent ground, rather than a
+     second purple mixed here. */
+  background: var(--ed-accent-soft);
+}
+
+.hp-ed-lens-make-note-title {
+  margin: 0;
+  /* Clears the dismiss control, which is placed over the top-right corner so
+     the callout's own padding can stay exactly as specified. */
+  padding-right: 18px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ed-ink);
+}
+
+.hp-ed-lens-make-note-body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  /* Readable-muted: the drawer's prose token, which sits between the
+     heading's ink and the --ed-quiet of the helper copy around the callout.
+     --ed-muted is dimmer and fell under 4.5:1 on the tinted ground in the
+     light palette. */
+  color: var(--ed-body);
+}
+
+/* Only when there is a heading above it; a body on its own starts flush. */
+.hp-ed-lens-make-note-title + .hp-ed-lens-make-note-body { margin-top: 8px; }
 
 /* Quiet, because dismissing is not the point of the message - it is the way
    out once the message has been read. */
 .hp-ed-lens-make-note-x {
   appearance: none;
-  flex-shrink: 0;
-  margin-left: auto;
+  position: absolute;
+  top: 7px;
+  right: 8px;
   padding: 0 2px;
   border: 0;
   background: none;
