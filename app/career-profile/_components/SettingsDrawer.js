@@ -317,6 +317,11 @@ export default function SettingsDrawer({
   // database has not been told yet.
   const [dragId, setDragId] = useState(null)
   const [dropId, setDropId] = useState(null)
+  const lensListRef = useRef(null)
+  // The gesture in progress, off React state: pointermove reads it tens of
+  // times a second and the release reads whatever the last move saw, neither
+  // of which can wait for a render.
+  const lensGesture = useRef(null)
   const [reordering, setReordering] = useState(false)
   // The arrangement as the owner left it, held only until the reload brings
   // it back from the table. Cleared on failure, which is what puts the rows
@@ -371,41 +376,102 @@ export default function SettingsDrawer({
     commitOrder(next)
   }
 
+  // ---- ARRANGING BY POINTER ----
+  //
+  // Pointer events from the handle, the same way the profile's manage lists
+  // do it. This row used to carry `draggable` with dragstart/dragover/drop,
+  // and HTML5 drag and drop does not exist on touch: no mobile browser
+  // synthesises dragstart from a finger, so on a phone or a touch laptop the
+  // handle was decoration and dragging it scrolled the drawer. One pointer
+  // implementation covers mouse, touch and pen.
+  //
+  // What a drop means and what it saves are unchanged. The drop still resolves
+  // to two indexes in `activeRows` and still goes through moveTo, so the
+  // optimistic draft order, the single reorder call and the primary label
+  // following position zero all behave exactly as before.
+  //
+  // The handle stays a button and keeps its arrow keys. pointerdown is
+  // deliberately not prevented here, because preventing it on a button also
+  // suppresses the focus that the keyboard path needs; `touch-action: none`
+  // on the handle stops the scroll instead, and a button starts no text
+  // selection to cancel.
+
+  // Which edge of the target the line goes on: the edge the row will arrive at
+  // once it has taken the target's place.
+  const lensDropSide = (fromId, toId) => {
+    const ids = activeRows.map(r => r.lens.id)
+    const from = ids.indexOf(fromId)
+    const to = ids.indexOf(toId)
+    if (from === -1 || to === -1 || from === to) return null
+    return to > from ? 'below' : 'above'
+  }
+
+  function clearDrag() {
+    lensGesture.current = null
+    setDragId(null)
+    setDropId(null)
+  }
+
   function startDrag(event, id) {
-    if (!canReorder) return
+    if (!canReorder || reordering) return
+    // A right-click or a middle-click is not a drag, and the context menu
+    // should still open.
+    if (typeof event.button === 'number' && event.button !== 0) return
+
+    lensGesture.current = { id, pointerId: event.pointerId, overId: null }
     setDragId(id)
-    event.dataTransfer.effectAllowed = 'move'
+    setDropId(null)
+
+    // The handle keeps the pointer for the whole gesture, so moves and the
+    // release land here even once the finger has travelled over other rows,
+    // and the browser stops reading the gesture as a scroll.
     try {
-      // Firefox will not start a drag without payload on the transfer.
-      event.dataTransfer.setData('text/plain', id)
+      event.currentTarget.setPointerCapture(event.pointerId)
     } catch {
-      // Some browsers refuse this outside a user gesture they recognise. The
-      // drag still works from component state.
+      // No capture available: the drag still tracks, it just ends early if
+      // the pointer leaves the handle.
     }
   }
 
-  function overRow(event, id) {
-    if (!canReorder || !dragId) return
-    event.preventDefault()
-    event.dataTransfer.dropEffect = 'move'
-    if (id !== dropId) setDropId(id)
+  // The row under the pointer, read from the document rather than from
+  // crossing events, because the handle is holding the pointer and no other
+  // row is receiving any.
+  function rowUnder(clientX, clientY) {
+    if (typeof document === 'undefined') return null
+    const at = document.elementFromPoint(clientX, clientY)
+    const row = at?.closest?.('[data-lens-row]')
+    if (!row || !lensListRef.current?.contains(row)) return null
+    return row.getAttribute('data-lens-row') || null
   }
 
-  function dropOn(event, id) {
-    if (!canReorder || !dragId) return
-    event.preventDefault()
+  function moveDrag(event) {
+    const drag = lensGesture.current
+    if (!drag || event.pointerId !== drag.pointerId) return
+    const over = rowUnder(event.clientX, event.clientY)
     const ids = activeRows.map(r => r.lens.id)
-    const from = ids.indexOf(dragId)
-    const to = ids.indexOf(id)
-    setDragId(null)
-    setDropId(null)
+    // Off the list, or over a direction that has no position in this group -
+    // a hidden one, or one only offered: the last good target stands, so a
+    // wobble on the way to the edge does not drop the row back where it
+    // started.
+    if (!over || over === drag.id || !ids.includes(over)) return
+    if (over !== drag.overId) {
+      drag.overId = over
+      setDropId(over)
+    }
+  }
+
+  function endDrag(event) {
+    const drag = lensGesture.current
+    if (!drag || event.pointerId !== drag.pointerId) return
+    const { id, overId: target } = drag
+    const ids = activeRows.map(r => r.lens.id)
+    const from = ids.indexOf(id)
+    const to = target ? ids.indexOf(target) : -1
+    // Cleared before the write, so a slow save cannot leave a row looking
+    // picked up.
+    clearDrag()
     if (from === -1 || to === -1) return
     moveTo(from, to)
-  }
-
-  function endDrag() {
-    setDragId(null)
-    setDropId(null)
   }
 
   function nudge(event, index) {
@@ -842,7 +908,7 @@ export default function SettingsDrawer({
                   added rather than toggled. A switch and an Add button answer
                   different questions and a single list of both reads as one
                   control that changes its mind. */}
-              <div className="hp-ed-lenses">
+              <div className="hp-ed-lenses" ref={lensListRef} data-dragging={dragId ? 'true' : undefined}>
                 {activeRows.map(({ lens, index }) => {
                   const busy = lensBusy === lens.id
                   const isPrimary = index === 0
@@ -850,14 +916,10 @@ export default function SettingsDrawer({
                     <div
                       className="hp-ed-lens-row"
                       key={lens.id}
+                      data-lens-row={lens.id}
                       data-state={isPrimary ? PRIMARY : SHOWING}
                       data-dragging={dragId === lens.id ? 'true' : undefined}
-                      data-dropping={dropId === lens.id && dragId !== lens.id ? 'true' : undefined}
-                      draggable={canReorder}
-                      onDragStart={e => startDrag(e, lens.id)}
-                      onDragOver={e => overRow(e, lens.id)}
-                      onDrop={e => dropOn(e, lens.id)}
-                      onDragEnd={endDrag}
+                      data-drop={dropId === lens.id ? lensDropSide(dragId, lens.id) || undefined : undefined}
                     >
                       {canReorder ? (
                         // The handle is a button so a keyboard has the same
@@ -871,6 +933,10 @@ export default function SettingsDrawer({
                           aria-label={`Reorder ${lens.name}. Position ${index + 1} of ${activeRows.length}. Use the up and down arrow keys to move it.`}
                           disabled={reordering}
                           onKeyDown={e => nudge(e, index)}
+                          onPointerDown={e => startDrag(e, lens.id)}
+                          onPointerMove={moveDrag}
+                          onPointerUp={endDrag}
+                          onPointerCancel={clearDrag}
                         >
                           <GripIcon />
                         </button>

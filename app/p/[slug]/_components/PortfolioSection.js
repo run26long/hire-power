@@ -65,16 +65,10 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
   const canEdit = useCanEdit()
   const slot = useEditSlot()
 
-  // Placement order, with whatever this direction marked pulled to the front.
-  // Decided here and never written back: a default is not a choice the owner
-  // made, which is the same rule the Evidence lead follows.
-  const ordered = useMemo(() => {
-    if (!items || items.length === 0) return []
-    const featured = items.filter(one => one.featured)
-    return featured.length > 0
-      ? [...featured, ...items.filter(one => !one.featured)]
-      : items
-  }, [items])
+  // Placement order, and nothing but. The lead is whatever this direction
+  // put first, so there is one answer to "what leads this section" and it is
+  // the same answer the Manage list is showing.
+  const ordered = items || []
 
   // The two ways in each start a visit, so the overlay mounts fresh. Moving
   // between the grid and one item inside a single visit keeps the key, and
@@ -114,7 +108,9 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
       id: item.id,
       title: item.title || 'Untitled',
       meta: [item.organization, item.date_label].filter(Boolean).join(' · '),
-      hidden: rows.get(item.id)?.hidden === true
+      hidden: rows.get(item.id)?.hidden === true,
+      // It has a row on this direction, so it has a position to drag.
+      placed: true
     }))
 
     // On no direction at all, which the owner cannot otherwise see: the item
@@ -125,8 +121,11 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
       title: item.title || 'Untitled',
       meta: [item.organization, item.date_label].filter(Boolean).join(' · '),
       hidden: false,
-      status: 'Not shown on any direction',
-      statusTone: 'wait'
+      status: 'Not shown on any Career Direction',
+      statusTone: 'wait',
+      // On no direction, so it has no position in this one. Dragging it or
+      // dropping onto it would name a row the route has none of.
+      placed: false
     }))
 
     return [...here, ...orphans]
@@ -148,9 +147,6 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
     (id, nextHidden) => run(id, () => edit?.onHideEvidence?.(id, lensId, nextHidden)),
     [run, edit, lensId]
   )
-  // A drop is however many single steps it takes to get there, sent one at a
-  // time: the route moves an item by one place, and a drag is not a different
-  // kind of move, only a longer one.
   // Resolved from the record rather than held in state: an edit that lands
   // changes the record, and the pane has to be looking at what was saved.
   const editingItem = useMemo(
@@ -158,23 +154,16 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
     [editingId, edit?.allEvidence]
   )
 
-  const featuredId = useMemo(() => {
-    const rows = rowsForDirection(edit?.allPlacements, lensId, 'evidence_id')
-    for (const [id, row] of rows) if (row?.featured) return id
-    return null
-  }, [edit?.allPlacements, lensId])
-
+  // A drop says where the item goes, by naming the row it was dropped on, and
+  // the route resolves the position. The panel must not count the rows between
+  // them: this list is the visual half of a collection that shares one
+  // placement list with Evidence, so the rows in between here are not all the
+  // rows in between there.
   const dropItem = useCallback((fromId, toId) => {
-    const ids = manageItems.map(one => one.id)
-    const from = ids.indexOf(fromId)
-    const to = ids.indexOf(toId)
-    if (from === -1 || to === -1 || from === to) return
-    const by = to > from ? 1 : -1
-    return run(fromId, async () => {
-      for (let at = from; at !== to; at += by) {
-        await edit?.onReorderEvidence?.(fromId, lensId, by)
-      }
-    })
+    if (!fromId || !toId || fromId === toId) return
+    const placed = new Set(manageItems.filter(one => one.placed).map(one => one.id))
+    if (!placed.has(fromId) || !placed.has(toId)) return
+    return run(fromId, () => edit?.onMoveEvidence?.(fromId, lensId, toId))
   }, [manageItems, run, edit, lensId])
 
   // Empty, this section is not on the public page at all - the same rule every
@@ -183,7 +172,7 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
   if (ordered.length === 0 && !canShowEmpty) return null
 
   // Always the selection, never the archive: six, in the order the owner put
-  // them in, with whatever this direction featured pulled to the front above.
+  // them in.
   const shown = ordered.slice(0, PORTFOLIO_PREVIEW_DESKTOP)
   const hidden = ordered.length - shown.length
 
@@ -338,7 +327,6 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
           <EvidenceEditPane
             item={editingItem}
             lensId={lensId}
-            isFeatured={featuredId === editingItem.id}
             onBack={() => setEditingId(null)}
           />
         ) : (

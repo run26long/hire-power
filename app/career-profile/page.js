@@ -419,15 +419,22 @@ export default function CareerProfileEditorPage() {
   // XMLHttpRequest rather than fetch, and only because fetch still cannot
   // report upload progress. A minute of silence on a large file reads as a
   // page that has stopped working.
+  // `evidenceId` turns this from adding an item into replacing one item's
+  // file. It travels in both halves: the start checks the row and binds the
+  // ticket to it, and the finish updates that row instead of inserting. The
+  // rest of the flow - the signed PUT, the progress, the poster for a video -
+  // is the same either way, which is why this is one function rather than two
+  // that would drift.
   const uploadEvidence = useCallback(async (
     file,
     details,
-    { onProgress, setUploading, poster = null, durationSeconds = null } = {}
+    { onProgress, setUploading, poster = null, durationSeconds = null, evidenceId = null } = {}
   ) => {
     const startRes = await fetch('/api/career-profile/evidence/upload', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({
+        evidence_id: evidenceId,
         content_type: file.type,
         size: file.size,
         // Asking for somewhere to put the chosen frame at the same time as the
@@ -484,6 +491,7 @@ export default function CareerProfileEditorPage() {
       headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({
         ...details,
+        evidence_id: evidenceId,
         path: start.path,
         ticket: start.ticket,
         ...(posterClaim || {}),
@@ -559,12 +567,13 @@ export default function CareerProfileEditorPage() {
     return payload
   }, [getAuthHeaders, afterEvidenceChange])
 
-  const featureEvidence = useCallback(
-    (evidenceId, lensId) => placementOp({ op: 'feature', evidence_id: evidenceId, lens_id: lensId }),
-    [placementOp]
-  )
-  const reorderEvidence = useCallback(
-    (evidenceId, lensId, by) => placementOp({ op: 'reorder', evidence_id: evidenceId, lens_id: lensId, by }),
+  // A drop: where the item should end up, named by the item already sitting
+  // there. Not a count of steps - Portfolio and Evidence are two filtered
+  // views of one placement list, so a step in the panel is not a step in the
+  // table, and the route is the only place that can see the whole list.
+  const moveEvidence = useCallback(
+    (evidenceId, lensId, targetId) =>
+      placementOp({ op: 'move', evidence_id: evidenceId, lens_id: lensId, target_id: targetId }),
     [placementOp]
   )
 
@@ -599,9 +608,11 @@ export default function CareerProfileEditorPage() {
       testimonialPlacementOp({ op: 'hide', testimonial_id: testimonialId, lens_id: lensId, hidden }),
     [testimonialPlacementOp]
   )
-  const reorderTestimonial = useCallback(
-    (testimonialId, lensId, by) =>
-      testimonialPlacementOp({ op: 'reorder', testimonial_id: testimonialId, lens_id: lensId, by }),
+  const moveTestimonial = useCallback(
+    (testimonialId, lensId, targetId) =>
+      testimonialPlacementOp({
+        op: 'move', testimonial_id: testimonialId, lens_id: lensId, target_id: targetId
+      }),
     [testimonialPlacementOp]
   )
 
@@ -1184,18 +1195,26 @@ export default function CareerProfileEditorPage() {
           onPreviewUrl: previewUrl,
           onCreateEvidence: createEvidence,
           onUploadEvidence: uploadEvidence,
+          // A replacement changes the manager's record as well as the
+          // document's: the pane doing the replacing is looking at the row
+          // that just changed. The manage reload lives here rather than
+          // inside uploadEvidence because reloadManage is declared after it.
+          onReplaceEvidenceFile: async (evidenceId, file, options) => {
+            const result = await uploadEvidence(file, {}, { ...(options || {}), evidenceId })
+            await reloadManage()
+            return result
+          },
           // The manager works from the management record, not the document:
           // a private item has no tile above and still has to be managed.
           allEvidence: manage?.evidence || [],
           allPlacements: manage?.placements || [],
           onSetEvidenceDirections: setEvidenceDirections,
           onSetTestimonialDirections: setTestimonialDirections,
-          onFeatureEvidence: featureEvidence,
-          onReorderEvidence: reorderEvidence,
+          onMoveEvidence: moveEvidence,
           onHideEvidence: hideEvidence,
           allTestimonialPlacements: manage?.testimonialPlacements || [],
           onHideTestimonial: hideTestimonial,
-          onReorderTestimonial: reorderTestimonial,
+          onMoveTestimonial: moveTestimonial,
           onEditEvidence: editEvidence,
           onDeleteEvidence: deleteEvidence,
           onSaveImow: saveImow,

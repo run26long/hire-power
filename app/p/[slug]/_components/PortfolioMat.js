@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 import StrokeIcon, { ICON_MEDIA } from './StrokeIcon'
 import { EditGrip } from './EditAffordance'
+import { useViewerAuthHeaders } from '../_lib/viewerAuth'
 import { formatDuration } from '@/lib/portfolio'
 
 // ============================================================================
@@ -29,9 +30,19 @@ import { formatDuration } from '@/lib/portfolio'
 // Each mat owns the state of its own picture, so one thumbnail failing to sign
 // is one mat falling back to its mark rather than a section that decides it
 // has no pictures.
+//
+// AND IT ASKS AS WHOEVER IS LOOKING
+// A draft profile serves its media to nobody but the owner, and the route
+// works that out from the bearer token. The mat sent none, so on an
+// unpublished profile the owner saw a grid of empty marks and an item that
+// opened perfectly once clicked. The tile and the thing the tile opens have
+// to ask the same question the same way, or the grid reports a problem the
+// viewer cannot reproduce. See _lib/viewerAuth for where the token comes from
+// and why it is not the edit context.
 // ============================================================================
 
 export default function PortfolioMat({ item, slug, lensId, slot = '', onOpen, matRef }) {
+  const viewerHeaders = useViewerAuthHeaders()
   const [url, setUrl] = useState(null)
   const [failed, setFailed] = useState(false)
 
@@ -46,15 +57,27 @@ export default function PortfolioMat({ item, slug, lensId, slot = '', onOpen, ma
     if (!wanted || !item?.id) return
     const suffix = lensId ? `&lens=${encodeURIComponent(lensId)}` : ''
     let live = true
-    fetch(
-      `/api/career-profile/${encodeURIComponent(slug)}/evidence/`
-      + `${encodeURIComponent(item.id)}?variant=thumbnail${suffix}`
-    )
-      .then(res => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
+    const ask = async () => {
+      // The viewer's own session, where there is one. The route reads the
+      // token and decides whether this caller owns the profile; a draft serves
+      // its files to nobody else, and on a published profile the header
+      // changes nothing. Asked of the session rather than the edit context
+      // because Preview mode and the /p/<slug> link have no edit context, and
+      // both of them are how an owner looks at their own unpublished page.
+      const headers = await viewerHeaders()
+      const res = await fetch(
+        `/api/career-profile/${encodeURIComponent(slug)}/evidence/`
+        + `${encodeURIComponent(item.id)}?variant=thumbnail${suffix}`,
+        { headers }
+      )
+      if (!res.ok) throw new Error(String(res.status))
+      return res.json()
+    }
+    ask()
       .then(body => { if (live) setUrl(body.url || null) })
       .catch(() => { if (live) setFailed(true) })
     return () => { live = false }
-  }, [wanted, slug, lensId, item?.id, attempt])
+  }, [wanted, slug, lensId, item?.id, attempt, viewerHeaders])
 
   const duration = item?.media_class === 'video' ? formatDuration(item.duration_seconds) : null
   const showPicture = wanted && url && !failed

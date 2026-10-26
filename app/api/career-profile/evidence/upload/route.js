@@ -76,7 +76,7 @@ const THUMB_QUALITY = 78
 // cost gigabytes to decode. Well above any real photograph.
 const MAX_DECODED_PIXELS = 80_000_000
 
-const LIMITS = { title: 200, description: 1000, organization: 120, date_label: 40 }
+const LIMITS = { title: 200, description: 1000, organization: 120, date_label: 40, url: 2048 }
 
 // What a browser may hand over as a captured video frame. Narrow on purpose:
 // this is not a file somebody chose, it is a canvas export, so there is no
@@ -139,6 +139,31 @@ const CONTROL = new RegExp(
 )
 const clean = (value) => noEmDash(String(value).replace(CONTROL, '').replace(/\s+/g, ' ').trim())
 
+// The second lock on the scheme. The column refuses anything but http and
+// https, so this is here to answer with a sentence rather than a 500 - and to
+// refuse a URL that is merely unparseable, which the column would accept.
+//
+// Copied from the link creation route rather than imported, because that
+// route is a sibling and importing across two route files to share twenty
+// lines couples their request handling together. The two must stay identical:
+// a link and an upload that disagree about what a web address is would accept
+// on one path what they refuse on the other.
+function webUrl(value) {
+  if (typeof value !== 'string' || !value.trim()) return { error: 'A link is required.' }
+  const raw = value.trim()
+  if (raw.length > LIMITS.url) return { error: 'That link is too long.' }
+  let parsed
+  try {
+    parsed = new URL(raw)
+  } catch {
+    return { error: "That doesn't look like a web address." }
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return { error: 'Only http and https links can be added.' }
+  }
+  return { value: parsed.toString() }
+}
+
 function text(value, max, label, { required = false } = {}) {
   if (value === undefined || value === null || value === '') {
     return required ? { error: `${label} is required.` } : { value: null }
@@ -183,15 +208,19 @@ function signTicket(body) {
   return b64url(crypto.createHmac('sha256', ticketKey()).update(body).digest())
 }
 
-function issueTicket(path, userId) {
-  const body = b64url(JSON.stringify({ p: path, u: userId, iat: Date.now() }))
+// `replaceId` binds the ticket to the row it is allowed to overwrite. Without
+// it in the signature, a ticket issued to add a file could be presented at the
+// finish with somebody else's evidence id attached, and the finish would
+// overwrite a row the start never checked.
+function issueTicket(path, userId, replaceId = null) {
+  const body = b64url(JSON.stringify({ p: path, u: userId, r: replaceId || null, iat: Date.now() }))
   return `${body}.${signTicket(body)}`
 }
 
 // True only for a ticket this server signed, for this exact path, for this
 // user, within the window. Compared in constant time, so a near-miss and a
 // wild guess take the same time to refuse.
-function ticketValid(ticket, path, userId) {
+function ticketValid(ticket, path, userId, replaceId = null) {
   if (typeof ticket !== 'string' || ticket.length > 4096) return false
   const dot = ticket.lastIndexOf('.')
   if (dot <= 0) return false
@@ -208,6 +237,9 @@ function ticketValid(ticket, path, userId) {
     return false
   }
   if (payload?.p !== path || payload?.u !== userId) return false
+  // Null and absent are the same answer, so a ticket issued before this field
+  // existed still validates for an ordinary add.
+  if ((payload?.r || null) !== (replaceId || null)) return false
   return Number.isFinite(payload.iat) && Date.now() - payload.iat < TICKET_TTL_MS
 }
 
@@ -248,6 +280,28 @@ export async function POST(request) {
       return Response.json({ error: 'Invalid request.' }, { status: 400 })
     }
 
+    // ---- REPLACING A FILE, RATHER THAN ADDING ONE ----
+    //
+    // Checked here, before a byte is uploaded, so a refusal costs nothing and
+    // the ticket that comes back is already bound to this row.
+    let replacing = null
+    const replaceId = typeof body?.evidence_id === 'string' ? body.evidence_id.trim() : ''
+    if (replaceId) {
+      if (!UUID.test(replaceId)) {
+        return Response.json({ error: 'Not found.' }, { status: 404 })
+      }
+      const { data: row } = await supabase
+        .from('profile_evidence')
+        .select('id, media_class, source_type, storage_path, thumbnail_path')
+        .eq('id', replaceId)
+        .eq('user_id', user.id)
+        .eq('source_type', 'upload')
+        .is('deleted_at', null)
+        .maybeSingle()
+      if (!row) return Response.json({ error: 'Not found.' }, { status: 404 })
+      replacing = row
+    }
+
     const kind = uploadTypeFor(body?.content_type)
     if (!kind) {
       return Response.json(
@@ -268,10 +322,25 @@ export async function POST(request) {
       )
     }
 
+    // Same kind for same kind. An item's media_class decides which section
+    // it lives in, which viewer opens it and which icon it carries, so letting
+    // a PDF take an image's place would move the item out from under the
+    // owner mid-edit and leave every reference to it pointing at something
+    // else. Replacing is for a better version of the same thing.
+    if (replacing && replacing.media_class !== kind.media_class) {
+      return Response.json(
+        { error: 'Choose a file of the same kind to replace this one.', code: 'MEDIA_CLASS_MISMATCH' },
+        { status: 400 }
+      )
+    }
+
     // Refused here as well as at the finish, so a free account that is already
     // full does not spend an upload to be told. The finish is the one that
     // decides; this only saves the bytes.
-    const isVisual = kind.media_class === 'image' || kind.media_class === 'video'
+    //
+    // A replacement spends no new slot: the item is already on the profile and
+    // is about to go on being there.
+    const isVisual = !replacing && (kind.media_class === 'image' || kind.media_class === 'video')
     if (isVisual && !(await isEntitled(supabase, user.id))) {
       let used
       try {
@@ -295,7 +364,7 @@ export async function POST(request) {
 
     const response = {
       path,
-      ticket: issueTicket(path, user.id),
+      ticket: issueTicket(path, user.id, replacing?.id || null),
       token: data.token,
       signed_url: data.signedUrl,
       content_type: kind.mime
@@ -448,7 +517,12 @@ export async function PUT(request) {
     // nobody, so it proves nothing on its own; the ticket is what says this
     // server handed this path to this user. Without it, a caller who learned
     // any path could attach it to their own profile.
-    if (!path || !ticketValid(body?.ticket, path, user.id)) {
+    // The row this finish is allowed to overwrite, named by the ticket rather
+    // than trusted from the body: the id travels in both, and the signature is
+    // what makes them have to agree.
+    const replaceId = typeof body?.evidence_id === 'string' ? body.evidence_id.trim() : ''
+
+    if (!path || !ticketValid(body?.ticket, path, user.id, replaceId || null)) {
       return Response.json({ error: 'Not found.' }, { status: 404 })
     }
 
@@ -513,6 +587,25 @@ export async function PUT(request) {
       organization: text(body?.organization, LIMITS.organization, 'The organisation'),
       date_label: text(body?.date_label, LIMITS.date_label, 'The date')
     }
+
+    // ---- WHERE THE UPLOADED THING LIVES, IF IT LIVES ANYWHERE ----
+    //
+    // Optional, and only that. The file is this item's source; a URL beside it
+    // says "and here is the same work on the web", which is what makes a
+    // screenshot of a live page worth more than the screenshot alone.
+    //
+    // Absent and empty both mean no link, so clearing the field in the form
+    // sends nothing rather than a validation error. Nothing is fetched from
+    // it: this route reads the address and stores the string.
+    let url = null
+    const rawUrl = typeof body?.url === 'string' ? body.url.trim() : ''
+    if (rawUrl) {
+      const checked = webUrl(rawUrl)
+      if (checked.error) {
+        return Response.json({ error: checked.error, code: 'INVALID', field: 'url' }, { status: 400 })
+      }
+      url = checked.value
+    }
     for (const [key, result] of Object.entries(fields)) {
       if (result.error) {
         return Response.json({ error: result.error, code: 'INVALID', field: key }, { status: 400 })
@@ -557,11 +650,42 @@ export async function PUT(request) {
     }
 
     // ---- THE QUOTA, decided here ----
+    // ---- THE ROW BEING REPLACED ----
+    //
+    // Read again rather than carried from the start: the ticket proves which
+    // row was authorised, and this proves it is still there and still the
+    // owner's. Everything about the item except the file stays as it is.
+    let replacing = null
+    if (replaceId) {
+      const { data: row } = await supabase
+        .from('profile_evidence')
+        .select('id, media_class, source_type, storage_path, thumbnail_path')
+        .eq('id', replaceId)
+        .eq('user_id', user.id)
+        .eq('source_type', 'upload')
+        .is('deleted_at', null)
+        .maybeSingle()
+      if (!row) {
+        await supabase.storage.from(BUCKET).remove([path])
+        return Response.json({ error: 'Not found.' }, { status: 404 })
+      }
+      if (row.media_class !== kind.media_class) {
+        await supabase.storage.from(BUCKET).remove([path])
+        return Response.json(
+          { error: 'Choose a file of the same kind to replace this one.', code: 'MEDIA_CLASS_MISMATCH' },
+          { status: 400 }
+        )
+      }
+      replacing = row
+    }
+
     // The POST refused early to save the bytes; this is the one that counts.
     // A caller who skipped the first step, or who filled the last slot from
     // another tab in between, is refused now - and the object goes with the
     // refusal, because a file with no row is a file nothing can ever find.
-    const isVisual = kind.media_class === 'image' || kind.media_class === 'video'
+    //
+    // A replacement spends no new slot.
+    const isVisual = !replacing && (kind.media_class === 'image' || kind.media_class === 'video')
     if (isVisual && !(await isEntitled(supabase, user.id))) {
       let used
       try {
@@ -600,6 +724,55 @@ export async function PUT(request) {
       thumbnailPath = await posterThumbnail(supabase, body, user.id, path)
     }
 
+    // ---- REPLACING: THE SAME ROW, A DIFFERENT FILE ----
+    //
+    // Five columns and nothing else. Title, description, type, organisation,
+    // date, url, privacy, placement_scope, sort_order and every placement row
+    // belong to the item rather than to the file, and the whole point of
+    // replacing rather than re-adding is that they survive it - along with the
+    // skill proofs and anything else keyed to this id.
+    //
+    // The old objects go afterwards, never before: if the update fails the row
+    // still points at a file that is there. They are unreferenced the moment
+    // the update lands, which is what makes removing them safe here when the
+    // delete route deliberately leaves its own objects alone - a soft-deleted
+    // item can be restored and would want its file back; a replaced one has a
+    // new file and can never want the old one.
+    if (replacing) {
+      const { data: updated, error: replaceError } = await supabase
+        .from('profile_evidence')
+        .update({
+          storage_path: path,
+          thumbnail_path: thumbnailPath,
+          mime_type: kind.mime,
+          file_size: Number.isFinite(size) ? size : null,
+          duration_seconds: durationSeconds,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', replacing.id)
+        .eq('user_id', user.id)
+        .select(RETURNED)
+        .maybeSingle()
+
+      if (replaceError || !updated) {
+        console.error('[career-profile] Evidence replace failed:', replaceError)
+        await supabase.storage.from(BUCKET).remove(thumbnailPath ? [path, thumbnailPath] : [path])
+        return Response.json({ error: "We couldn't save that. Please try again." }, { status: 500 })
+      }
+
+      const stale = [replacing.storage_path, replacing.thumbnail_path]
+        .filter(Boolean)
+        .filter(one => one !== path && one !== thumbnailPath)
+      if (stale.length) {
+        const { error: sweepError } = await supabase.storage.from(BUCKET).remove(stale)
+        // Not fatal. The row is right; what is left behind is an object
+        // nothing points at, which costs storage and nothing else.
+        if (sweepError) console.error('[career-profile] Old evidence objects not removed:', sweepError)
+      }
+
+      return Response.json({ item: updated, placements: [] })
+    }
+
     // ---- THE ROW ----
     const { data: lastItem } = await supabase
       .from('profile_evidence')
@@ -624,6 +797,9 @@ export async function PUT(request) {
         organization: fields.organization.value,
         date_label: fields.date_label.value,
         source_type: 'upload',
+        // The file is still the source. This is the original on the web, where
+        // there is one, and it is what the viewer's "Visit original" opens.
+        url,
         storage_path: path,
         thumbnail_path: thumbnailPath,
         mime_type: kind.mime,
@@ -669,10 +845,9 @@ export async function PUT(request) {
           profile_id: profile.id,
           evidence_id: created.id,
           lens_id: lensId,
-          sort_order: nextFor.get(lensId),
-          featured: false
+          sort_order: nextFor.get(lensId)
         })))
-        .select('id, evidence_id, lens_id, sort_order, featured')
+        .select('id, evidence_id, lens_id, sort_order')
 
       if (placementError) {
         console.error('[career-profile] Placement insert failed:', placementError)

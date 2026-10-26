@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, useLayoutEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useEffect, useMemo, useRef } from 'react'
 
 import { useProfileEdit, useNotify } from '../_lib/editContext'
 import { EVIDENCE_TYPES, FAMILY_LABELS, familyForType } from '@/lib/evidenceTypes'
 import { RELATIONSHIP_TYPES } from '@/lib/testimonialTypes'
 import DirectionPicker from './DirectionPicker'
+import BrandSelect from './BrandSelect'
 
 // ============================================================================
 // THE PANES BEHIND A MANAGE LIST
@@ -78,147 +78,6 @@ function PaneHead({ title, note }) {
 // declares the --profile-* names on. A menu dropped straight onto the body
 // would be dressed by nothing, because the palette lives on these roots rather
 // than on :root.
-const PALETTE_ROOTS = '.hp-rt-backdrop, .hp-ev-backdrop, .hp-pf-box, .hp-profile, .hp-ed, .hp-tm'
-
-function BrandSelect({ id, value, options, onChange, placeholder = 'Choose one…', disabled = false }) {
-  const [open, setOpen] = useState(false)
-  const [active, setActive] = useState(0)
-  // Where the menu is mounted and where it stands, in viewport coordinates.
-  // Null until both have been worked out, so it is never painted anywhere but
-  // under the field.
-  const [box, setBox] = useState(null)
-  const rootRef = useRef(null)
-  const fieldRef = useRef(null)
-  const menuRef = useRef(null)
-
-  const rows = [{ value: '', label: placeholder }, ...options.map(one => ({ value: one, label: one }))]
-  const chosenAt = Math.max(0, rows.findIndex(row => row.value === (value || '')))
-  const chosen = rows[chosenAt]
-
-  // Opening starts on what is already chosen, so the first arrow press moves
-  // from where the reader is rather than from the top of the list.
-  useEffect(() => { if (open) setActive(chosenAt) }, [open, chosenAt])
-
-  // A click anywhere else is a dismissal. Pointer-down rather than click, so
-  // the menu is gone before whatever was clicked underneath reacts. The menu
-  // is asked separately from the field: it no longer stands inside it, so the
-  // field alone would read a click on a row as a click away.
-  useEffect(() => {
-    if (!open) return
-    const away = (event) => {
-      if (rootRef.current?.contains(event.target)) return
-      if (menuRef.current?.contains(event.target)) return
-      setOpen(false)
-    }
-    document.addEventListener('mousedown', away)
-    return () => document.removeEventListener('mousedown', away)
-  }, [open])
-
-  // The menu is fixed to the field's box rather than laid out beneath it, which
-  // is what keeps it out of the dialog's scrolling. Measured before paint, and
-  // again on anything that could move the field under it - the capture phase
-  // because the scroll that matters is the dialog's own body, not the window's.
-  //
-  // Closing leaves the last measurement behind rather than clearing it: nothing
-  // reads it while the menu is shut, and the next opening measures again before
-  // the browser paints, so the stale numbers are never on screen.
-  useLayoutEffect(() => {
-    if (!open) return
-    const host = rootRef.current?.closest(PALETTE_ROOTS) || document.body
-    const place = () => {
-      const rect = fieldRef.current?.getBoundingClientRect()
-      if (rect) setBox({ host, top: rect.bottom + 4, left: rect.left, width: rect.width })
-    }
-    place()
-    window.addEventListener('scroll', place, true)
-    window.addEventListener('resize', place)
-    return () => {
-      window.removeEventListener('scroll', place, true)
-      window.removeEventListener('resize', place)
-    }
-  }, [open])
-
-  const take = (next) => {
-    setOpen(false)
-    fieldRef.current?.focus()
-    if (next !== (value || '')) onChange(next)
-  }
-
-  function onKeyDown(event) {
-    if (disabled) return
-    if (!open) {
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault()
-        setOpen(true)
-      }
-      return
-    }
-    if (event.key === 'Escape') { event.preventDefault(); setOpen(false); fieldRef.current?.focus() }
-    else if (event.key === 'ArrowDown') { event.preventDefault(); setActive(at => Math.min(at + 1, rows.length - 1)) }
-    else if (event.key === 'ArrowUp') { event.preventDefault(); setActive(at => Math.max(at - 1, 0)) }
-    else if (event.key === 'Home') { event.preventDefault(); setActive(0) }
-    else if (event.key === 'End') { event.preventDefault(); setActive(rows.length - 1) }
-    else if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); take(rows[active]?.value ?? '') }
-    else if (event.key === 'Tab') setOpen(false)
-  }
-
-  const menu = (
-    <ul
-      className="hp-ed-select-list"
-      id={`${id}-list`}
-      ref={menuRef}
-      role="listbox"
-      tabIndex={-1}
-      style={box ? { top: `${box.top}px`, left: `${box.left}px`, width: `${box.width}px` } : undefined}
-    >
-      {rows.map((row, at) => (
-        <li
-          key={row.value || '_none'}
-          id={`${id}-opt-${at}`}
-          role="option"
-          aria-selected={row.value === chosen.value}
-          className="hp-ed-select-option"
-          data-active={at === active ? 'true' : undefined}
-          data-chosen={row.value === chosen.value ? 'true' : undefined}
-          data-empty={row.value ? undefined : 'true'}
-          onMouseEnter={() => setActive(at)}
-          // Keeps focus on the field, so the list never has to hand it back.
-          onMouseDown={event => event.preventDefault()}
-          onClick={() => take(row.value)}
-        >
-          {row.label}
-        </li>
-      ))}
-    </ul>
-  )
-
-  return (
-    <div className="hp-ed-select" ref={rootRef}>
-      <button
-        type="button"
-        id={id}
-        ref={fieldRef}
-        className="hp-ed-select-field"
-        role="combobox"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={`${id}-list`}
-        aria-activedescendant={open ? `${id}-opt-${active}` : undefined}
-        data-empty={chosen.value ? undefined : 'true'}
-        disabled={disabled}
-        onClick={() => setOpen(was => !was)}
-        onKeyDown={onKeyDown}
-      >
-        <span className="hp-ed-select-value">{chosen.label}</span>
-        <svg className="hp-ed-select-chevron" viewBox="0 0 12 8" aria-hidden="true">
-          <path d="M1 1.5 6 6.5l5-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-
-      {open && box ? createPortal(menu, box.host) : null}
-    </div>
-  )
-}
 
 // ---------------------------------------------------------------------------
 // ONE PIECE OF EVIDENCE
@@ -235,14 +94,29 @@ function BrandSelect({ id, value, options, onChange, placeholder = 'Choose one�
 // asked for while the request is in flight, and a failure reports through the
 // page's own toast and re-reads. There is no local truth to drift.
 // ---------------------------------------------------------------------------
-function DirectionsRow({ item, onSave, busy, idPrefix }) {
+function DirectionsRow({ item, onSave, busy, idPrefix, placements, itemKey }) {
   const edit = useProfileEdit()
   const notify = useNotify()
   const [pending, setPending] = useState(null)
 
   const lenses = edit?.allLenses || edit?.lenses || []
   const scope = pending ? pending.scope : (item.placement_scope === 'selected' ? 'selected' : 'all')
-  const lensIds = pending ? pending.lensIds : (item.lens_ids || [])
+
+  // Which directions this item holds a row for.
+  //
+  // This used to read item.lens_ids, and that column no longer exists: the
+  // placement migration moved membership into the placement tables and
+  // dropped it. The read came back undefined every time, so a 'selected' item
+  // reported being on nothing - including one correctly placed in two
+  // directions a moment earlier. Nothing was ever written wrongly; the picker
+  // was reading a field that had been deleted underneath it.
+  const held = useMemo(
+    () => (Array.isArray(placements) ? placements : [])
+      .filter(row => row?.[itemKey] === item.id && row?.lens_id)
+      .map(row => row.lens_id),
+    [placements, itemKey, item.id]
+  )
+  const lensIds = pending ? pending.lensIds : held
 
   if (!onSave) return null
 
@@ -273,7 +147,86 @@ function DirectionsRow({ item, onSave, busy, idPrefix }) {
   )
 }
 
-export function EvidenceEditPane({ item, lensId, isFeatured, onBack }) {
+// ---------------------------------------------------------------------------
+// A BETTER VERSION OF THE SAME FILE
+//
+// Replacing rather than re-adding, because everything except the file belongs
+// to the item: its title, its type, which directions it is on, where it sits
+// in each of them, which skill it proves. Adding a new one and hiding the old
+// means setting all of that again and losing the rest.
+//
+// Same kind for same kind. The route refuses anything else, and so does the
+// picker's accept list - an item's media_class decides which section it lives
+// in and which viewer opens it, so a PDF taking an image's place would move
+// the item out from under the owner mid-edit.
+// ---------------------------------------------------------------------------
+const REPLACE_ACCEPT = {
+  image: 'image/*',
+  video: 'video/*',
+  document: 'application/pdf,.pdf,.doc,.docx',
+  audio: 'audio/*'
+}
+
+function ReplaceFile({ item, disabled }) {
+  const edit = useProfileEdit()
+  const notify = useNotify()
+  const picker = useRef(null)
+  const [busy, setBusy] = useState(false)
+  const [progress, setProgress] = useState(0)
+
+  if (!edit?.onReplaceEvidenceFile) return null
+
+  async function take(event) {
+    const picked = event.target.files?.[0]
+    // Cleared straight away, so choosing the same file twice in a row still
+    // fires a change event.
+    event.target.value = ''
+    if (!picked || busy) return
+
+    setBusy(true)
+    setProgress(0)
+    try {
+      await edit.onReplaceEvidenceFile(item.id, picked, {
+        onProgress: setProgress,
+        setUploading: () => {}
+      })
+      notify?.({ type: 'success', message: 'File replaced.' })
+    } catch (err) {
+      notify?.({
+        type: 'error',
+        message: err?.message || "We couldn't replace that file. Please try again."
+      })
+    } finally {
+      setBusy(false)
+      setProgress(0)
+    }
+  }
+
+  return (
+    <>
+      <input
+        ref={picker}
+        type="file"
+        className="hp-manage-replace-input"
+        accept={REPLACE_ACCEPT[item.media_class] || undefined}
+        onChange={take}
+        tabIndex={-1}
+        aria-hidden="true"
+      />
+      <button
+        type="button"
+        className="hp-ed-action"
+        disabled={disabled || busy}
+        onClick={() => picker.current?.click()}
+      >
+        {busy ? <span className="hp-ed-spin" aria-hidden="true" /> : null}
+        {busy ? `Replacing… ${progress}%` : 'Replace file'}
+      </button>
+    </>
+  )
+}
+
+export function EvidenceEditPane({ item, lensId, onBack }) {
   const edit = useProfileEdit()
   const notify = useNotify()
   const [busy, setBusy] = useState(null)
@@ -283,6 +236,7 @@ export function EvidenceEditPane({ item, lensId, isFeatured, onBack }) {
     evidence_type: item.evidence_type || '',
     organization: item.organization || '',
     date_label: item.date_label || '',
+    url: item.url || '',
   })
 
   const isPrivate = item.privacy === 'private'
@@ -308,27 +262,10 @@ export function EvidenceEditPane({ item, lensId, isFeatured, onBack }) {
         item={item}
         busy={busy}
         idPrefix={`hp-ev-dir-${item.id}`}
+        placements={edit?.allPlacements}
+        itemKey="evidence_id"
         onSave={edit?.onSetEvidenceDirections}
       />
-
-      {/* The lead is a property of this direction rather than of the item, so
-          it sits with the direction's own controls rather than in the fields
-          below, which belong to the record wherever it appears. */}
-      <div className="hp-manage-pane-row">
-        <span className="hp-manage-pane-label">Leads this career direction</span>
-        <button
-          type="button"
-          className="hp-manage-switch"
-          role="switch"
-          aria-checked={isFeatured}
-          aria-label={`Make ${item.title} the lead item for this career direction`}
-          data-on={isFeatured ? 'true' : 'false'}
-          disabled={Boolean(busy)}
-          onClick={() => run('star', () => edit?.onFeatureEvidence?.(isFeatured ? null : item.id, lensId))}
-        >
-          <span className="hp-manage-knob" aria-hidden="true" />
-        </button>
-      </div>
 
       {/* Offered where it can be used. A free account cannot make an item
           private, and a button that always answered PRO_REQUIRED would be
@@ -366,37 +303,38 @@ export function EvidenceEditPane({ item, lensId, isFeatured, onBack }) {
       <div className="hp-ed-add-grid">
         <div>
           <label className="hp-ed-field-label" htmlFor={`y-${item.id}`}>Type</label>
-          <select
-            id={`y-${item.id}`} className="hp-ed-input hp-ed-block"
+          {/* Evidence written before this list existed carries types that
+              are not on it. Dropping that value on the floor would mean the
+              type had to be re-chosen before a title could be corrected, so it
+              stays at the head of the list as what the item currently says. */}
+          <BrandSelect
+            id={`y-${item.id}`}
             value={draft.evidence_type}
-            onChange={e => setDraft(d => ({ ...d, evidence_type: e.target.value }))}
-          >
-            <option value="">Choose one…</option>
-            {/* Evidence written before this list existed carries types that
-                are not on it. Dropping that value on the floor would mean the
-                type had to be re-chosen before a title could be corrected, so
-                it stays here as what the item currently says. */}
-            {item.evidence_type && !familyForType(item.evidence_type) ? (
-              <optgroup label="Currently">
-                <option value={item.evidence_type}>{item.evidence_type}</option>
-              </optgroup>
-            ) : null}
-            {GROUPED.map(([familyKey, types]) => (
-              <optgroup key={familyKey} label={FAMILY_LABELS[familyKey]}>
-                {types.map(t => <option key={t} value={t}>{t}</option>)}
-              </optgroup>
-            ))}
-          </select>
-          <p className="hp-ed-proof-note">
-            {family
-              ? `Filed under ${FAMILY_LABELS[family]}.`
-              : draft.evidence_type
-                ? `Kept as "${draft.evidence_type}". Choosing from the list refiles it.`
-                : 'Choose a type to file this.'}
-          </p>
+            onChange={next => setDraft(d => ({ ...d, evidence_type: next }))}
+            disabled={Boolean(busy)}
+            groups={[
+              ...(item.evidence_type && !familyForType(item.evidence_type)
+                ? [{ label: 'Currently', options: [item.evidence_type] }]
+                : []),
+              ...GROUPED.map(([familyKey, types]) => ({
+                label: FAMILY_LABELS[familyKey],
+                options: types
+              }))
+            ]}
+          />
+          {/* The filing note is gone: the group headings in the list already
+              say which family a type belongs to, and repeating it underneath
+              told the owner about a taxonomy that is ours rather than theirs.
+              What is left is the one case the list cannot show - a stored type
+              that predates the list. */}
+          {draft.evidence_type && !family ? (
+            <p className="hp-ed-proof-note">
+              {`Kept as "${draft.evidence_type}". Choosing from the list refiles it.`}
+            </p>
+          ) : null}
         </div>
         <div>
-          <label className="hp-ed-field-label" htmlFor={`o-${item.id}`}>Organisation</label>
+          <label className="hp-ed-field-label" htmlFor={`o-${item.id}`}>Organization</label>
           <input
             id={`o-${item.id}`} className="hp-ed-input hp-ed-block" type="text"
             value={draft.organization} placeholder="Optional"
@@ -413,20 +351,42 @@ export function EvidenceEditPane({ item, lensId, isFeatured, onBack }) {
         </div>
       </div>
 
-      {/* The source is not here on purpose. A link's address and an upload's
-          file are what the item is; changing either under an existing title
-          would leave a tile that describes one thing and opens another. */}
-      <p className="hp-ed-proof-note">
-        {item.source_type === 'upload'
-          ? 'The file itself cannot be swapped. Add the new one and hide this.'
-          : 'The link cannot be changed here. Add the new one and hide this.'}
-      </p>
+      {/* ---- Where this lives on the web ----
+          On an upload it is an extra: the file is what the item shows, and
+          this is where the thing it shows can be found. Clearing it removes
+          the link and leaves the file.
+
+          On a link item it is the item. It can be corrected but not emptied,
+          because an item with no file and no address is a title with nothing
+          behind it. The route refuses the empty case as well; this only
+          avoids offering it. */}
+      <label className="hp-ed-field-label" htmlFor={`u-${item.id}`}>
+        {item.source_type === 'upload' ? 'Link to the live page (optional)' : 'Link'}
+      </label>
+      <input
+        id={`u-${item.id}`} className="hp-ed-input hp-ed-block" type="url"
+        value={draft.url}
+        placeholder={item.source_type === 'upload' ? 'https://' : undefined}
+        spellCheck="false"
+        disabled={Boolean(busy)}
+        onChange={e => setDraft(d => ({ ...d, url: e.target.value }))}
+      />
+
+      {item.source_type === 'upload' ? null : (
+        <p className="hp-ed-proof-note">
+          This address is what the item opens. It can be corrected, but not emptied.
+        </p>
+      )}
 
       <div className="hp-ed-editor-bar">
         <button
           type="button" className="hp-ed-action" data-primary="true"
           disabled={
             !draft.title.trim() || Boolean(busy) ||
+            // A link item with its address emptied has nothing left to open.
+            // The route refuses it too; this is so the refusal is a button
+            // that will not press rather than an error after the press.
+            (item.source_type !== 'upload' && !draft.url.trim()) ||
             // An off-list type is fine as long as it is the one already
             // stored. Choosing a new one means choosing from the list.
             (draft.evidence_type !== item.evidence_type && !familyForType(draft.evidence_type))
@@ -437,6 +397,7 @@ export function EvidenceEditPane({ item, lensId, isFeatured, onBack }) {
               description: draft.description.trim() || null,
               organization: draft.organization.trim() || null,
               date_label: draft.date_label.trim() || null,
+              url: draft.url.trim(),
             }
             // Sent only when it changed. The route refiles the family from
             // whatever type it is given, and it only accepts the list - so
@@ -451,6 +412,13 @@ export function EvidenceEditPane({ item, lensId, isFeatured, onBack }) {
         >
           {busy === 'save' ? 'Saving…' : 'Save'}
         </button>
+        {/* Beside Save, because swapping the file is the other thing this
+            pane does to the item rather than a field of it. Same weight as
+            Back to list: it opens a file picker, it does not commit the
+            edit. */}
+        {item.source_type === 'upload' ? (
+          <ReplaceFile item={item} disabled={Boolean(busy)} />
+        ) : null}
         <span className="hp-ed-editor-gap" />
         <button type="button" className="hp-ed-action" onClick={onBack} disabled={Boolean(busy)}>
           Back to list
@@ -592,6 +560,8 @@ export function TestimonialEditPane({ item, onBack }) {
         item={item}
         busy={busy}
         idPrefix={`hp-te-dir-${item.id}`}
+        placements={edit?.allTestimonialPlacements}
+        itemKey="testimonial_id"
         onSave={edit?.onSetTestimonialDirections}
       />
 

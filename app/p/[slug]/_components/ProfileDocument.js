@@ -373,12 +373,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   // never to both.
   const directionEvidence = useMemo(() => {
     const rows = rowsForDirection(data?.evidencePlacements, selectedLens?.id, 'evidence_id')
-    return selectForDirection(evidence, rows).map(item => ({
-      ...item,
-      // Leading this direction is a property of the row, so an item here
-      // without one is simply not the lead.
-      featured: rows.get(item.id)?.featured === true
-    }))
+    return selectForDirection(evidence, rows)
   }, [data?.evidencePlacements, selectedLens?.id, evidence])
 
   // One collection, two sections. The rule lives in lib/portfolio and is
@@ -610,16 +605,16 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       onPreviewUrl: edit.onPreviewUrl,
       onCreateEvidence: edit.onCreateEvidence,
       onUploadEvidence: edit.onUploadEvidence,
+      onReplaceEvidenceFile: edit.onReplaceEvidenceFile,
       allEvidence: edit.allEvidence,
       allPlacements: edit.allPlacements,
       onSetEvidenceDirections: edit.onSetEvidenceDirections,
       onSetTestimonialDirections: edit.onSetTestimonialDirections,
-      onFeatureEvidence: edit.onFeatureEvidence,
-      onReorderEvidence: edit.onReorderEvidence,
+      onMoveEvidence: edit.onMoveEvidence,
       onHideEvidence: edit.onHideEvidence,
       allTestimonialPlacements: edit.allTestimonialPlacements,
       onHideTestimonial: edit.onHideTestimonial,
-      onReorderTestimonial: edit.onReorderTestimonial,
+      onMoveTestimonial: edit.onMoveTestimonial,
       onEditEvidence: edit.onEditEvidence,
       onDeleteEvidence: edit.onDeleteEvidence,
       onGenerateImow: edit.onGenerateImow,
@@ -661,11 +656,12 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   }, [
     edit?.editing, edit?.canCustomise, edit?.canUseProfileTools, edit?.notify,
     edit?.onPreviewUrl, edit?.onCreateEvidence, edit?.onUploadEvidence,
+    edit?.onReplaceEvidenceFile,
     edit?.allEvidence, edit?.allPlacements, edit?.onSetEvidenceDirections,
-    edit?.onSetTestimonialDirections, edit?.onFeatureEvidence,
-    edit?.onReorderEvidence, edit?.onEditEvidence, edit?.onDeleteEvidence,
+    edit?.onSetTestimonialDirections,
+    edit?.onMoveEvidence, edit?.onEditEvidence, edit?.onDeleteEvidence,
     edit?.onHideEvidence, edit?.allTestimonialPlacements,
-    edit?.onHideTestimonial, edit?.onReorderTestimonial,
+    edit?.onHideTestimonial, edit?.onMoveTestimonial,
     lenses, editLensId, openField, busy, busyKind, writeError, errorField,
     runWrite, runDraft, editSave, editSaveImow, editRegenerate,
     edit?.onGenerateImow, edit?.onStrengthenImow,

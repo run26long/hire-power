@@ -59,9 +59,9 @@ export default function DirectionPicker({
   // Named rather than counted. "2 directions" makes somebody open the panel to
   // find out which two, which is the work the summary was supposed to save.
   const summary = useMemo(() => {
-    if (scope !== 'selected') return 'Showing on all directions'
+    if (scope !== 'selected') return 'Showing on all Career Directions'
     const names = options.filter(lens => picked.has(lens.id)).map(lens => lens.name)
-    if (names.length === 0) return 'Not shown on any direction'
+    if (names.length === 0) return 'Not shown on any Career Direction'
     if (names.length === 1) return `Showing on ${names[0]}`
     return `Showing on ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
   }, [scope, options, picked])

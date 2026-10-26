@@ -79,7 +79,7 @@ export async function GET(request, { params }) {
 
     const { data: profile, error: profileError } = await supabase
       .from('career_profiles')
-      .select('id, is_published')
+      .select('id, is_published, user_id')
       .eq('slug', slug)
       .maybeSingle()
 
@@ -87,10 +87,34 @@ export async function GET(request, { params }) {
       console.error('[evidence-media] Profile lookup failed:', profileError)
       return Response.json({ error: 'LOOKUP_FAILED' }, { status: 500 })
     }
+    if (!profile) return notFound()
+
+    // The owner, asked the way the public profile route asks. A draft profile
+    // serves nothing to a link holder, and that is the whole point of a draft -
+    // but it was serving nothing to its owner either, so every uploaded image
+    // and video was unopenable until the profile was published. The owner was
+    // building a page they could not look at.
+    //
+    // Only asked on a draft. Every viewer with a session now sends their
+    // token, owner or not, because the page cannot know which it is without
+    // being told who owns the profile - and that is not something a public
+    // payload should carry. On a published profile the answer changes nothing,
+    // so resolving the token there would be one auth round trip per thumbnail
+    // bought for nothing.
+    //
     // `!== true`, not `=== false`: a flag that is null or absent read as
     // published here, which was the one place in the profile's routes where
     // anything but an explicit no let a caller through.
-    if (!profile || profile.is_published !== true) return notFound()
+    if (profile.is_published !== true) {
+      let isOwner = false
+      const authHeader = request.headers.get('authorization')
+      if (authHeader) {
+        const token = authHeader.replace('Bearer ', '')
+        const { data: { user } } = await supabase.auth.getUser(token)
+        isOwner = Boolean(user && user.id === profile.user_id)
+      }
+      if (!isOwner) return notFound()
+    }
 
     // Scoped to this profile in the query itself, so another profile's evidence
     // is not something this route can be talked into reading.

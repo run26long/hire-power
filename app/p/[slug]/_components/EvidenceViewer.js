@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useViewerAuthHeaders } from '../_lib/viewerAuth'
 
 import StrokeIcon, { ICON_MEDIA } from './StrokeIcon'
 import EvidencePdf from './EvidencePdf'
@@ -60,6 +61,8 @@ const isEmbeddable = (item) =>
 // The stage: whatever this thing actually is, on screen.
 // ---------------------------------------------------------------------------
 export function EvidenceStage({ item, slug, lensId }) {
+  // Null outside an editor, which is every public reader.
+  const viewerHeaders = useViewerAuthHeaders()
   const [media, setMedia] = useState({ id: null, state: 'idle', url: null, mime: null })
 
   const needsFile = Boolean(item?.has_file)
@@ -77,12 +80,26 @@ export function EvidenceStage({ item, slug, lensId }) {
     const suffix = lensId ? `?lens=${encodeURIComponent(lensId)}` : ''
 
     let live = true
-    fetch(`/api/career-profile/${encodeURIComponent(slug)}/evidence/${encodeURIComponent(item.id)}${suffix}`)
-      .then(res => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
+    const ask = async () => {
+      // The viewer's own session, where there is one. The route reads the
+      // token and decides whether this caller owns the profile; a draft serves
+      // its files to nobody else, and on a published profile the header
+      // changes nothing. Asked of the session rather than the edit context
+      // because Preview mode and the /p/<slug> link have no edit context, and
+      // both of them are how an owner looks at their own unpublished page.
+      const headers = await viewerHeaders()
+      const res = await fetch(
+        `/api/career-profile/${encodeURIComponent(slug)}/evidence/${encodeURIComponent(item.id)}${suffix}`,
+        { headers }
+      )
+      if (!res.ok) throw new Error(String(res.status))
+      return res.json()
+    }
+    ask()
       .then(body => { if (live) setMedia({ id: key, state: 'ready', url: body.url, mime: body.mime_type || null }) })
       .catch(() => { if (live) setMedia({ id: key, state: 'failed', url: null, mime: null }) })
     return () => { live = false }
-  }, [needsFile, slug, lensId, item?.id])
+  }, [needsFile, slug, lensId, item?.id, viewerHeaders])
 
   if (!item) return null
 

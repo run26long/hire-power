@@ -4141,6 +4141,12 @@ html:has(.hp-ed) {
   flex-shrink: 0;
   width: 22px;
   height: 22px;
+  /* The handle, and only the handle, owns the gesture that starts on it.
+     Without this a finger on the handle scrolls the drawer instead of picking
+     the direction up, which is what made the drag look like decoration on
+     every touch device. Nothing else in the drawer is affected, so scrolling
+     the list still works the way it always did. */
+  touch-action: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4166,7 +4172,7 @@ html:has(.hp-ed) {
 }
 
 .hp-ed-lens-grip:active:not(:disabled) { cursor: grabbing; }
-.hp-ed-lens-grip:disabled { cursor: default; opacity: 0.5; }
+.hp-ed-lens-grip:disabled { cursor: default; opacity: 0.5; touch-action: auto; }
 
 .hp-ed-grip-mark { width: 14px; height: 14px; fill: currentColor; }
 
@@ -4176,12 +4182,26 @@ html:has(.hp-ed) {
 
 /* The row being carried, and the row it would land on. Opacity for the first
    because it is the one under the pointer, and a line for the second because
-   it is a position rather than an object. */
+   it is a position rather than an object.
+
+   The line goes on the edge the row will arrive at, not always the top: a row
+   travelling down the list takes the target's place and ends up under where it
+   was, so a line on the target's top edge pointed at the wrong side for every
+   downward drag. */
 .hp-ed-lens-row[data-dragging="true"] { opacity: 0.45; }
 
-.hp-ed-lens-row[data-dropping="true"] {
+.hp-ed-lens-row[data-drop="above"] {
   box-shadow: inset 0 2px 0 -1px var(--ed-accent);
 }
+
+.hp-ed-lens-row[data-drop="below"] {
+  box-shadow: inset 0 -2px 0 -1px var(--ed-accent);
+}
+
+/* While a row is held, nothing in the group takes a text selection. A mouse
+   drag crosses two or three names on its way down and would otherwise
+   highlight all of them. */
+.hp-ed-lenses[data-dragging="true"] { user-select: none; -webkit-user-select: none; }
 
 /* Between the directions that are on the profile and the ones that are only
    offered. The two groups take different controls and the rule is what says

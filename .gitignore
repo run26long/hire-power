@@ -137,3 +137,7 @@ dist
 
 # Claude Code machine-local settings
 .claude/settings.json
+
+# Working files and data dumps. Everything here is local scratch, and some of
+# it is real user content pulled from the database for debugging.
+scratchpad/

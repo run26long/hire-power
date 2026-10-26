@@ -6,6 +6,8 @@ import { createPortal } from 'react-dom'
 
 import StrokeIcon, { ICON_MEDIA, ICON_ARROW_LEFT, ICON_ARROW_RIGHT } from './StrokeIcon'
 import PortfolioMat from './PortfolioMat'
+import { externalUrl } from './EvidenceViewer'
+import { useViewerAuthHeaders } from '../_lib/viewerAuth'
 import { formatDuration } from '@/lib/portfolio'
 
 // ============================================================================
@@ -312,6 +314,11 @@ export default function PortfolioLightbox({
               )}
             </div>
 
+            {/* A grid, so the way out can sit at the end of the title line
+                on a wide screen and under everything on a narrow one without
+                being written into the markup twice. It is last here because
+                it is an action: read the work, then leave for the original.
+                Where it goes on the page is the stylesheet's business. */}
             <div className="hp-pf-box-foot">
               <p className="hp-pf-box-title">{item.title}</p>
               {item.description && <p className="hp-pf-box-note">{item.description}</p>}
@@ -320,6 +327,22 @@ export default function PortfolioLightbox({
                   .filter(Boolean)
                   .join(' · ')}
               </p>
+              {/* The same way out the evidence viewer offers, for the same
+                  reason: an uploaded screenshot of a live page is worth more
+                  when the page is one tap away. Here in the foot rather than
+                  on the picture, so it stands whether or not the file loads -
+                  a profile that cannot open its own image still has the
+                  address of the thing the image is of. */}
+              {externalUrl(item) && (
+                <a
+                  className="hp-ev-out"
+                  href={externalUrl(item)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Visit original
+                </a>
+              )}
             </div>
           </>
         )}
@@ -334,17 +357,32 @@ export default function PortfolioLightbox({
 // ---------------------------------------------------------------------------
 function PortfolioMedia({ item, slug, lensId }) {
   const [state, setState] = useState({ status: 'loading', url: null })
+  const viewerHeaders = useViewerAuthHeaders()
 
   useEffect(() => {
     if (!item?.id) return
     const suffix = lensId ? `?lens=${encodeURIComponent(lensId)}` : ''
     let live = true
-    fetch(`/api/career-profile/${encodeURIComponent(slug)}/evidence/${encodeURIComponent(item.id)}${suffix}`)
-      .then(res => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
+    const ask = async () => {
+      // The viewer's own session, where there is one. The route reads the
+      // token and decides whether this caller owns the profile; a draft serves
+      // its files to nobody else, and on a published profile the header
+      // changes nothing. Asked of the session rather than the edit context
+      // because Preview mode and the /p/<slug> link have no edit context, and
+      // both of them are how an owner looks at their own unpublished page.
+      const headers = await viewerHeaders()
+      const res = await fetch(
+        `/api/career-profile/${encodeURIComponent(slug)}/evidence/${encodeURIComponent(item.id)}${suffix}`,
+        { headers }
+      )
+      if (!res.ok) throw new Error(String(res.status))
+      return res.json()
+    }
+    ask()
       .then(body => { if (live) setState({ status: 'ready', url: body.url || null }) })
       .catch(() => { if (live) setState({ status: 'failed', url: null }) })
     return () => { live = false }
-  }, [slug, lensId, item?.id])
+  }, [slug, lensId, item?.id, viewerHeaders])
 
   if (state.status === 'loading') {
     return <div className="hp-pf-box-wait" aria-label="Opening" />

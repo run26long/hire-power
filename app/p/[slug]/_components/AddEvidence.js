@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react'
 import DirectionPicker from './DirectionPicker'
+import BrandSelect from './BrandSelect'
 import { useProfileEdit, useNotify } from '../_lib/editContext'
 import { EVIDENCE_TYPES, FAMILY_LABELS, familyForType } from '@/lib/evidenceTypes'
 import {
@@ -211,7 +212,10 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
         lens_ids: lensIds
       }
       const created = file
-        ? await edit.onUploadEvidence(file, details, {
+        // The link rides with the rest of the detail, so the finish call that
+        // writes the row writes it too. Empty stays empty rather than becoming
+        // an empty string the column would have to interpret.
+        ? await edit.onUploadEvidence(file, { ...details, url: form.url.trim() || null }, {
             onProgress: setProgress,
             setUploading,
             // Both null for anything that is not a video, and both optional
@@ -460,6 +464,27 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
                     Uploading… {progress}%
                   </p>
                 ) : null}
+
+                {/* ---- The same work, where it actually lives ----
+                    A screenshot of a page is better evidence when the page is
+                    one click away, and the two used to be alternatives: the
+                    form offered this field only when no file had been chosen,
+                    so picking one took the link away. They are not
+                    alternatives. The file is what the item shows; this is
+                    where the thing it shows can be found. */}
+                <label className="hp-ed-field-label" htmlFor="hp-ed-ev-file-url">
+                  Link to the live page (optional)
+                </label>
+                <input
+                  id="hp-ed-ev-file-url"
+                  className="hp-ed-input hp-ed-block"
+                  type="url"
+                  value={form.url}
+                  placeholder="https://"
+                  spellCheck="false"
+                  disabled={saving}
+                  onChange={e => set('url', e.target.value)}
+                />
               </>
             ) : (
               <>
@@ -503,29 +528,20 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
             <div className="hp-ed-add-grid">
               <div>
                 <label className="hp-ed-field-label" htmlFor="hp-ed-ev-type">Type</label>
-                <select
+                <BrandSelect
                   id="hp-ed-ev-type"
-                  className="hp-ed-input hp-ed-block"
                   value={form.evidence_type}
-                  onChange={e => set('evidence_type', e.target.value)}
-                >
-                  <option value="">Choose one…</option>
-                  {GROUPED.map(([familyKey, types]) => (
-                    <optgroup key={familyKey} label={FAMILY_LABELS[familyKey]}>
-                      {types.map(t => <option key={t} value={t}>{t}</option>)}
-                    </optgroup>
-                  ))}
-                </select>
-                {/* Said rather than asked. The family follows from the type, and
-                    making somebody choose both is making them guess at our
-                    filing system. */}
-                <p className="hp-ed-proof-note">
-                  {family ? `Filed under ${FAMILY_LABELS[family]}.` : 'Choose a type to file this.'}
-                </p>
+                  onChange={next => set('evidence_type', next)}
+                  disabled={saving}
+                  groups={GROUPED.map(([familyKey, types]) => ({
+                    label: FAMILY_LABELS[familyKey],
+                    options: types
+                  }))}
+                />
               </div>
 
               <div>
-                <label className="hp-ed-field-label" htmlFor="hp-ed-ev-org">Organisation</label>
+                <label className="hp-ed-field-label" htmlFor="hp-ed-ev-org">Organization</label>
                 <input
                   id="hp-ed-ev-org"
                   className="hp-ed-input hp-ed-block"

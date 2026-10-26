@@ -138,7 +138,7 @@ export default function CollectiveImpact({
 
       const state = !answered ? 'Requested'
         : !published ? 'Ready to review'
-        : unplaced ? 'Not shown on any direction'
+        : unplaced ? 'Not shown on any Career Direction'
         : hidden ? 'Hidden'
         : 'Published'
 
@@ -190,20 +190,16 @@ export default function CollectiveImpact({
     (id, nextHidden) => run(id, () => edit?.onHideTestimonial?.(id, lensId, nextHidden)),
     [run, edit, lensId]
   )
+  // A drop says where the testimonial goes, by naming the row it was dropped
+  // on, and the route resolves the position. Only the placed rows have an
+  // order at all - the pending ones sit above them and are not draggable - so
+  // a drop onto one of those is refused here rather than sent as a target the
+  // route has no row for.
   const dropItem = useCallback((fromId, toId) => {
-    // Only the placed rows have an order to change. The pending ones sit above
-    // them and are not draggable, and counting them here would offset every
-    // step the reorder walks.
-    const ids = manageItems.filter(one => one.placed).map(one => one.id)
-    const from = ids.indexOf(fromId)
-    const to = ids.indexOf(toId)
-    if (from === -1 || to === -1 || from === to) return
-    const by = to > from ? 1 : -1
-    return run(fromId, async () => {
-      for (let at = from; at !== to; at += by) {
-        await edit?.onReorderTestimonial?.(fromId, lensId, by)
-      }
-    })
+    if (!fromId || !toId || fromId === toId) return
+    const placed = new Set(manageItems.filter(one => one.placed).map(one => one.id))
+    if (!placed.has(fromId) || !placed.has(toId)) return
+    return run(fromId, () => edit?.onMoveTestimonial?.(fromId, lensId, toId))
   }, [manageItems, run, edit, lensId])
 
   const bodyRefs = useRef(new Map())

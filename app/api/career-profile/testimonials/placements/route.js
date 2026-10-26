@@ -12,7 +12,7 @@ import { requireCustomise } from '../../_lib/requireCustomise'
 // and no featured column behind one.
 //
 //   hide     - stop a direction showing a testimonial, without moving it
-//   reorder  - move a testimonial up or down within a direction
+//   move     - put a testimonial where another one sits, within a direction
 //
 // THERE IS NO DELETE AND NO ASSIGN-OFF
 // A testimonial is somebody else's words about this person, given once, on
@@ -178,27 +178,31 @@ export async function POST(request) {
       })
     }
 
-    // ---- REORDER ----
-    if (op === 'reorder') {
+    // ---- MOVE ----
+    if (op === 'move') {
       if (!testimonialId) return Response.json({ error: 'Not found.' }, { status: 404 })
-      const by = body?.by
-      if (by !== -1 && by !== 1) {
+      const targetId = body?.target_id
+      if (!isUuid(targetId)) {
         return Response.json({ error: 'Invalid request.', code: 'INVALID' }, { status: 400 })
       }
+
+      const wrongTarget = await belongsHere(supabase, profile, targetId, null)
+      if (wrongTarget) return Response.json({ error: wrongTarget }, { status: 404 })
 
       const rows = await testimonialPlacements.materialise(
         supabase, profile.id, lensId, await synthesisOrder(supabase, profile.id, lensId)
       )
       const from = rows.findIndex(r => r.testimonial_id === testimonialId)
-      if (from === -1) return Response.json({ error: 'Not found.' }, { status: 404 })
+      const to = rows.findIndex(r => r.testimonial_id === targetId)
+      if (from === -1 || to === -1) return Response.json({ error: 'Not found.' }, { status: 404 })
 
-      const to = from + by
-      // Already at the end is not an error. The button is disabled there, and
-      // a keyboard or a retry reaching it anyway should do nothing rather
-      // than fail.
-      if (to >= 0 && to < rows.length) {
+      // Dropped onto itself is not an error. It is the gesture a reader makes
+      // when they change their mind mid-drag, and the answer is the list
+      // unchanged.
+      if (from !== to) {
         const moved = [...rows]
-        ;[moved[from], moved[to]] = [moved[to], moved[from]]
+        const [row] = moved.splice(from, 1)
+        moved.splice(to, 0, row)
         await testimonialPlacements.renumber(supabase, moved)
       }
 

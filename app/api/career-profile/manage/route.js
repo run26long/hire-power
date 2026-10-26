@@ -62,7 +62,7 @@ const EVIDENCE_COLS =
   'mime_type, file_size, privacy, status, sort_order, storage_path, ' +
   'thumbnail_path, placement_scope, created_at, updated_at'
 
-const PLACEMENT_COLS = 'id, evidence_id, lens_id, sort_order, featured, hidden'
+const PLACEMENT_COLS = 'id, evidence_id, lens_id, sort_order, hidden'
 
 // The same shape over the other collection. No featured: a set of quotations
 // has no item that leads it.

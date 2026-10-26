@@ -90,14 +90,10 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
 
   const narrow = useNarrow()
 
-  // The lead is the item this direction marked. Where it marked none, the first
-  // in placement order leads - decided here, and never written back, because a
-  // default is not a choice the owner made.
-  const ordered = useMemo(() => {
-    if (items.length === 0) return []
-    const featured = items.find(one => one.featured)
-    return featured ? [featured, ...items.filter(one => one !== featured)] : items
-  }, [items])
+  // Placement order, and nothing but. The lead is whatever this direction put
+  // first, so there is one answer to "what leads this section" and it is the
+  // same answer the Manage list is showing.
+  const ordered = items
 
   // The two ways in start a visit.
   const openDetail = useCallback((item) => {
@@ -142,7 +138,9 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
       id: item.id,
       title: item.title || typeLabel(item),
       meta: metaOf(item) || typeLabel(item),
-      hidden: rows.get(item.id)?.hidden === true
+      hidden: rows.get(item.id)?.hidden === true,
+      // It has a row on this direction, so it has a position to drag.
+      placed: true
     }))
 
     // On no direction at all, which the owner cannot otherwise see: the item
@@ -153,8 +151,11 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
       title: item.title || typeLabel(item),
       meta: metaOf(item) || typeLabel(item),
       hidden: false,
-      status: 'Not shown on any direction',
-      statusTone: 'wait'
+      status: 'Not shown on any Career Direction',
+      statusTone: 'wait',
+      // On no direction, so it has no position in this one. Dragging it or
+      // dropping onto it would name a row the route has none of.
+      placed: false
     }))
 
     return [...here, ...orphans]
@@ -179,9 +180,6 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
     (id, nextHidden) => run(id, () => edit?.onHideEvidence?.(id, lensId, nextHidden)),
     [run, edit, lensId]
   )
-  // A drop is however many single steps it takes to get there, sent one at a
-  // time: the route moves an item by one place, and a drag is not a different
-  // kind of move, only a longer one.
   // The item whose fields are showing, resolved from the record rather than
   // held in state: an edit that lands changes the record, and the pane has
   // to be looking at what was actually saved.
@@ -190,24 +188,16 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
     [editingId, edit?.allEvidence]
   )
 
-  // Which item leads this direction, for the switch inside the pane.
-  const featuredId = useMemo(() => {
-    const rows = rowsForDirection(edit?.allPlacements, lensId, 'evidence_id')
-    for (const [id, row] of rows) if (row?.featured) return id
-    return null
-  }, [edit?.allPlacements, lensId])
-
+  // A drop says where the item goes, by naming the row it was dropped on, and
+  // the route resolves the position. The panel must not count the rows between
+  // them: this list is the non-visual half of a collection that shares one
+  // placement list with Portfolio, so the rows in between here are not all the
+  // rows in between there.
   const dropItem = useCallback((fromId, toId) => {
-    const ids = manageItems.map(one => one.id)
-    const from = ids.indexOf(fromId)
-    const to = ids.indexOf(toId)
-    if (from === -1 || to === -1 || from === to) return
-    const by = to > from ? 1 : -1
-    return run(fromId, async () => {
-      for (let at = from; at !== to; at += by) {
-        await edit?.onReorderEvidence?.(fromId, lensId, by)
-      }
-    })
+    if (!fromId || !toId || fromId === toId) return
+    const placed = new Set(manageItems.filter(one => one.placed).map(one => one.id))
+    if (!placed.has(fromId) || !placed.has(toId)) return
+    return run(fromId, () => edit?.onMoveEvidence?.(fromId, lensId, toId))
   }, [manageItems, run, edit, lensId])
 
   // Empty, this section is not on the public page at all. The owner has to
@@ -358,7 +348,6 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
           <EvidenceEditPane
             item={editingItem}
             lensId={lensId}
-            isFeatured={featuredId === editingItem.id}
             onBack={() => setEditingId(null)}
           />
         ) : (

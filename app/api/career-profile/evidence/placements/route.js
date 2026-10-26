@@ -7,14 +7,23 @@ import { requireCustomise } from '../../_lib/requireCustomise'
 //
 // Where a piece of evidence appears, in what order, and which one leads.
 //
-// Three operations on one route because they are three edits to one table and
-// they constrain each other: unassigning the item that leads a direction has
-// to take the star with it, and reordering has to leave a sequence the next
-// reorder can still read.
+// Two operations on one route because they are two edits to one table and
+// they constrain each other: hiding has to leave a position the next move can
+// still read, and moving has to carry the hidden rows with it rather than
+// renumbering around them.
 //
 //   hide     - stop a direction showing an item, without moving or losing it
-//   feature  - decide which item leads a direction, or that none does
-//   reorder  - move an item up or down within a direction
+//   move     - put an item where another one sits, within a direction
+//
+// WHAT LEADS A DIRECTION IS NOT ONE OF THESE EITHER
+// It used to be: a `feature` op set a per-direction flag and the section
+// pulled that item to the front. Two things then decided what came first, and
+// the Manage list only showed one of them - so the list could read top to
+// bottom in an order the public page did not use, and reordering the real
+// first item changed nothing anyone could see. The lead is now simply the
+// first item in the direction's order, which is the thing the owner is
+// already arranging. The column and set_featured_placement are still in the
+// database; nothing here reads or writes either.
 //
 // WHICH DIRECTIONS AN ITEM IS ON IS NOT ONE OF THESE
 // That is the item's own placement_scope, and it is set through
@@ -33,8 +42,26 @@ import { requireCustomise } from '../../_lib/requireCustomise'
 // EDITING A DIRECTION THAT HAS NO ROWS OF ITS OWN
 // An unarranged direction has no rows, because the items on it are there by
 // scope. There is nothing for a per-direction edit to change, so hide and
-// reorder write rows for everything then on it first - see the note in
+// move write rows for everything then on it first - see the note in
 // _lib/placements.
+//
+// WHY MOVE TAKES TWO IDS AND NOT A DIRECTION AND A DISTANCE
+// It used to be `reorder`, taking `by: 1 | -1`, and a drag sent one call per
+// row it had crossed on screen. That only works if the list on screen is the
+// list being written, and it is not: Portfolio and Evidence are two filtered
+// views of ONE placement list per direction, so a step in the panel is not a
+// step in the table. Dragging past a row the panel does not show moved the
+// item behind something invisible and the panel came back looking identical -
+// the drag appeared to do nothing, while the database had in fact changed.
+// Measured on a real profile, two of fourteen single-row drags in the
+// portfolio panel were silent no-ops and a drag to the top landed four places
+// short.
+//
+// So the client now says where the item should end up, by naming the item
+// already sitting there, and the position is resolved here against the whole
+// list - the only place the whole list is known. The moved row takes the
+// target's index and everything between it shifts by one, which is what a
+// drop onto a row means.
 //
 // WHOSE PLACEMENTS THESE ARE
 // The token's. Every id in the body is checked against the profile the token
@@ -42,19 +69,12 @@ import { requireCustomise } from '../../_lib/requireCustomise'
 // refuse a foreign lens anyway, but it would refuse it as a 500 after the
 // other half of the work had already happened.
 //
-// WHY FEATURE GOES THROUGH A DATABASE FUNCTION
-// One featured item per direction is a unique index, not a flag - I confirmed
-// it by inserting the second one and being refused. So moving the star is
-// "clear the old, set the new", and as two PostgREST calls those are two
-// transactions: a failure between them leaves a direction with no featured
-// item at all. set_featured_placement does both inside one, so it is both or
-// neither.
-//
-// WHY REORDER RENUMBERS EVERYTHING
-// Swapping two rows is fewer writes and leaves the sequence full of holes and
-// ties over time, and a tie means two items whose order depends on whatever
-// the database felt like returning. Renumbering the direction 0..n-1 on every
-// move keeps the sequence something the next move can reason about.
+// WHY MOVE RENUMBERS EVERYTHING
+// Writing only the rows between the two positions is fewer writes and leaves
+// the sequence full of holes and ties over time, and a tie means two items
+// whose order depends on whatever the database felt like returning.
+// Renumbering the direction 0..n-1 on every move keeps the sequence something
+// the next move can reason about.
 // ============================================================================
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -83,8 +103,8 @@ async function context(request) {
 }
 
 // An evidence id and a lens id are only usable once they are known to belong
-// here. `lensId` may be null, which means the shared layer - a real place an
-// item can sit, with its own featured index.
+// here. `lensId` may be null, which means the shared layer, which is a real
+// place an item can sit.
 async function belongsHere(supabase, profile, evidenceId, lensId) {
   if (evidenceId !== null) {
     if (!isUuid(evidenceId)) return 'Not found.'
@@ -165,9 +185,9 @@ export async function POST(request) {
 
     // ---- HIDE ----
     //
-    // The row stays. Its sort_order stays, its featured flag stays, the
-    // evidence record and its file and its placements in every other
-    // direction stay. All that changes is whether this direction renders it.
+    // The row stays. Its sort_order stays, the evidence record and its file
+    // and its placements in every other direction stay. All that changes is
+    // whether this direction renders it.
     if (op === 'hide') {
       if (!evidenceId) return Response.json({ error: 'Not found.' }, { status: 404 })
       if (typeof body?.hidden !== 'boolean') {
@@ -194,47 +214,31 @@ export async function POST(request) {
       return Response.json({ placements: await placementsFor(supabase, profile.id, lensId) })
     }
 
-    // ---- FEATURE ----
-    if (op === 'feature') {
-      // Null is a real argument here: it means this direction has no lead.
-      const { error } = await supabase.rpc('set_featured_placement', {
-        p_user_id: user.id,
-        p_lens_id: lensId,
-        p_evidence_id: evidenceId
-      })
-      if (error) {
-        // The function raises for a lens or a placement that is not this
-        // user's. Those are the same answer as anything else not found.
-        const message = String(error.message || '')
-        if (/LENS_NOT_FOUND|PLACEMENT_NOT_FOUND|NO_PROFILE/.test(message)) {
-          return Response.json({ error: 'Not found.' }, { status: 404 })
-        }
-        throw error
-      }
-      return Response.json({ placements: await placementsFor(supabase, profile.id, lensId) })
-    }
-
-    // ---- REORDER ----
-    if (op === 'reorder') {
+    // ---- MOVE ----
+    if (op === 'move') {
       if (!evidenceId) return Response.json({ error: 'Not found.' }, { status: 404 })
-      const by = body?.by
-      if (by !== -1 && by !== 1) {
+      const targetId = body?.target_id
+      if (!isUuid(targetId)) {
         return Response.json({ error: 'Invalid request.', code: 'INVALID' }, { status: 400 })
       }
+
+      const wrongTarget = await belongsHere(supabase, profile, targetId, null)
+      if (wrongTarget) return Response.json({ error: wrongTarget }, { status: 404 })
 
       // A direction with no list of its own gets one before it is reordered,
       // or there is nothing here to move and the control does nothing.
       const rows = await evidencePlacements.materialise(supabase, profile.id, lensId)
       const from = rows.findIndex(r => r.evidence_id === evidenceId)
-      if (from === -1) return Response.json({ error: 'Not found.' }, { status: 404 })
+      const to = rows.findIndex(r => r.evidence_id === targetId)
+      if (from === -1 || to === -1) return Response.json({ error: 'Not found.' }, { status: 404 })
 
-      const to = from + by
-      // Already at the end is not an error. The button is disabled there, and
-      // a keyboard or a retry reaching it anyway should do nothing rather than
-      // fail.
-      if (to >= 0 && to < rows.length) {
+      // Dropped onto itself is not an error. It is the gesture a reader makes
+      // when they change their mind mid-drag, and the answer is the list
+      // unchanged.
+      if (from !== to) {
         const moved = [...rows]
-        ;[moved[from], moved[to]] = [moved[to], moved[from]]
+        const [row] = moved.splice(from, 1)
+        moved.splice(to, 0, row)
         await renumber(supabase, moved)
       }
 

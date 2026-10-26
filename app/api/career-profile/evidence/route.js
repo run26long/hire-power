@@ -245,9 +245,9 @@ export async function POST(request) {
     }
 
     // ---- THE PLACEMENTS ----
-    // After the row, because a placement without its evidence is refused by the
-    // foreign key. Nothing is featured here: leading a direction is a separate
-    // decision with its own constraint, and it is made in the manager.
+    // After the row, because a placement without its evidence is refused by
+    // the foreign key. It goes on the end of each direction it is placed on:
+    // the lead is whatever sits first, and a new item has not earned that.
     //
     // An item on all directions gets no rows at all. Its scope already says
     // where it is, and writing a row per direction would be the same claim
@@ -273,10 +273,9 @@ export async function POST(request) {
           profile_id: profile.id,
           evidence_id: created.id,
           lens_id: lensId,
-          sort_order: nextFor.get(lensId),
-          featured: false
+          sort_order: nextFor.get(lensId)
         })))
-        .select('id, evidence_id, lens_id, sort_order, featured')
+        .select('id, evidence_id, lens_id, sort_order')
 
       if (placementError) {
         // The item exists but is in no direction, which is a state the manager

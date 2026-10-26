@@ -39,7 +39,6 @@ export const isUuid = (value) => typeof value === 'string' && UUID.test(value)
  * @param {string} spec.table        the placement table
  * @param {string} spec.itemTable    where the items themselves live
  * @param {string} spec.itemColumn   'evidence_id' or 'testimonial_id'
- * @param {boolean} spec.featured    whether the table carries a lead flag
  * @param {function} spec.defaultOrder  applies the collection's own ordering
  * @param {function} spec.liveOnly      narrows to the rows that can be placed
  */
@@ -47,12 +46,10 @@ export function placementStore({
   table,
   itemTable,
   itemColumn,
-  featured = false,
   defaultOrder = (q) => q,
   liveOnly = (q) => q,
 }) {
   const columns = ['id', itemColumn, 'lens_id', 'sort_order', 'hidden']
-    .concat(featured ? ['featured'] : [])
     .join(', ')
 
   // Every placement in one direction, in the order the profile reads them.
@@ -153,7 +150,6 @@ export function placementStore({
       lens_id: lensId,
       sort_order: index,
       hidden: false,
-      ...(featured ? { featured: false } : {}),
     }))
 
     const { error } = await supabase.from(table).insert(rows)
@@ -212,20 +208,18 @@ export function placementStore({
         lens_id: lensId,
         sort_order: here.length,
         hidden: false,
-        ...(featured ? { featured: false } : {}),
       })
       if (addError && addError.code !== '23505') throw addError
     }
   }
 
-  return { table, itemTable, itemColumn, featured, columns, listFor, renumber, materialise, setDirections }
+  return { table, itemTable, itemColumn, columns, listFor, renumber, materialise, setDirections }
 }
 
 export const evidencePlacements = placementStore({
   table: 'profile_evidence_placements',
   itemTable: 'profile_evidence',
   itemColumn: 'evidence_id',
-  featured: true,
   // The collection's own running order, which is what an unarranged direction
   // is already showing.
   defaultOrder: (q) => q.order('sort_order', { ascending: true }),
@@ -237,7 +231,6 @@ export const testimonialPlacements = placementStore({
   table: 'profile_testimonial_placements',
   itemTable: 'profile_testimonials',
   itemColumn: 'testimonial_id',
-  featured: false,
   // Testimonials have no ordering column of their own, so this is only the
   // floor under the ranking the caller passes as orderHint.
   defaultOrder: (q) => q.order('created_at', { ascending: false }),

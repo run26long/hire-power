@@ -185,7 +185,7 @@ export async function GET(request, { params }) {
       // and whether it leads - so nothing about an item travels twice.
       supabase
         .from('profile_evidence_placements')
-        .select('evidence_id, lens_id, sort_order, featured, hidden')
+        .select('evidence_id, lens_id, sort_order, hidden')
         .eq('profile_id', profile.id)
         .order('sort_order', { ascending: true }),
       // Which testimonials each direction shows, and in what order. A row
@@ -365,7 +365,6 @@ export async function GET(request, { params }) {
           evidence_id: row.evidence_id,
           lens_id: row.lens_id,
           sort_order: row.sort_order ?? 0,
-          featured: row.featured === true,
           hidden: row.hidden === true
         })
       }

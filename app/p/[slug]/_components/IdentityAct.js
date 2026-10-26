@@ -160,7 +160,7 @@ export default function IdentityAct({
                   always the direction being arrived at - the one being left
                   has already gone out with the rest of the refocus. */}
               <div
-                className="hp-proof-lead hp-refocus hp-proof-enter"
+                className={`hp-proof-lead hp-refocus hp-proof-enter${slot}`}
                 data-resolve="positioning"
                 data-enter="0"
                 key={`lead-${directionKey}`}

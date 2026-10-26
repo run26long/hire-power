@@ -33,7 +33,7 @@ import { canonicalType, familyForType } from '@/lib/evidenceTypes'
 // is gone from every surface either way.
 // ============================================================================
 
-const LIMITS = { title: 200, description: 1000, organization: 120, date_label: 40 }
+const LIMITS = { title: 200, description: 1000, organization: 120, date_label: 40, url: 2048 }
 
 const CONTROL = new RegExp(
   '[' +
@@ -44,6 +44,29 @@ const CONTROL = new RegExp(
 const clean = (value) => noEmDash(String(value).replace(CONTROL, '').replace(/\s+/g, ' ').trim())
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// The second lock on the scheme. The column refuses anything but http and
+// https, so this is here to answer with a sentence rather than a 500 - and to
+// refuse a URL that is merely unparseable, which the column would accept.
+//
+// Copied from the link creation route rather than imported, for the reason
+// given there: the three routes that accept a web address must agree about
+// what one is, and the way they agree is by being the same twenty lines.
+function webUrl(value) {
+  if (typeof value !== 'string' || !value.trim()) return { error: 'A link is required.' }
+  const raw = value.trim()
+  if (raw.length > LIMITS.url) return { error: 'That link is too long.' }
+  let parsed
+  try {
+    parsed = new URL(raw)
+  } catch {
+    return { error: "That doesn't look like a web address." }
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return { error: 'Only http and https links can be added.' }
+  }
+  return { value: parsed.toString() }
+}
 
 function text(value, max, label, { required = false } = {}) {
   if (value === null || value === '') return required ? { error: `${label} is required.` } : { value: null }
@@ -78,7 +101,7 @@ async function owned(request, evidenceId) {
   // whoever's item was named, the owner alone has no item.
   const { data: item } = await supabase
     .from('profile_evidence')
-    .select('id, profile_id, privacy, status')
+    .select('id, profile_id, privacy, status, source_type')
     .eq('id', evidenceId)
     .eq('user_id', user.id)
     .is('deleted_at', null)
@@ -121,6 +144,32 @@ export async function PATCH(request, { params }) {
       const r = text(body[key], max, label)
       if (r.error) return Response.json({ error: r.error, code: 'INVALID', field: key }, { status: 400 })
       patch[key] = r.value
+    }
+
+    // ---- THE LINK ----
+    //
+    // An uploaded item may gain one, change it, or lose it: the file is its
+    // source and the link is an extra. A link item may change its address but
+    // not clear it, because the address is the only thing it has - an item
+    // with no file and no link is a title with nothing behind it, and the
+    // column would be the only record that it ever pointed anywhere.
+    if (Object.prototype.hasOwnProperty.call(body, 'url')) {
+      const raw = typeof body.url === 'string' ? body.url.trim() : ''
+      if (!raw) {
+        if (item.source_type !== 'upload') {
+          return Response.json(
+            { error: 'A link item needs its link. Add a file instead, or delete the item.', code: 'INVALID', field: 'url' },
+            { status: 400 }
+          )
+        }
+        patch.url = null
+      } else {
+        const checked = webUrl(raw)
+        if (checked.error) {
+          return Response.json({ error: checked.error, code: 'INVALID', field: 'url' }, { status: 400 })
+        }
+        patch.url = checked.value
+      }
     }
 
     // The type and the family move together or not at all, because the family

@@ -26,6 +26,37 @@ import { LIMITS, clampToLimit, overLimitNote } from '@/lib/textLimits'
 // ============================================================================
 
 // ---------------------------------------------------------------------------
+// TAKE THE SAVED VALUE AGAIN, EVERY TIME THE EDITOR OPENS
+//
+// Closing a field does not unmount its editor. The component returns null and
+// React keeps the instance, so a useState initialiser runs ONCE in the life of
+// the page - with whichever direction happened to be on screen the first time
+// the section rendered. Every later open showed that, or whatever was last
+// typed, rather than the direction now selected.
+//
+// Switching direction closes the open field (ProfileDocument does it when the
+// content swaps, for this exact reason), so an editor can never be open across
+// a direction change. The open edge is therefore the only moment that matters,
+// and loading there is enough.
+//
+// Only on the closed -> open edge, never on a later change to `value`: while
+// somebody is typing, the stored value is the thing they are replacing, and
+// reloading it would delete what they had written.
+// ---------------------------------------------------------------------------
+function useLoadOnOpen(isOpen, load) {
+  // Held in a ref so the effect below does not have to list `load` - a fresh
+  // closure every render would re-run it and wipe the draft mid-edit.
+  const loadRef = useRef(load)
+  useEffect(() => { loadRef.current = load })
+
+  const wasOpen = useRef(false)
+  useEffect(() => {
+    if (isOpen && !wasOpen.current) loadRef.current()
+    wasOpen.current = isOpen
+  }, [isOpen])
+}
+
+// ---------------------------------------------------------------------------
 // The row under every editor: what it can do, what went wrong, and the way out.
 // ---------------------------------------------------------------------------
 // `hint` and `count` are the row under the field. It sits under rather than
@@ -183,10 +214,9 @@ const DEFAULT_SHAPE = { minRows: 4, maxRows: 12 }
 
 export function ProseEditor({ field, label, value, size = 'body', rows = 3 }) {
   const editor = useFieldEditor(field)
-  // Initialised at mount, not synchronised by an effect. Each of these is
-  // rendered only while its field is open, so opening one IS the mount and
-  // closing it is the unmount - the stored value is therefore the starting
-  // point every time, and a cancelled edit cannot come back on the next open.
+  // The starting point, reloaded on every open by useLoadOnOpen below. This
+  // initialiser only covers the first one: the editor is mounted for the life
+  // of the section and merely returns null while closed, so it runs once.
   const [draft, setDraft] = useState(value || '')
   // Whether a version has been written since this opened. Both versions here
   // are generated, so there is nothing to compare against and nothing to
@@ -202,6 +232,14 @@ export function ProseEditor({ field, label, value, size = 'body', rows = 3 }) {
   const max = LIMITS[field] || LIMITS.bio
 
   useAutoGrow(ref, draft, shape.minRows, shape.maxRows, isOpen)
+
+  // This direction's saved words, not the last direction's. `regenerated` goes
+  // with them: it says a version has been written since this opened, and on a
+  // fresh open nothing has.
+  useLoadOnOpen(isOpen, () => {
+    setDraft(value || '')
+    setRegenerated(false)
+  })
 
   useEffect(() => {
     if (!isOpen) return
@@ -283,11 +321,21 @@ export function ProseEditor({ field, label, value, size = 'body', rows = 3 }) {
 // ---------------------------------------------------------------------------
 export function TagsEditor({ field = 'ready_tags', label = 'Open To tags', value }) {
   const editor = useFieldEditor(field)
+  // Reloaded on every open by useLoadOnOpen below; this initialiser only
+  // covers the first one. See the note on the hook.
   const [tags, setTags] = useState(() => (Array.isArray(value) ? value : []))
   const [entry, setEntry] = useState('')
   const ref = useRef(null)
 
   const isOpen = editor?.isOpen === true
+
+  // This direction's tags, and an empty box to add to them - a half-typed tag
+  // left behind from a previous open belongs to whatever was being edited
+  // then.
+  useLoadOnOpen(isOpen, () => {
+    setTags(Array.isArray(value) ? value : [])
+    setEntry('')
+  })
 
   // No useEscape here: the dialog owns the key, and two handlers on one press
   // is one of them closing something the other has already closed.
@@ -404,20 +452,31 @@ export function TagsEditor({ field = 'ready_tags', label = 'Open To tags', value
 // ---------------------------------------------------------------------------
 const PROOF_POINT_COUNT = 3
 
+// Always three rows, so a direction that has none is still editable and one
+// that somehow has more is trimmed to what the layout can place. Shared by the
+// initialiser and the load-on-open below, so they cannot normalise differently.
+function rowsFrom(value) {
+  const stored = Array.isArray(value) ? value : []
+  return Array.from({ length: PROOF_POINT_COUNT }, (_, i) => ({
+    num: typeof stored[i]?.num === 'string' ? stored[i].num : '',
+    label: typeof stored[i]?.label === 'string' ? stored[i].label : ''
+  }))
+}
+
 export function ProofPointsEditor({ field = 'proof_points', label = 'proof points', value }) {
   const editor = useFieldEditor(field)
-  // Always three rows, so a direction that has none is still editable and one
-  // that somehow has more is trimmed to what the layout can place.
-  const [points, setPoints] = useState(() => {
-    const stored = Array.isArray(value) ? value : []
-    return Array.from({ length: PROOF_POINT_COUNT }, (_, i) => ({
-      num: typeof stored[i]?.num === 'string' ? stored[i].num : '',
-      label: typeof stored[i]?.label === 'string' ? stored[i].label : ''
-    }))
-  })
+  const [points, setPoints] = useState(() => rowsFrom(value))
   const ref = useRef(null)
 
   const isOpen = editor?.isOpen === true
+
+  // This editor is the one that is mounted only while its field is open, so
+  // its initialiser does re-run on every open and it never had the bug the
+  // other three had. That correctness rests entirely on a `?` at the call
+  // site, which nothing enforces: rendered the way the others are, it would
+  // overwrite three fields with the last direction's. Loading on open as well
+  // costs nothing today and makes the component right on its own terms.
+  useLoadOnOpen(isOpen, () => setPoints(rowsFrom(value)))
 
   useEffect(() => { if (isOpen) ref.current?.focus() }, [isOpen])
   useEscape(isOpen, editor?.close)
