@@ -534,6 +534,61 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   // row; this swaps two ranks and re-sorts the row around them, and guessing
   // that locally means duplicating the slot arithmetic in two places that would
   // then have to agree forever. The reload is one request and the row is small.
+  // A direction the owner names themselves. The refusal is shown inside the
+  // menu rather than as a toast: it is information about their own career
+  // data, and it has to stay next to the box they typed into.
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [customBusy, setCustomBusy] = useState(false);
+  const [customNote, setCustomNote] = useState(null);
+
+  async function createCustomLens() {
+    const name = customName.trim();
+    if (!name || customBusy) return;
+    setCustomBusy(true);
+    setCustomNote(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/profile-lenses/create-custom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ name })
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setCustomNote(payload?.error || "We couldn't create that direction. Please try again.");
+        return;
+      }
+      // An answer of "no" is an ordinary result, not a failure: the request
+      // worked, the career data did not reach.
+      if (payload?.ok === false) {
+        setCustomNote(payload.message || "There isn't enough career data to support that direction yet.");
+        return;
+      }
+      setCustomName('');
+      setCustomOpen(false);
+      setRestoreMenuOpen(false);
+
+      // With a slot free the new direction lands in it on its own: every
+      // coreless direction is on the row, so ranking last still means a tile.
+      // With the row full it has to take someone's place, and the one it takes
+      // is the lowest-ranked suggestion - never a built core, never the
+      // primary, which is what displaceable already excludes.
+      const displaced = hasFreeSlot ? null : (displaceable[displaceable.length - 1] || null);
+      if (payload?.lens?.id && displaced) {
+        // promoteLens reloads once the swap lands, so there is no second read.
+        await promoteLens(payload.lens, displaced);
+      } else {
+        await loadData();
+      }
+    } catch (err) {
+      console.error('Custom lens create failed:', err);
+      setCustomNote("We couldn't create that direction. Please try again.");
+    } finally {
+      setCustomBusy(false);
+    }
+  }
+
   async function promoteLens(lens, displaced) {
     if (promotingLensId) return;
     setPromotingLensId(lens.id);
@@ -1588,7 +1643,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   // nowhere to put a pick, and a menu that opens onto a choice that cannot be
   // honoured is worse than no menu.
   const canSwapIn = hasFreeSlot || displaceable.length > 0;
-  const showAdditional = additionalSuggestions.length > 0 && !allSlotsBuilt && canSwapIn;
+  // The menu holds two things now: directions already suggested, and the way
+  // to name one that was not. The second needs no suggestions to exist, so
+  // requiring one hid the control in exactly the case it is for - an account
+  // that has worked through every suggestion and wants a direction of its own.
+  // What it still needs is somewhere to put the result, which is what
+  // canSwapIn asks.
+  const showAdditional = !allSlotsBuilt && canSwapIn;
 
   // Caption for the core-resume selector. builtCount counts the priority core plus
   // every lens core built from it, so all three lines are reachable: nothing left to
@@ -2086,6 +2147,63 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                     {lens.name}
                                   </button>
                                 ))}
+
+                                {/* ---- A direction of their own ----
+                                    At the foot, under whatever was suggested,
+                                    because it is the answer to having read
+                                    those and not found the one they wanted. */}
+                                {additionalSuggestions.length > 0 && (
+                                  <div className="border-t border-gray-100 my-1" />
+                                )}
+
+                                {customOpen ? (
+                                  <div className="px-3 py-2">
+                                    <input
+                                      type="text"
+                                      autoFocus
+                                      value={customName}
+                                      maxLength={60}
+                                      disabled={customBusy}
+                                      placeholder="e.g. Resume Writing, AI Engineering, Data Analytics"
+                                      onChange={e => { setCustomName(e.target.value); setCustomNote(null); }}
+                                      onKeyDown={e => {
+                                        if (e.key === 'Enter') { e.preventDefault(); createCustomLens(); }
+                                        if (e.key === 'Escape') { setCustomOpen(false); setCustomNote(null); }
+                                      }}
+                                      className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-60"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={createCustomLens}
+                                      disabled={customBusy || !customName.trim()}
+                                      className="mt-2 w-full rounded px-2 py-1 text-xs font-semibold text-white disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+                                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                                    >
+                                      {customBusy && (
+                                        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent" />
+                                      )}
+                                      {customBusy ? 'Building…' : 'Create direction'}
+                                    </button>
+                                    {customBusy && (
+                                      <p className="mt-2 text-[11px] leading-snug text-gray-500">
+                                        Reading your career data and writing the direction. This takes a few seconds.
+                                      </p>
+                                    )}
+                                    {customNote && !customBusy && (
+                                      <p className="mt-2 text-[11px] leading-snug text-gray-600 border-l-2 border-purple-400 pl-2">
+                                        {customNote}
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => { setCustomOpen(true); setCustomNote(null); }}
+                                    className="block w-full text-left px-3 py-1.5 text-xs font-semibold text-purple-600 hover:bg-gray-50"
+                                  >
+                                    Create your own
+                                  </button>
+                                )}
                               </div>
                             )}
                           </div>

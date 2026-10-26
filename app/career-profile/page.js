@@ -836,6 +836,27 @@ export default function CareerProfileEditorPage() {
     return payload
   }, [getAuthHeaders, reloadDocument, reloadManage])
 
+  // A direction the owner names themselves. Returns the route's answer rather
+  // than throwing on a refusal: "your career data does not reach this yet" is
+  // an ordinary outcome the drawer shows under the input, where a thrown error
+  // would reach the same place as a failed save and read as a fault.
+  const createLens = useCallback(async (name) => {
+    const res = await fetch('/api/profile-lenses/create-custom', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+      body: JSON.stringify({ name })
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(payload?.error || "We couldn't create that direction. Please try again.")
+    }
+    if (payload?.ok === false) return payload
+    // Both halves, because a new direction is on the document as well as in
+    // the drawer: the lens rail is drawn from it.
+    await Promise.all([reloadDocument(), reloadManage()])
+    return payload
+  }, [getAuthHeaders, reloadDocument, reloadManage])
+
   // The order the directions are read in, and so which one a visitor lands
   // on. Sends the whole arrangement rather than a move: see the note on the
   // route. Reloads both halves, because the order is on the document as well
@@ -1005,7 +1026,9 @@ export default function CareerProfileEditorPage() {
             <TourReplayButton
               storageKey={PROFILE_TOUR_KEY}
               onReplay={() => setShowTour(true)}
-              style={{ color: 'var(--ed-muted)' }}
+              /* The chrome bar is near the top of the window; above it the card
+                 would sit over the nav. */
+              tipPlacement="bottom"
             />
           </div>
         </div>
@@ -1097,6 +1120,7 @@ export default function CareerProfileEditorPage() {
         lenses={manage?.lenses || []}
         onLensVisibility={setLensVisibility}
         onLensReorder={reorderLenses}
+        onLensCreate={createLens}
       />
 
       {/* Inside .hp-ed, which is where the workspace's colour tokens live: the

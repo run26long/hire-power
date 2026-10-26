@@ -128,13 +128,43 @@ export default function SettingsDrawer({
   notify,
   lenses,
   onLensVisibility,
-  onLensReorder
+  onLensReorder,
+  onLensCreate
 }) {
   const closeRef = useRef(null)
 
   // Which row is mid-write, so one toggle disables itself without freezing the
   // rest of the list.
   const [lensBusy, setLensBusy] = useState(null)
+
+  // A direction the owner names themselves. The refusal lives here rather than
+  // in a toast: being told the career data does not reach is information about
+  // their own material, and it has to stay on screen next to the box they
+  // typed into while they think about what else to try.
+  const [customName, setCustomName] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [createNote, setCreateNote] = useState(null)
+
+  async function createCustomLens() {
+    const name = customName.trim()
+    if (!name || creating || !onLensCreate) return
+    setCreating(true)
+    setCreateNote(null)
+    try {
+      const result = await onLensCreate(name)
+      // An answer of "no" comes back as an ordinary result, not a throw: the
+      // request worked, the career data did not reach.
+      if (result?.ok === false) {
+        setCreateNote(result.message || "There isn't enough career data to support that direction yet.")
+        return
+      }
+      setCustomName('')
+    } catch (err) {
+      setCreateNote(err?.message || "We couldn't create that direction. Please try again.")
+    } finally {
+      setCreating(false)
+    }
+  }
 
   const directions = (Array.isArray(lenses) ? lenses : [])
     .map(lens => ({ lens, state: lensState(lens) }))
@@ -815,6 +845,52 @@ export default function SettingsDrawer({
                   </div>
                 </>
               )}
+
+              {/* ---- A direction of their own ----
+                  Under the suggestions, because it is the answer to having
+                  read them and not found the one they wanted. Pro only, and
+                  disabled rather than hidden when the slots are full: the
+                  reason is already written under it, and a control that
+                  vanishes explains nothing. */}
+              <hr className="hp-ed-lens-split" />
+              <div className="hp-ed-lens-make">
+                <label className="hp-ed-lens-make-label" htmlFor="hp-custom-lens">
+                  Add your own career direction
+                </label>
+                <div className="hp-ed-lens-make-row">
+                  <input
+                    id="hp-custom-lens"
+                    type="text"
+                    className="hp-ed-input hp-ed-block"
+                    placeholder="e.g. Resume Writing, AI Engineering, Data Analytics"
+                    value={customName}
+                    maxLength={60}
+                    disabled={!canCustomise || !isPro || creating || slotsFull}
+                    onChange={e => { setCustomName(e.target.value); setCreateNote(null) }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); createCustomLens() } }}
+                  />
+                  {canCustomise && isPro ? (
+                    <button
+                      type="button"
+                      className="hp-ed-lens-add"
+                      onClick={createCustomLens}
+                      disabled={creating || slotsFull || !customName.trim()}
+                    >
+                      {creating ? 'Building…' : 'Create'}
+                    </button>
+                  ) : (
+                    <a className="hp-ed-lens-add" href={UPGRADE_HREF}>{UPGRADE_LABEL}</a>
+                  )}
+                </div>
+                {creating && (
+                  <p className="hp-ed-hint">
+                    Reading your career data and writing the direction. This takes a few seconds.
+                  </p>
+                )}
+                {createNote && !creating && (
+                  <p className="hp-ed-lens-make-note">{createNote}</p>
+                )}
+              </div>
 
               {/* Three answers, because there are three situations. A free
                   account is told what the section is and what adds to it; a

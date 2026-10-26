@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { requireCustomise } from '../../../_lib/requireCustomise'
-import { canCreateResumes } from '@/lib/tiers'
+import { canCreateResumes, MAX_LENSES } from '@/lib/tiers'
 
 // ============================================================================
 // PATCH /api/career-profile/lens/[lensId]/visibility
@@ -66,7 +66,10 @@ const HIDDEN = 'hidden'
 // What the public page renders, and so what this will let anybody turn on.
 // The same number the public route slices to; they are the same rule read
 // from two ends.
-const MAX_ACTIVE = 3
+// The ceiling lives in lib/tiers.js with the other one it is paired to.
+// It was declared there and used nowhere, while this route carried its own
+// copy of the number - two places to change and only one of them obvious.
+const MAX_ACTIVE = MAX_LENSES
 
 // source 'user' with sort_order 0 is the pair ensurePrimaryLens uses as the
 // primary's identity, so this asks the same question the writer answers.
