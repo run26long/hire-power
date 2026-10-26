@@ -415,21 +415,156 @@ export default function Tour({ steps: given, storageKey, theme = 'light', onStep
 // and starts it, which is the same path a first visit takes rather than a
 // second one beside it.
 //
-// Desktop only, like the tour it opens. It takes its colour from whatever it
-// sits in rather than naming one, so the same component reads correctly on the
-// hubs' white cards and on the Career Profile's dark bar.
+// Desktop only, like the tour it opens. A named chip rather than a ringed
+// glyph: a lone "?" beside a heading is a question about the heading, and this
+// is an offer to be shown round. A pale violet chip, short enough at 28px to
+// sit under the controls beside it rather than among them.
+//
+// One palette on every page, so there is nothing for a tone to vary.
+//
+// The states are a stylesheet rather than inline style, because hover and
+// focus-visible cannot be expressed inline.
 // ---------------------------------------------------------------------------
-export function TourReplayButton({ storageKey, onReplay, label = 'Replay the tour', className = '', style }) {
+const REPLAY_CSS = `
+.hp-tour-replay {
+  position: relative;
+  height: 28px;
+  padding: 0 9px;
+  /* Display is deliberately not set here. The element carries Tailwind's
+     hidden / md:inline-flex pair, which is the desktop-only rule, and those
+     are single classes - exactly as specific as this one. This stylesheet is
+     rendered into the body and Tailwind's is linked in the head, so at equal
+     specificity a display set here would win on document order and the
+     control would appear on a phone, where the tour it opens cannot run. */
+  align-items: center;
+  gap: 3px;
+  background: #F8F4FD;
+  border: 1px solid #E2D7F2;
+  border-radius: 999px;
+  box-shadow: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: .01em;
+  color: #6D45C6;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.hp-tour-replay:hover,
+.hp-tour-replay:focus-visible { background: #F1E9FB; color: #5931B3; }
+.hp-tour-replay:focus-visible { outline: 2px solid rgba(147, 51, 234, .40); outline-offset: 2px; }
+
+/* Absolute, so showing it moves nothing. Centred on the control and parked
+   on whichever side has the room. */
+.hp-tour-replay-tip {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10001;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #20242A;
+  padding: 6px 8px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .18);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.hp-tour-replay-tip[data-place="top"] { bottom: calc(100% + 8px); }
+.hp-tour-replay-tip[data-place="bottom"] { top: calc(100% + 8px); }
+`
+
+// One small mark to the left of the word. A play triangle: this starts
+// something, and the only other thing it could be is the question mark that
+// was just taken out.
+function ReplayIcon() {
   return (
-    <button
-      type="button"
-      onClick={() => { resetTour(storageKey); onReplay() }}
-      aria-label={label}
-      title={label}
-      className={`hidden md:inline-flex items-center justify-center flex-shrink-0 rounded-full border border-current opacity-40 hover:opacity-80 transition-opacity ${className}`}
-      style={{ width: 18, height: 18, fontSize: 11, fontWeight: 700, lineHeight: 1, background: 'none', cursor: 'pointer', padding: 0, ...style }}
-    >
-      ?
-    </button>
+    <svg width="9" height="9" viewBox="0 0 13 13" aria-hidden="true" focusable="false" style={{ flexShrink: 0 }}>
+      <path
+        d="M4.1 2.75v7.5a.6.6 0 0 0 .92.5l5.9-3.75a.6.6 0 0 0 0-1L5.02 2.25a.6.6 0 0 0-.92.5Z"
+        fill="currentColor"
+      />
+    </svg>
+  )
+}
+
+// The card is about 26px, and it sits 8px clear of the control.
+const TIP_CLEARANCE = 34
+// How close the card may come to the window's edge before it is nudged back.
+const TIP_MARGIN = 8
+
+export function TourReplayButton({ storageKey, onReplay, label = 'Replay guided tour', className = '', tipPlacement = 'top' }) {
+  // Which side the tooltip sits on, and how far it has to be nudged sideways
+  // to stay on screen. Both are decided when it is asked for rather than up
+  // front, because the control sits mid-column on one page and in a bar at the
+  // top of the window on another.
+  const [place, setPlace] = useState(null)
+  const ref = useRef(null)
+  const tipRef = useRef(null)
+
+  const show = () => {
+    const rect = ref.current?.getBoundingClientRect()
+    if (!rect) { setPlace(tipPlacement); return }
+    const above = rect.top >= TIP_CLEARANCE
+    const below = window.innerHeight - rect.bottom >= TIP_CLEARANCE
+    // The page's preference, unless that side has no room and the other does.
+    setPlace(tipPlacement === 'bottom'
+      ? (below || !above ? 'bottom' : 'top')
+      : (above || !below ? 'top' : 'bottom'))
+  }
+  const hide = () => setPlace(null)
+
+  // Centred on the control, then pushed back inside the window if that would
+  // hang it off an edge. Written onto the node rather than held as state: the
+  // measurement is of the card that has just been laid out, so turning it into
+  // a render would be a second pass to reach the same pixels, and a state the
+  // nudge fed back into would be a loop waiting to happen. Measured from the
+  // control's centre and the card's own layout width, both of which the
+  // transform does not move.
+  useLayoutEffect(() => {
+    const tip = tipRef.current
+    if (!place || !tip) return
+    const rect = ref.current?.getBoundingClientRect()
+    const width = tip.offsetWidth
+    if (!rect || !width) return
+    const centre = rect.left + rect.width / 2
+    let shift = 0
+    if (centre - width / 2 < TIP_MARGIN) shift = TIP_MARGIN - (centre - width / 2)
+    else if (centre + width / 2 > window.innerWidth - TIP_MARGIN) shift = (window.innerWidth - TIP_MARGIN) - (centre + width / 2)
+    tip.style.transform = `translateX(calc(-50% + ${Math.round(shift)}px))`
+  }, [place])
+
+  return (
+    <>
+      <style>{REPLAY_CSS}</style>
+      <button
+        ref={ref}
+        type="button"
+        onClick={() => { resetTour(storageKey); onReplay() }}
+        aria-label={label}
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        onFocus={show}
+        onBlur={hide}
+        className={`hp-tour-replay hidden md:inline-flex flex-shrink-0 ${className}`}
+      >
+        <ReplayIcon />
+        Tour
+        {place && (
+          <span
+            ref={tipRef}
+            className="hp-tour-replay-tip"
+            data-place={place}
+            aria-hidden="true"
+          >
+            {label}
+          </span>
+        )}
+      </button>
+    </>
   )
 }

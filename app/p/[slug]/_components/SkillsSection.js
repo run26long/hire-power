@@ -187,17 +187,6 @@ export default function SkillsSection({
   const frame = useRef(0)
   const trigger = useRef(null)
 
-  const groups = useMemo(
-    () =>
-      (Array.isArray(clusters) ? clusters : [])
-        .map(cluster => ({
-          name: cluster?.name || null,
-          skills: Array.isArray(cluster?.skills) ? cluster.skills.filter(Boolean) : []
-        }))
-        .filter(group => group.skills.length > 0),
-    [clusters]
-  )
-
   const featured = useMemo(
     () => new Set(
       (Array.isArray(featuredSkills) ? featuredSkills : [])
@@ -205,6 +194,49 @@ export default function SkillsSection({
         .filter(Boolean)
     ),
     [featuredSkills]
+  )
+
+  // ---- THE ORDER THE CATEGORIES READ IN ----
+  //
+  // The categories come off the resume in the order they were written, which
+  // is an order about the document rather than about the direction being read.
+  // A direction leads with a handful of skills - skill_emphasis, the same list
+  // the cards highlight - and the category holding most of them is the one the
+  // section should open on. On a track that scrolls sideways that matters more
+  // than it would in a grid: everything past the second card is off screen, so
+  // an order that ignores the direction can put its whole subject out of sight.
+  //
+  // Counted rather than scored. The sort is stable, so categories matching
+  // equally keep the order the resume gave them, and a direction with no
+  // emphasis - or one whose emphasis names nothing in these categories -
+  // leaves every count at zero and the original order untouched.
+  //
+  // skill_emphasis is generated against the resume's own skills, so these are
+  // the same strings on both sides; the lowercase trim is what the highlight
+  // already does and is here for the same reason.
+  const groups = useMemo(
+    () => {
+      const built = (Array.isArray(clusters) ? clusters : [])
+        .map(cluster => ({
+          name: cluster?.name || null,
+          skills: Array.isArray(cluster?.skills) ? cluster.skills.filter(Boolean) : []
+        }))
+        .filter(group => group.skills.length > 0)
+
+      if (featured.size === 0) return built
+
+      const weight = (group) =>
+        group.skills.reduce(
+          (n, skill) => n + (featured.has(String(skill).trim().toLowerCase()) ? 1 : 0),
+          0
+        )
+
+      return built
+        .map((group, index) => ({ group, index, score: weight(group) }))
+        .sort((a, b) => b.score - a.score || a.index - b.index)
+        .map(entry => entry.group)
+    },
+    [clusters, featured]
   )
 
   const proofFor = useCallback(

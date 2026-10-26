@@ -1709,7 +1709,6 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                         <TourReplayButton
                           storageKey={HUB_TOUR_KEY}
                           onReplay={() => setShowHubTour(true)}
-                          className="text-gray-900"
                         />
                       </div>
                       <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Writer</span>
@@ -2164,7 +2163,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                       value={customName}
                                       maxLength={60}
                                       disabled={customBusy}
-                                      placeholder="e.g. Resume Writing, AI Engineering, Data Analytics"
+                                      placeholder="Type a career direction name..."
                                       onChange={e => { setCustomName(e.target.value); setCustomNote(null); }}
                                       onKeyDown={e => {
                                         if (e.key === 'Enter') { e.preventDefault(); createCustomLens(); }

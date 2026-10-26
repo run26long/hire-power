@@ -541,7 +541,6 @@ export default function MyInterviewsPage() {
                       <TourReplayButton
                         storageKey={HUB_TOUR_KEY}
                         onReplay={() => setShowHubTour(true)}
-                        className="text-gray-900"
                       />
                     </div>
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Practice</span>

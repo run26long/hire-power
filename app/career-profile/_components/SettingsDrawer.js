@@ -862,7 +862,7 @@ export default function SettingsDrawer({
                     id="hp-custom-lens"
                     type="text"
                     className="hp-ed-input hp-ed-block"
-                    placeholder="e.g. Resume Writing, AI Engineering, Data Analytics"
+                    placeholder="Type a career direction name..."
                     value={customName}
                     maxLength={60}
                     disabled={!canCustomise || !isPro || creating || slotsFull}
