@@ -1005,7 +1005,19 @@ html:has(.hp-ed) {
   transition: border-color 150ms ease, background 150ms ease;
 }
 
-.hp-ed-lens-add:disabled { opacity: 0.55; cursor: wait; }
+/* Disabled for an ordinary reason: nothing typed yet, or no slot free. This
+   is the resting state when the drawer opens, so the cursor has to read as
+   "not yet", not as "busy". */
+.hp-ed-lens-add:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Actually building. It keeps full strength rather than dimming to the
+   disabled weight - the same reading .hp-ed-action[data-working] takes, since
+   it is not unavailable, it is the thing currently happening. */
+.hp-ed-lens-add[data-working="true"],
+.hp-ed-lens-add[data-working="true"]:disabled {
+  opacity: 1;
+  cursor: progress;
+}
 
 @media (hover: hover) and (pointer: fine) {
   .hp-ed-lens-add:not(:disabled):hover {

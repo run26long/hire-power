@@ -1023,13 +1023,15 @@ export default function CareerProfileEditorPage() {
               Settings
             </button>
 
-            <TourReplayButton
-              storageKey={PROFILE_TOUR_KEY}
-              onReplay={() => setShowTour(true)}
-              /* The chrome bar is near the top of the window; above it the card
-                 would sit over the nav. */
-              tipPlacement="bottom"
-            />
+            {editing ? (
+              <TourReplayButton
+                storageKey={PROFILE_TOUR_KEY}
+                onReplay={() => setShowTour(true)}
+                /* The chrome bar is near the top of the window; above it the
+                   card would sit over the nav. */
+                tipPlacement="bottom"
+              />
+            ) : null}
           </div>
         </div>
       </div>

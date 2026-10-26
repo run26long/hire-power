@@ -873,6 +873,7 @@ export default function SettingsDrawer({
                     <button
                       type="button"
                       className="hp-ed-lens-add"
+                      data-working={creating ? 'true' : undefined}
                       onClick={createCustomLens}
                       disabled={creating || slotsFull || !customName.trim()}
                     >
