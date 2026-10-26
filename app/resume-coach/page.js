@@ -2056,9 +2056,15 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 would run off the side of it; the width cap is
                                 the viewport less the page gutters, so a long
                                 direction name wraps the box rather than widening
-                                it past the screen. */}
+                                it past the screen.
+
+                                Upward, because the trigger sits low in the card
+                                and a menu dropped from it put its last entries
+                                under the fold - reachable only by scrolling the
+                                page the menu is floating over. The button does
+                                not move; the list grows off its top edge. */}
                             {restoreMenuOpen && (
-                              <div className="absolute right-0 top-full mt-1 z-50 min-w-[11rem] max-w-[min(18rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-md shadow-lg py-1">
+                              <div className="absolute right-0 bottom-full mb-1 z-50 min-w-[11rem] max-w-[min(18rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-md shadow-lg py-1">
                                 {additionalSuggestions.map((lens) => (
                                   <button
                                     key={lens.id}
