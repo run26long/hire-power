@@ -4146,12 +4146,36 @@ html:has(.hp-ed) {
    not a fault, and red would make it read as something gone wrong. */
 .hp-ed-lens-make-note {
   margin: 8px 0 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   font-size: 12.5px;
   line-height: 1.5;
   color: var(--ed-muted);
   border-left: 2px solid var(--ed-accent);
   padding-left: 10px;
 }
+
+/* Quiet, because dismissing is not the point of the message - it is the way
+   out once the message has been read. */
+.hp-ed-lens-make-note-x {
+  appearance: none;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.2;
+  color: var(--ed-muted);
+  opacity: 0.7;
+  cursor: pointer;
+  transition: opacity 140ms ease, color 140ms ease;
+}
+
+.hp-ed-lens-make-note-x:hover,
+.hp-ed-lens-make-note-x:focus-visible { opacity: 1; color: var(--ed-ink); }
 
 @media (prefers-reduced-motion: reduce) {
   .hp-ed-lens-grip { transition: none; }

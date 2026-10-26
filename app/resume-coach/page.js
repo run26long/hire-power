@@ -2189,8 +2189,16 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                       </p>
                                     )}
                                     {customNote && !customBusy && (
-                                      <p className="mt-2 text-[11px] leading-snug text-gray-600 border-l-2 border-purple-400 pl-2">
-                                        {customNote}
+                                      <p className="mt-2 flex items-start gap-2 text-[11px] leading-snug text-gray-600 border-l-2 border-purple-400 pl-2">
+                                        <span>{customNote}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => setCustomNote(null)}
+                                          aria-label="Dismiss message"
+                                          className="ml-auto shrink-0 px-0.5 text-sm leading-none text-gray-400 hover:text-gray-700"
+                                        >
+                                          ×
+                                        </button>
                                       </p>
                                     )}
                                   </div>

@@ -808,7 +808,7 @@ export default function SettingsDrawer({
               {offeredRows.length > 0 && (
                 <>
                   <hr className="hp-ed-lens-split" />
-                  <p className="hp-ed-label">Suggested from your career data</p>
+                  <p className="hp-ed-lens-make-label">Add a suggested career direction</p>
                   <div className="hp-ed-lenses">
                     {offeredRows.map(({ lens }) => {
                       const busy = lensBusy === lens.id
@@ -890,7 +890,17 @@ export default function SettingsDrawer({
                   </p>
                 )}
                 {createNote && !creating && (
-                  <p className="hp-ed-lens-make-note">{createNote}</p>
+                  <p className="hp-ed-lens-make-note">
+                    <span>{createNote}</span>
+                    <button
+                      type="button"
+                      className="hp-ed-lens-make-note-x"
+                      onClick={() => setCreateNote(null)}
+                      aria-label="Dismiss message"
+                    >
+                      ×
+                    </button>
+                  </p>
                 )}
               </div>
 
