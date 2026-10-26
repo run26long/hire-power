@@ -808,6 +808,7 @@ export default function SettingsDrawer({
               {offeredRows.length > 0 && (
                 <>
                   <hr className="hp-ed-lens-split" />
+                  <p className="hp-ed-label">Suggested from your career data</p>
                   <div className="hp-ed-lenses">
                     {offeredRows.map(({ lens }) => {
                       const busy = lensBusy === lens.id
