@@ -268,6 +268,26 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
   const hasMore = ordered.length > limit
   const lead = ordered[0]
 
+  // ---- SOMEWHERE TO ADD, IN THE COMPOSITION ITSELF ----
+  //
+  // Edit mode only, and at every count: one piece of evidence filled the whole
+  // row and left the owner with no add spot on the page at all, with the only
+  // way in behind the Manage control in the heading.
+  //
+  // Portfolio's next free mat carries the invitation and the mats after it stay
+  // numbered, so a portfolio of two reads as two of six. This is the same tile
+  // in the same place: where the preview has a slot left, the add tile is that
+  // slot and the rest are future positions, and the grid is told the full count
+  // so the arrangement is the finished one rather than one card and a gap -
+  // which is exactly what this section already does while it is empty.
+  //
+  // Where the preview is full there is no slot to take, and taking one would
+  // drop a real card the owner placed. So the tile is appended across the foot
+  // of the grid instead and the arrangement above it is untouched.
+  const freeSlots = Math.max(0, limit - preview.length)
+  const addTile = !canShowEmpty ? null : freeSlots > 0 ? 'slot' : 'row'
+  const gridCount = addTile === 'slot' ? limit : preview.length
+
   const tile = (item, role) => (
     <button
       type="button"
@@ -298,6 +318,24 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
 
       {metaOf(item) && <span className="hp-ev-tile-meta">{metaOf(item)}</span>}
     </button>
+  )
+
+  // Same tile, same guidance, same action the empty section's featured slot
+  // offers - so there is one way to add evidence from the page and it looks the
+  // same whether the section holds nothing or holds nine. `index` is the slot
+  // it stands in; the appended one stands in no slot and carries no number.
+  const addGuide = (role, index) => (
+    <span className="hp-ev-tile hp-ed-guide-tile" data-role={role}>
+      <SlotGuide
+        index={index}
+        heading="Add another."
+        action="Add evidence"
+        feature="evidence"
+        onAction={() => setOpenAdd(n => n + 1)}
+      >
+        A few appear here, and a reader can open any of them in full.
+      </SlotGuide>
+    </span>
   )
 
   return (
@@ -368,7 +406,7 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
               action; nesting them would be markup no keyboard and no screen
               reader can resolve, whatever it looked like. */}
           <div className="hp-ev-field">
-            <div className="hp-ev-grid" ref={drag.fieldRef} data-count={String(preview.length)}>
+            <div className="hp-ev-grid" ref={drag.fieldRef} data-count={String(gridCount)}>
               <div className="hp-ev-lead-slot" data-more={hasMore ? 'true' : 'false'}>
                 {lead && tile(lead, 'lead')}
 
@@ -383,6 +421,23 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
               </div>
 
               {preview.slice(1).map(item => tile(item, 'rest'))}
+
+              {/* Part way through the preview: the next slot asks for the next
+                  piece, and the slots after it stay numbered. */}
+              {addTile === 'slot' && addGuide('rest', String(preview.length + 1).padStart(2, '0'))}
+
+              {addTile === 'slot' && Array.from(
+                { length: freeSlots - 1 },
+                (_, i) => String(preview.length + i + 2).padStart(2, '0')
+              ).map(n => (
+                <span className="hp-ev-tile hp-ed-ghost-tile" data-role="rest" key={n}>
+                  <SlotGhost index={n} />
+                </span>
+              ))}
+
+              {/* The preview is full. Across the foot of the grid, so the
+                  arrangement the reader will see keeps every card in it. */}
+              {addTile === 'row' && addGuide('add', null)}
             </div>
           </div>
         </Reveal>

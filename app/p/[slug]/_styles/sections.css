@@ -2271,6 +2271,15 @@
   .hp-ev-grid[data-count='4'] .hp-ev-tile[data-role='rest']:nth-of-type(4) { grid-column: span 12; }
 }
 
+/* The add tile, where the preview is full and has no slot to give it. Edit
+   mode only - nothing renders this on the public page or in preview - and
+   across the whole grid rather than a third of a row with two thirds of
+   nothing beside it. Below 768 the grid is one column and this is already
+   true. */
+@media (min-width: 768px) {
+  .hp-ev-grid .hp-ev-tile[data-role='add'] { grid-column: 1 / -1; }
+}
+
 /* ---- The way into the rest of it ----
    Attached to the featured card, at its lower-right corner. The slot is the
    grid cell: the card and the action are siblings inside it, never nested,

@@ -408,6 +408,23 @@ export default function CareerProfileEditorPage() {
     setDocument(doc)
   }, [getAuthHeaders, profile?.slug])
 
+  // The management record, re-read the way the document is. It carries the
+  // private and draft items the public payload cannot, so the manager's list
+  // comes from here while the tiles above come from there.
+  const reloadManage = useCallback(async () => {
+    const managed = await fetchJSON('/api/career-profile/manage', { headers: await getAuthHeaders() })
+    setManage(managed)
+  }, [getAuthHeaders])
+
+  // Every management write lands the same way: do it, then re-read both
+  // records. Two requests rather than one, and worth it - the document decides
+  // eligibility and ordering server-side, and the manager needs rows the
+  // document is not allowed to carry. Reconstructing either here would be a
+  // second implementation that could disagree with the first.
+  const afterEvidenceChange = useCallback(async () => {
+    await Promise.all([reloadDocument(), reloadManage()])
+  }, [reloadDocument, reloadManage])
+
   // Three steps, and the middle one does not come through this server.
   //
   // The route says where the file may go and issues a token for exactly that
@@ -500,26 +517,9 @@ export default function CareerProfileEditorPage() {
     })
     const payload = await finishRes.json().catch(() => ({}))
     if (!finishRes.ok) throw new Error(payload?.error || "We couldn't save that.")
-    await reloadDocument()
+    await afterEvidenceChange()
     return payload
-  }, [getAuthHeaders, reloadDocument])
-
-  // The management record, re-read the way the document is. It carries the
-  // private and draft items the public payload cannot, so the manager's list
-  // comes from here while the tiles above come from there.
-  const reloadManage = useCallback(async () => {
-    const managed = await fetchJSON('/api/career-profile/manage', { headers: await getAuthHeaders() })
-    setManage(managed)
-  }, [getAuthHeaders])
-
-  // Every management write lands the same way: do it, then re-read both
-  // records. Two requests rather than one, and worth it - the document decides
-  // eligibility and ordering server-side, and the manager needs rows the
-  // document is not allowed to carry. Reconstructing either here would be a
-  // second implementation that could disagree with the first.
-  const afterEvidenceChange = useCallback(async () => {
-    await Promise.all([reloadDocument(), reloadManage()])
-  }, [reloadDocument, reloadManage])
+  }, [getAuthHeaders, afterEvidenceChange])
 
   const placementOp = useCallback(async (body) => {
     const res = await fetch('/api/career-profile/evidence/placements', {
@@ -834,9 +834,9 @@ export default function CareerProfileEditorPage() {
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
-    await reloadDocument()
+    await afterEvidenceChange()
     return payload
-  }, [getAuthHeaders, reloadDocument])
+  }, [getAuthHeaders, afterEvidenceChange])
 
   function handleLensUpdated(lens) {
     setDocument(prev => prev ? {
@@ -1196,14 +1196,10 @@ export default function CareerProfileEditorPage() {
           onCreateEvidence: createEvidence,
           onUploadEvidence: uploadEvidence,
           // A replacement changes the manager's record as well as the
-          // document's: the pane doing the replacing is looking at the row
-          // that just changed. The manage reload lives here rather than
-          // inside uploadEvidence because reloadManage is declared after it.
-          onReplaceEvidenceFile: async (evidenceId, file, options) => {
-            const result = await uploadEvidence(file, {}, { ...(options || {}), evidenceId })
-            await reloadManage()
-            return result
-          },
+          // document's, and uploadEvidence re-reads both - so the pane doing
+          // the replacing is looking at the row as it was actually saved.
+          onReplaceEvidenceFile: (evidenceId, file, options) =>
+            uploadEvidence(file, {}, { ...(options || {}), evidenceId }),
           // The manager works from the management record, not the document:
           // a private item has no tile above and still has to be managed.
           allEvidence: manage?.evidence || [],
