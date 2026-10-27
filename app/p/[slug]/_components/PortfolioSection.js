@@ -11,7 +11,7 @@ import { useCanShowEmpty, useCanEdit, useProfileEdit } from '../_lib/editContext
 import { placedOnDirection, rowsForDirection, selectForDirection, unplacedItems } from '../_lib/profileData'
 import { PORTFOLIO_PREVIEW_DESKTOP, isPortfolioItem } from '@/lib/portfolio'
 import ManageList from './ManageList'
-import { EvidenceEditPane } from './ManagePanes'
+import { EvidenceEditPane, useEvidenceDelete } from './ManagePanes'
 import { useGridDrag } from '../_lib/gridDrag'
 
 // ============================================================================
@@ -182,6 +182,10 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
     [editingId, edit?.allEvidence]
   )
 
+  // Deleting for good, from a row in the list. Same hook, same dialog and
+  // same call as the Delete in the Edit pane, so the two cannot drift.
+  const del = useEvidenceDelete()
+
   // A drop says where the item goes, by naming the row it was dropped on, and
   // the route resolves the position. The panel must not count the rows between
   // them: this list is the visual half of a collection that shares one
@@ -252,6 +256,23 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
             in two places. */}
         {canEdit ? (
           <div className="hp-ed-manage-row">
+            {/* Beside Manage rather than under it, and only where the grid
+                has no slot left to ask in: below that count the next mat
+                carries the invitation, and a second control saying the same
+                thing would be the owner asked the same question twice. The
+                row renders only for an owner in Edit mode, so neither Preview
+                nor the public page has either control. */}
+            {shown.length >= PORTFOLIO_PREVIEW_DESKTOP ? (
+              <button
+                type="button"
+                className="hp-ed-action"
+                data-primary="true"
+                onClick={() => setOpenAdd(n => n + 1)}
+              >
+                + Add to portfolio
+              </button>
+            ) : null}
+
             <button type="button" className="hp-ed-manage" onClick={openManage} aria-haspopup="dialog">
               Manage portfolio
             </button>
@@ -376,7 +397,8 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
           </Reveal>
         )}
 
-        {/* The add flow itself, with no trigger of its own: Manage opens it. */}
+        {/* The add flow itself, with no trigger of its own: the control in
+            the Manage row opens it, the same way the guidance mat does. */}
         {canEdit
           ? <AddEvidence only="visual" openSignal={openAdd} trigger={false} />
           : ordered.length > 0 ? <UpgradeNote feature="portfolio" /> : null}
@@ -406,6 +428,8 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
             onToggle={toggleItem}
             onDrop={dropItem}
             onEdit={setEditingId}
+            onDelete={del.available ? del.ask : undefined}
+            deletingId={del.deletingId}
             onAdd={() => { close(); setOpenAdd(n => n + 1) }}
             addLabel="Add to portfolio"
             onDone={close}
@@ -413,6 +437,11 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
           />
         )}
       />
+
+      {/* The same question the Edit pane's Delete asks, asked by the same
+          hook. It portals onto the body, so it stands over the panel the row
+          was pressed in. */}
+      {del.modal}
     </div>
   )
 }

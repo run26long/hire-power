@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useState, useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 import { useProfileEdit, useNotify } from '../_lib/editContext'
@@ -101,7 +101,7 @@ function PaneHead({ title, note }) {
 // asked for while the request is in flight, and a failure reports through the
 // page's own toast and re-reads. There is no local truth to drift.
 // ---------------------------------------------------------------------------
-function DirectionsRow({ item, onSave, busy, idPrefix, placements, itemKey }) {
+function DirectionsRow({ item, onSave, busy, idPrefix, placements, itemKey, trailing = null }) {
   const edit = useProfileEdit()
   const notify = useNotify()
   const [pending, setPending] = useState(null)
@@ -136,6 +136,7 @@ function DirectionsRow({ item, onSave, busy, idPrefix, placements, itemKey }) {
         lensIds={lensIds}
         disabled={Boolean(busy)}
         idPrefix={idPrefix}
+        trailing={trailing}
         onChange={async (nextScope, nextIds) => {
           setPending({ scope: nextScope, lensIds: nextIds })
           try {
@@ -233,13 +234,87 @@ function ReplaceFile({ item, disabled }) {
   )
 }
 
+// ---------------------------------------------------------------------------
+// DELETING ONE ITEM, ASKED ONCE AND ANSWERED IN ONE PLACE
+//
+// The pane's Delete and the Manage list's row delete are the same act, so they
+// are the same code: one hook owns the question, the dialog it is asked in,
+// the layer that dialog stands on and the single call that carries it out.
+// Two copies of this would be two chances for the wording, the refusal or the
+// refresh to drift apart.
+//
+// Portalled into a layer of its own, the way the Settings drawer raises this
+// same dialog over itself. A manage panel is a stacking context at 120, so a
+// dialog rendered inside one would be measured inside it and could not stand
+// over the panel that asked the question. The layer carries the z-index, which
+// is why nothing about DeleteSessionModal changes and Interview Practice is
+// untouched.
+// ---------------------------------------------------------------------------
+export function useEvidenceDelete({ onDeleted } = {}) {
+  const edit = useProfileEdit()
+  const notify = useNotify()
+  // The row being asked about, not a boolean: the question names the item
+  // rather than asking about "this".
+  const [target, setTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const ask = useCallback(one => { if (one) setTarget(one) }, [])
+  const cancel = useCallback(() => { if (!deleting) setTarget(null) }, [deleting])
+
+  const confirm = useCallback(async () => {
+    if (!target || deleting) return
+    setDeleting(true)
+    try {
+      await edit?.onDeleteEvidence?.(target.id)
+      // Only on success. The delete has already refreshed the list behind
+      // this dialog, and the item is no longer in it.
+      setTarget(null)
+      onDeleted?.(target)
+    } catch (err) {
+      // The question has been answered either way. A failure is reported by
+      // the toast, which stands above this layer.
+      setTarget(null)
+      notify({ type: 'error', message: err?.message || "We couldn't delete that. Please try again." })
+    } finally {
+      setDeleting(false)
+    }
+  }, [target, deleting, edit, notify, onDeleted])
+
+  const modal = target && typeof document !== 'undefined'
+    ? createPortal(
+        <div className="hp-ed-modal-layer-raised">
+          <DeleteSessionModal
+            deleting={deleting}
+            onCancel={cancel}
+            onConfirm={confirm}
+            title="Delete this item?"
+            body={`${target.title || 'Untitled'} will be removed from your Career Profile on every Career Direction. This can't be undone.`}
+            confirmLabel="Delete"
+          />
+        </div>,
+        document.body
+      )
+    : null
+
+  return {
+    // (item) -> opens the question about that item
+    ask,
+    // The id being deleted, so a list can go quiet on that row alone
+    deletingId: deleting ? target?.id || null : null,
+    // Render this wherever the caller already renders; it portals to the body
+    modal,
+    // Whether this account has the op at all
+    available: Boolean(edit?.onDeleteEvidence)
+  }
+}
+
 export function EvidenceEditPane({ item, lensId, onBack }) {
   const edit = useProfileEdit()
   const notify = useNotify()
   const [busy, setBusy] = useState(null)
-  // Nothing is asked until the owner asks for it, and the question names the
-  // item rather than asking about "this".
-  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  // The same question, the same dialog and the same call the Manage list's
+  // row delete uses. Nothing is asked until the owner asks for it.
+  const del = useEvidenceDelete({ onDeleted: onBack })
   const [draft, setDraft] = useState({
     title: item.title || '',
     description: item.description || '',
@@ -251,6 +326,9 @@ export function EvidenceEditPane({ item, lensId, onBack }) {
 
   const isPrivate = item.privacy === 'private'
   const family = familyForType(draft.evidence_type)
+  // A link item has no file to swap, so the picker is not drawn and Delete
+  // stands alone on the left of the footer.
+  const canReplace = item.source_type === 'upload' && Boolean(edit?.onReplaceEvidenceFile)
 
   async function run(key, work) {
     if (busy) return
@@ -268,6 +346,16 @@ export function EvidenceEditPane({ item, lensId, onBack }) {
     <div className="hp-manage-pane">
       <PaneHead title={item.title || 'Untitled'} />
 
+      {/* Who sees this, asked once. Where it appears and whether it is
+          public are the same subject, so they share a line: the directions
+          and their Change on the left, the state and the control that
+          changes it on the right.
+
+          The privacy half is offered where it can be used. A free account
+          cannot make an item private, and a button that always answered
+          PRO_REQUIRED would be worse than no button - but an already-private
+          item keeps the way back, so a lapsed account is never stuck. Where
+          it is not offered, the row is the directions row it always was. */}
       <DirectionsRow
         item={item}
         busy={busy}
@@ -275,28 +363,23 @@ export function EvidenceEditPane({ item, lensId, onBack }) {
         placements={edit?.allPlacements}
         itemKey="evidence_id"
         onSave={edit?.onSetEvidenceDirections}
+        trailing={edit?.canUseProfileTools || isPrivate ? (
+          <>
+            <span className="hp-ed-dirpick-summary">
+              {isPrivate ? 'Private. Only you can see this.' : 'Public'}
+            </span>
+            <button
+              type="button"
+              className="hp-ed-dirpick-toggle"
+              disabled={Boolean(busy)}
+              onClick={() => run('privacy',
+                () => edit?.onEditEvidence?.(item.id, { privacy: isPrivate ? 'public' : 'private' }))}
+            >
+              {isPrivate ? 'Make public' : 'Make private'}
+            </button>
+          </>
+        ) : null}
       />
-
-      {/* Offered where it can be used. A free account cannot make an item
-          private, and a button that always answered PRO_REQUIRED would be
-          worse than no button - but an already-private item keeps the way
-          back, so a lapsed account is never stuck. */}
-      {edit?.canUseProfileTools || isPrivate ? (
-        <div className="hp-manage-pane-row">
-          <span className="hp-manage-pane-label">
-            {isPrivate ? 'Private. Only you can see this.' : 'Public'}
-          </span>
-          <button
-            type="button"
-            className="hp-manage-linkish"
-            disabled={Boolean(busy)}
-            onClick={() => run('privacy',
-              () => edit?.onEditEvidence?.(item.id, { privacy: isPrivate ? 'public' : 'private' }))}
-          >
-            {isPrivate ? 'Make public' : 'Make private'}
-          </button>
-        </div>
-      ) : null}
 
       <label className="hp-ed-field-label" htmlFor={`t-${item.id}`}>Title</label>
       <input
@@ -388,104 +471,71 @@ export function EvidenceEditPane({ item, lensId, onBack }) {
         </p>
       )}
 
+      {/* Replace file and Delete on the left: the two things this pane does to
+          the item itself rather than to a field of it. Cancel and Save on the
+          right, Cancel first, so the control that commits the edit is the last
+          thing on the bar. */}
       <div className="hp-ed-editor-bar">
-        <button
-          type="button" className="hp-ed-action" data-primary="true"
-          disabled={
-            !draft.title.trim() || Boolean(busy) ||
-            // A link item with its address emptied has nothing left to open.
-            // The route refuses it too; this is so the refusal is a button
-            // that will not press rather than an error after the press.
-            (item.source_type !== 'upload' && !draft.url.trim()) ||
-            // An off-list type is fine as long as it is the one already
-            // stored. Choosing a new one means choosing from the list.
-            (draft.evidence_type !== item.evidence_type && !familyForType(draft.evidence_type))
-          }
-          onClick={() => run('save', async () => {
-            const values = {
-              title: draft.title.trim(),
-              description: draft.description.trim() || null,
-              organization: draft.organization.trim() || null,
-              date_label: draft.date_label.trim() || null,
-              url: draft.url.trim(),
-            }
-            // Sent only when it changed. The route refiles the family from
-            // whatever type it is given, and it only accepts the list - so
-            // re-sending an unchanged off-list type would turn an edit to the
-            // title into a rejection.
-            if (draft.evidence_type !== item.evidence_type) {
-              values.evidence_type = draft.evidence_type
-            }
-            await edit?.onEditEvidence?.(item.id, values)
-            onBack()
-          })}
-        >
-          {busy === 'save' ? 'Saving…' : 'Save'}
-        </button>
-        {/* Beside Save, because swapping the file is the other thing this
-            pane does to the item rather than a field of it. Same weight as
-            Back to list: it opens a file picker, it does not commit the
-            edit. */}
-        {item.source_type === 'upload' ? (
-          <ReplaceFile item={item} disabled={Boolean(busy)} />
-        ) : null}
+        <span className="hp-ed-foot-left">
+          {canReplace ? <ReplaceFile item={item} disabled={Boolean(busy)} /> : null}
 
-        {/* A gap on either side, so the one irreversible control in this bar
-            is touching none of the three reversible ones. Saving, swapping the
-            file and going back are all things the owner can undo by doing them
-            again; this is not, and it should not be reachable by missing one
-            of them. */}
-        <span className="hp-ed-editor-gap" />
-        {edit?.onDeleteEvidence ? (
-          <button
-            type="button"
-            className="hp-ed-action hp-ed-danger"
-            disabled={Boolean(busy)}
-            onClick={() => setConfirmingDelete(true)}
-          >
-            {busy === 'delete' ? 'Deleting…' : 'Delete'}
+          {del.available ? (
+            <button
+              type="button"
+              className="hp-ed-action hp-ed-danger"
+              disabled={Boolean(busy) || Boolean(del.deletingId)}
+              onClick={() => del.ask(item)}
+            >
+              {del.deletingId ? 'Deleting…' : 'Delete'}
+            </button>
+          ) : null}
+        </span>
+
+        <span className="hp-ed-foot-right">
+          <button type="button" className="hp-ed-action" onClick={onBack} disabled={Boolean(busy)}>
+            Cancel
           </button>
-        ) : null}
-        <span className="hp-ed-editor-gap" />
 
-        <button type="button" className="hp-ed-action" onClick={onBack} disabled={Boolean(busy)}>
-          Back to list
-        </button>
+          <button
+            type="button" className="hp-ed-action" data-primary="true"
+            disabled={
+              !draft.title.trim() || Boolean(busy) ||
+              // A link item with its address emptied has nothing left to open.
+              // The route refuses it too; this is so the refusal is a button
+              // that will not press rather than an error after the press.
+              (item.source_type !== 'upload' && !draft.url.trim()) ||
+              // An off-list type is fine as long as it is the one already
+              // stored. Choosing a new one means choosing from the list.
+              (draft.evidence_type !== item.evidence_type && !familyForType(draft.evidence_type))
+            }
+            onClick={() => run('save', async () => {
+              const values = {
+                title: draft.title.trim(),
+                description: draft.description.trim() || null,
+                organization: draft.organization.trim() || null,
+                date_label: draft.date_label.trim() || null,
+                url: draft.url.trim(),
+              }
+              // Sent only when it changed. The route refiles the family from
+              // whatever type it is given, and it only accepts the list - so
+              // re-sending an unchanged off-list type would turn an edit to the
+              // title into a rejection.
+              if (draft.evidence_type !== item.evidence_type) {
+                values.evidence_type = draft.evidence_type
+              }
+              await edit?.onEditEvidence?.(item.id, values)
+              onBack()
+            })}
+          >
+            {busy === 'save' ? 'Saving…' : 'Save'}
+          </button>
+        </span>
       </div>
 
-      {/* Portalled into a layer of its own, the way the Settings drawer raises
-          this same dialog over itself. This pane is inside the manage panel,
-          which is a stacking context at 120, so a dialog rendered in place
-          would be measured inside it and could not stand over the panel that
-          asked the question. The layer carries the z-index, which is why
-          nothing about DeleteSessionModal changes and Interview Practice is
-          untouched. */}
-      {confirmingDelete && typeof document !== 'undefined'
-        ? createPortal(
-            <div className="hp-ed-modal-layer-raised">
-              <DeleteSessionModal
-                deleting={busy === 'delete'}
-                onCancel={() => { if (busy !== 'delete') setConfirmingDelete(false) }}
-                onConfirm={() => run('delete', async () => {
-                  try {
-                    await edit.onDeleteEvidence(item.id)
-                  } finally {
-                    // The question has been answered either way. A failure is
-                    // reported by the toast, which stands above this layer.
-                    setConfirmingDelete(false)
-                  }
-                  // Only on success. The delete has already refreshed the
-                  // list behind this pane, and the item is no longer in it.
-                  onBack()
-                })}
-                title="Delete this item?"
-                body={`${item.title || 'Untitled'} will be removed from your Career Profile on every Career Direction. This can't be undone.`}
-                confirmLabel="Delete"
-              />
-            </div>,
-            document.body
-          )
-        : null}
+      {/* The question, its dialog and the delete behind it all live in the
+          hook, so the row delete in the Manage list asks it exactly the same
+          way. */}
+      {del.modal}
     </div>
   )
 }

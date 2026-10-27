@@ -10,7 +10,7 @@ import { EditGrip, SlotGuide, SlotGhost, UpgradeNote, useEditSlot } from './Edit
 import AddEvidence from './AddEvidence'
 import { isEvidenceItem } from '@/lib/portfolio'
 import ManageList from './ManageList'
-import { EvidenceEditPane } from './ManagePanes'
+import { EvidenceEditPane, useEvidenceDelete } from './ManagePanes'
 import { useCanShowEmpty, useCanEdit, useProfileEdit } from '../_lib/editContext'
 import { placedOnDirection, rowsForDirection, selectForDirection, unplacedItems } from '../_lib/profileData'
 import { useGridDrag } from '../_lib/gridDrag'
@@ -212,6 +212,10 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
     [editingId, edit?.allEvidence]
   )
 
+  // Deleting for good, from a row in the list. Same hook, same dialog and
+  // same call as the Delete in the Edit pane, so the two cannot drift.
+  const del = useEvidenceDelete()
+
   // A drop says where the item goes, by naming the row it was dropped on, and
   // the route resolves the position. The panel must not count the rows between
   // them: this list is the non-visual half of a collection that shares one
@@ -282,11 +286,15 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
   // which is exactly what this section already does while it is empty.
   //
   // Where the preview is full there is no slot to take, and taking one would
-  // drop a real card the owner placed. So the tile is appended across the foot
-  // of the grid instead and the arrangement above it is untouched.
+  // drop a real card the owner placed. Nothing is added to the grid then: the
+  // section's own add control comes back beside Manage instead, which is the
+  // row the owner's controls for this section already stand in.
   const freeSlots = Math.max(0, limit - preview.length)
-  const addTile = !canShowEmpty ? null : freeSlots > 0 ? 'slot' : 'row'
-  const gridCount = addTile === 'slot' ? limit : preview.length
+  const addTile = canShowEmpty && freeSlots > 0
+  // Always the full preview in Edit mode, whether the slots hold items, the
+  // guide or ghosts: the arrangement is fixed and only what stands in it
+  // changes.
+  const gridCount = addTile ? limit : preview.length
 
   const tile = (item, role) => (
     <button
@@ -323,9 +331,9 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
   // Same tile, same guidance, same action the empty section's featured slot
   // offers - so there is one way to add evidence from the page and it looks the
   // same whether the section holds nothing or holds nine. `index` is the slot
-  // it stands in; the appended one stands in no slot and carries no number.
-  const addGuide = (role, index) => (
-    <span className="hp-ev-tile hp-ed-guide-tile" data-role={role}>
+  // it stands in.
+  const addGuide = (index) => (
+    <span className="hp-ev-tile hp-ed-guide-tile" data-role="rest">
       <SlotGuide
         index={index}
         heading="Add another."
@@ -351,6 +359,23 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
             places. */}
         {canEdit ? (
           <div className="hp-ed-manage-row">
+            {/* Beside Manage rather than under it, and only where the grid
+                has no slot left to ask in: below that count the next slot
+                carries the invitation, and a second control saying the same
+                thing would be the owner asked the same question twice. The
+                row renders only for an owner in Edit mode, so neither Preview
+                nor the public page has either control. */}
+            {freeSlots === 0 ? (
+              <button
+                type="button"
+                className="hp-ed-action"
+                data-primary="true"
+                onClick={() => setOpenAdd(n => n + 1)}
+              >
+                + Add evidence
+              </button>
+            ) : null}
+
             <button type="button" className="hp-ed-manage" onClick={openManage} aria-haspopup="dialog">
               Manage evidence
             </button>
@@ -424,9 +449,9 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
 
               {/* Part way through the preview: the next slot asks for the next
                   piece, and the slots after it stay numbered. */}
-              {addTile === 'slot' && addGuide('rest', String(preview.length + 1).padStart(2, '0'))}
+              {addTile && addGuide(String(preview.length + 1).padStart(2, '0'))}
 
-              {addTile === 'slot' && Array.from(
+              {addTile && Array.from(
                 { length: freeSlots - 1 },
                 (_, i) => String(preview.length + i + 2).padStart(2, '0')
               ).map(n => (
@@ -434,16 +459,13 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
                   <SlotGhost index={n} />
                 </span>
               ))}
-
-              {/* The preview is full. Across the foot of the grid, so the
-                  arrangement the reader will see keeps every card in it. */}
-              {addTile === 'row' && addGuide('add', null)}
             </div>
           </div>
         </Reveal>
         )}
 
-        {/* The add flow itself, with no trigger of its own: Manage opens it. */}
+        {/* The add flow itself, with no trigger of its own: the control in
+            the Manage row opens it, the same way the slot guide does. */}
         {canEdit
           ? <AddEvidence openSignal={openAdd} trigger={false} />
           : items.length > 0 ? <UpgradeNote feature="evidence" /> : null}
@@ -474,6 +496,8 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
             onToggle={toggleItem}
             onDrop={dropItem}
             onEdit={setEditingId}
+            onDelete={del.available ? del.ask : undefined}
+            deletingId={del.deletingId}
             onAdd={() => { close(); setOpenAdd(n => n + 1) }}
             addLabel="Add evidence"
             onDone={close}
@@ -481,6 +505,11 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
           />
         )}
       />
+
+      {/* The same question the Edit pane's Delete asks, asked by the same
+          hook. It portals onto the body, so it stands over the panel the row
+          was pressed in. */}
+      {del.modal}
     </div>
   )
 }

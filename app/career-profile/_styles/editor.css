@@ -2236,7 +2236,6 @@ html:has(.hp-ed) {
 
 .hp-ed-dirpick-toggle {
   appearance: none;
-  margin-left: auto;
   flex-shrink: 0;
   /* A touch target, not a text link. This control is the only way to the
      panel and it has to be reachable with a thumb. */
@@ -2260,6 +2259,32 @@ html:has(.hp-ed) {
 }
 
 .hp-ed-dirpick-toggle:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* The other half of the line, where the caller passes one: a state and the
+   control that changes it, held at the far end. The row then reads as two
+   pairs - the question and its answer, the state and its answer - rather
+   than as four things in a queue, which is what the push to the right used
+   to do to Change on its own.
+
+   :only-child is a profile with one Career Direction. There is nothing to
+   choose between, so the summary and its toggle stand down and the pair that
+   is left starts at the same edge as everything else in the pane. */
+.hp-ed-dirpick-trail {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.hp-ed-dirpick-trail:only-child { margin-left: 0; }
+
+/* Under a phone's measure two pairs are one line too many. The row already
+   wraps; this puts the break between the pairs rather than wherever the words
+   happen to run out, and takes the push to the right off, so the second line
+   starts under the first. */
+@media (max-width: 767px) {
+  .hp-ed-dirpick-trail { flex-basis: 100%; margin-left: 0; }
+}
 
 .hp-ed-dirpick-list { margin-top: 8px; }
 
@@ -3590,7 +3615,9 @@ html:has(.hp-ed) {
    section's geometry is exactly the public one. */
 .hp-ed-manage-row {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 8px;
   margin: -6px 0 12px;
 }
 

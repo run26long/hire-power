@@ -42,7 +42,13 @@ export default function DirectionPicker({
   lensIds,
   onChange,
   disabled = false,
-  idPrefix = 'hp-dirpick'
+  idPrefix = 'hp-dirpick',
+  // The other half of the row, where the caller has one. Edit work and Edit
+  // evidence put whether the item is public beside where it appears, because
+  // they are the same question asked twice - who sees this - and two stacked
+  // rows made them look like two subjects. Nobody else passes it, and the row
+  // is the same row without it.
+  trailing = null
 }) {
   const [open, setOpen] = useState(false)
 
@@ -68,7 +74,10 @@ export default function DirectionPicker({
 
   // Nothing to choose between. A profile with one direction has no question to
   // ask here, and a picker offering a single box is a decision that is not one.
-  if (options.length < 2) return null
+  // It is the summary and its toggle that stand down, not the row: a caller
+  // that put something else on this line still needs the line.
+  const choosable = options.length >= 2
+  if (!choosable && !trailing) return null
 
   function toggle(lensId, on) {
     const next = new Set(picked)
@@ -83,18 +92,24 @@ export default function DirectionPicker({
   return (
     <div className="hp-ed-dirpick">
       <div className="hp-ed-dirpick-top">
-        <span className="hp-ed-dirpick-summary" data-empty={scope === 'selected' && picked.size === 0 ? 'true' : undefined}>
-          {summary}
-        </span>
-        <button
-          type="button"
-          className="hp-ed-dirpick-toggle"
-          onClick={() => setOpen(value => !value)}
-          disabled={disabled}
-          aria-expanded={open}
-        >
-          {open ? 'Done' : 'Change'}
-        </button>
+        {choosable ? (
+          <>
+            <span className="hp-ed-dirpick-summary" data-empty={scope === 'selected' && picked.size === 0 ? 'true' : undefined}>
+              {summary}
+            </span>
+            <button
+              type="button"
+              className="hp-ed-dirpick-toggle"
+              onClick={() => setOpen(value => !value)}
+              disabled={disabled}
+              aria-expanded={open}
+            >
+              {open ? 'Done' : 'Change'}
+            </button>
+          </>
+        ) : null}
+
+        {trailing ? <span className="hp-ed-dirpick-trail">{trailing}</span> : null}
       </div>
 
       {open ? (

@@ -18,11 +18,20 @@ import { useCallback, useRef, useState } from 'react'
 // account owns would turn "which of these am I showing" into "which of these
 // do I have", which is a different question and a much longer list.
 //
-// NOTHING HERE DELETES
+// HIDING AND DELETING ARE DIFFERENT ACTS, AND LOOK IT
 // Hiding is a placement staying exactly where it is and not being rendered.
 // The record, the file, the metadata, the Knowledge Base entry and every
 // other direction's placements are untouched, and restoring puts the item
-// back in the position it held rather than at the end.
+// back in the position it held rather than at the end. That is the switch at
+// the end of the row, one press, no question asked.
+//
+// Deleting takes the item off every direction at once and there is no way
+// back, so it is a separate control with its own weight: a trash button, the
+// same one the Settings drawer uses on a career direction, behind the same
+// confirmation that names the item. The two are never the same press, and the
+// destructive one is the one that stops to ask. A list given no `onDelete`
+// draws no trash button at all, which is how Testimonials keeps the delete it
+// already has in its own pane.
 //
 // ONE WAY TO MOVE A ROW
 // The grip. A pair of arrows beside it was a second control saying the same
@@ -57,6 +66,19 @@ import { useCallback, useRef, useState } from 'react'
 // which pointed at the wrong edge for half of all drags.
 // ============================================================================
 
+function TrashIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+      />
+    </svg>
+  )
+}
+
 function GripIcon() {
   return (
     <svg className="hp-manage-grip-mark" viewBox="0 0 16 16" aria-hidden="true">
@@ -73,6 +95,8 @@ export default function ManageList({
   onToggle,         // (id, nextHidden)
   onDrop,           // (fromId, toId)
   onEdit,           // (id) -> takes the modal over with that item's fields
+  onDelete,         // optional; (row) -> asks to delete the item for good
+  deletingId,       // the row whose delete is in flight, if any
   onAdd,            // optional; omitted where a collection has no add flow
   addLabel = 'Add',
   secondaryLabel,   // optional second footer action, beside the first
@@ -186,7 +210,7 @@ export default function ManageList({
       ) : (
         <ul className="hp-manage-rows" ref={listRef} data-dragging={dragId ? 'true' : undefined}>
           {list.map(row => {
-            const busy = busyId === row.id
+            const busy = busyId === row.id || deletingId === row.id
             const hidden = row.hidden === true
             return (
               <li
@@ -227,6 +251,24 @@ export default function ManageList({
                   </span>
                   {row.meta ? <span className="hp-manage-meta">{row.meta}</span> : null}
                 </span>
+
+                {/* Before Edit, and well before the switch, so the switch
+                    stays the last thing in every row and the toggles read
+                    down one column. Always visible rather than appearing on
+                    hover: on a phone there is no hover, and this list is full
+                    width there. */}
+                {onDelete ? (
+                  <button
+                    type="button"
+                    className="w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all flex-shrink-0 disabled:opacity-45"
+                    disabled={busy}
+                    onClick={() => onDelete(row)}
+                    title={`Delete ${row.title}`}
+                    aria-label={`Delete ${row.title}`}
+                  >
+                    <TrashIcon />
+                  </button>
+                ) : null}
 
                 {onEdit ? (
                   <button

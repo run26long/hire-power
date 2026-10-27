@@ -2235,7 +2235,13 @@
    Six columns from tablet, twelve from desktop. Each count gets the shape that
    fills its row rather than the shape that happens to be left over. */
 @media (min-width: 768px) {
-  .hp-ev-grid { grid-template-columns: repeat(6, 1fr); grid-auto-rows: minmax(152px, auto); }
+  /* Rows that do not take their height from what happens to be in them.
+     `auto` sized each row to its own contents, so the row holding the tall
+     "Add another." guide grew and the row of ghosts beside it did not - four
+     slots the composition says are equal, drawn at two different heights.
+     `1fr` sizes every row to the tallest of them, and the tiles' own
+     min-height keeps the floor `minmax` used to state. */
+  .hp-ev-grid { grid-template-columns: repeat(6, 1fr); grid-auto-rows: 1fr; }
   .hp-ev-tile { grid-column: span 3; }
   .hp-ev-lead-slot { grid-column: span 3; grid-row: span 2; }
   .hp-ev-grid[data-count='1'] .hp-ev-lead-slot,
@@ -2253,7 +2259,7 @@
      the composition is one of these five, and nothing further down the
      collection is in this grid to push them taller. That, plus the clamps
      above, is what fixes the lead opening a void under its own text. */
-  .hp-ev-grid[data-count='5'] { grid-template-rows: repeat(2, minmax(200px, auto)); }
+  .hp-ev-grid[data-count='5'] { grid-template-rows: repeat(2, 1fr); }
   .hp-ev-lead-slot { grid-column: span 6; grid-row: span 2; }
   .hp-ev-tile[data-role='rest'] { grid-column: span 3; }
 
@@ -2269,15 +2275,6 @@
   .hp-ev-grid[data-count='3'] .hp-ev-tile[data-role='rest'],
   .hp-ev-grid[data-count='4'] .hp-ev-tile[data-role='rest'] { grid-column: span 6; }
   .hp-ev-grid[data-count='4'] .hp-ev-tile[data-role='rest']:nth-of-type(4) { grid-column: span 12; }
-}
-
-/* The add tile, where the preview is full and has no slot to give it. Edit
-   mode only - nothing renders this on the public page or in preview - and
-   across the whole grid rather than a third of a row with two thirds of
-   nothing beside it. Below 768 the grid is one column and this is already
-   true. */
-@media (min-width: 768px) {
-  .hp-ev-grid .hp-ev-tile[data-role='add'] { grid-column: 1 / -1; }
 }
 
 /* ---- The way into the rest of it ----

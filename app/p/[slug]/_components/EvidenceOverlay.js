@@ -160,6 +160,66 @@ export default function EvidenceOverlay({
 
   const titleId = 'hp-ev-overlay-title'
 
+  // ---- MANAGING, IN THE BOX MANAGE PORTFOLIO OPENS ----
+  //
+  // Not this overlay's own surface. The two views a reader gets are a gallery
+  // of cards and a document on a stage: both want a wide surface with the head
+  // banded off from what follows it. Managing wants neither, and it is the
+  // same job Manage portfolio does - so it is rendered in that box, with those
+  // classes, rather than in a copy of it that would have to be kept in step.
+  //
+  // Those classes carry more than a measure. `.hp-pf-box[data-mode="manage"]`
+  // re-states the Profile's resets at zero specificity, inside `:where()`, so
+  // a control keeps the border and the padding its own class gives it. The
+  // evidence backdrop states the same resets as `.hp-ev-backdrop button`,
+  // which at (0,1,1) out-ranks a single class and flattens them - which is why
+  // the Change button in "Where this appears" was a bordered control in Edit
+  // work and bare text in Edit evidence.
+  if (mode === 'manage') {
+    return createPortal(
+      <div
+        className="hp-pf-box hp-ed-portal"
+        data-mode="manage"
+        role="presentation"
+        onMouseDown={onBackdrop}
+      >
+        <div
+          className="hp-pf-box-surface"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          data-mode="manage"
+          ref={surfaceRef}
+        >
+          <div className="hp-pf-box-bar">
+            <div className="hp-pf-box-heading">
+              <span className="hp-pf-box-eyebrow">Evidence</span>
+              <h2 className="hp-pf-box-heading-title" id={titleId}>
+                {manageTitle || 'Manage evidence'}
+                {typeof manageCount === 'number'
+                  ? <> <span className="hp-pf-box-count">({manageCount})</span></>
+                  : null}
+              </h2>
+            </div>
+
+            <button
+              type="button"
+              className="hp-pf-box-close"
+              ref={closeRef}
+              onClick={() => onClose?.()}
+              aria-label="Close"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
+
+          <div className="hp-pf-box-gallery" data-manage="true">{manageBody}</div>
+        </div>
+      </div>,
+      document.body
+    )
+  }
+
   return createPortal(
     <div className="hp-ev-backdrop hp-ed-portal" onMouseDown={onBackdrop}>
       <div
@@ -171,22 +231,7 @@ export default function EvidenceOverlay({
         data-mode={mode}
         data-media={mode === 'detail' ? item?.media_class : undefined}
       >
-        {mode === 'manage' ? (
-          <div className="hp-ev-head">
-            <div className="hp-ev-heading">
-              <span className="hp-ev-family">Evidence</span>
-              <h2 className="hp-ev-title" id={titleId}>
-                {manageTitle || 'Manage evidence'}
-                {typeof manageCount === 'number'
-                  ? <> <span className="hp-ev-count">({manageCount})</span></>
-                  : null}
-              </h2>
-            </div>
-            <button type="button" className="hp-ev-close" ref={closeRef} aria-label="Close" onClick={onClose}>
-              <span aria-hidden="true">×</span>
-            </button>
-          </div>
-        ) : mode === 'gallery' ? (
+        {mode === 'gallery' ? (
           <div className="hp-ev-head">
             <div className="hp-ev-heading">
               <span className="hp-ev-family">Evidence</span>
@@ -217,9 +262,7 @@ export default function EvidenceOverlay({
           </div>
         )}
 
-        {mode === 'manage' ? (
-          <div className="hp-ev-stage" data-manage="true">{manageBody}</div>
-        ) : mode === 'gallery' ? (
+        {mode === 'gallery' ? (
           <>
             {/* Offered only where there is a boundary to draw. One family is
                 not a choice, it is a label on everything. */}

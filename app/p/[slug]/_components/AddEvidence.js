@@ -296,7 +296,26 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
       </span>
 
       <span className="hp-ed-foot-right">
-        <button type="button" className="hp-ed-action" onClick={reset} disabled={saving}>
+        {/* Once something has been added, the way on is the secondary act and
+            finishing is the primary one, so Add another stands to the left of
+            Done rather than taking the weight off it. */}
+        {step === 'done' ? (
+          <button
+            type="button"
+            className="hp-ed-action"
+            onClick={() => { setSaved(null); setStep('choose') }}
+          >
+            Add another
+          </button>
+        ) : null}
+
+        <button
+          type="button"
+          className="hp-ed-action"
+          data-primary={step === 'done' ? 'true' : undefined}
+          onClick={reset}
+          disabled={saving}
+        >
           {step === 'done' ? 'Done' : 'Cancel'}
         </button>
 
@@ -323,17 +342,6 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
           >
             {uploading || saving ? <span className="hp-ed-spin" aria-hidden="true" /> : null}
             {uploading ? `Uploading… ${progress}%` : saving ? 'Saving…' : 'Save'}
-          </button>
-        ) : null}
-
-        {step === 'done' ? (
-          <button
-            type="button"
-            className="hp-ed-action"
-            data-primary="true"
-            onClick={() => { setSaved(null); setStep('choose') }}
-          >
-            Add another
           </button>
         ) : null}
       </span>
