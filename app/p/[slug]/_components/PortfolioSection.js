@@ -8,10 +8,11 @@ import PortfolioMat from './PortfolioMat'
 import AddEvidence from './AddEvidence'
 import { SlotGuide, SlotGhost, UpgradeNote, useEditSlot } from './EditAffordance'
 import { useCanShowEmpty, useCanEdit, useProfileEdit } from '../_lib/editContext'
-import { rowsForDirection, selectForDirection, unplacedItems } from '../_lib/profileData'
+import { placedOnDirection, rowsForDirection, selectForDirection, unplacedItems } from '../_lib/profileData'
 import { PORTFOLIO_PREVIEW_DESKTOP, isPortfolioItem } from '@/lib/portfolio'
 import ManageList from './ManageList'
 import { EvidenceEditPane } from './ManagePanes'
+import { useGridDrag } from '../_lib/gridDrag'
 
 // ============================================================================
 // PORTFOLIO
@@ -65,10 +66,33 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
   const canEdit = useCanEdit()
   const slot = useEditSlot()
 
+  // ---- THE ARRANGEMENT AS THE OWNER JUST LEFT IT ----
+  //
+  // A drop used to wait for the server before anything moved, which on a slow
+  // connection is a card that does not budge and a page with no sign that
+  // anything is happening. The order moves first and the write follows it; a
+  // failure puts the order back and says why, which is the same bargain the
+  // Career Directions reorder in the Settings drawer makes.
+  //
+  // Held only until the reload brings the real order back from the table.
+  // Left in place after that it would out-rank the table on the next render.
+  const [draftOrder, setDraftOrder] = useState(null)
+  const arrange = useCallback((list) => {
+    if (!draftOrder) return list
+    const rank = new Map(draftOrder.map((id, at) => [id, at]))
+    // Stable, so anything the draft does not name - an item added in another
+    // tab, an orphan - keeps the order it had and stays behind what it does.
+    return [...list].sort(
+      (a, b) =>
+        (rank.has(a.id) ? rank.get(a.id) : Infinity) -
+        (rank.has(b.id) ? rank.get(b.id) : Infinity)
+    )
+  }, [draftOrder])
+
   // Placement order, and nothing but. The lead is whatever this direction
   // put first, so there is one answer to "what leads this section" and it is
   // the same answer the Manage list is showing.
-  const ordered = items || []
+  const ordered = arrange(items || [])
 
   // The two ways in each start a visit, so the overlay mounts fresh. Moving
   // between the grid and one item inside a single visit keeps the key, and
@@ -109,8 +133,12 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
       title: item.title || 'Untitled',
       meta: [item.organization, item.date_label].filter(Boolean).join(' · '),
       hidden: rows.get(item.id)?.hidden === true,
-      // It has a row on this direction, so it has a position to drag.
-      placed: true
+      // On this direction, so it has a position in it to drag and a switch to
+      // turn off. Asked rather than asserted: this is the same question the
+      // route asks before it materialises, so the list this panel offers
+      // controls over and the list the route resolves them against cannot
+      // drift apart.
+      placed: placedOnDirection(item, rows)
     }))
 
     // On no direction at all, which the owner cannot otherwise see: the item
@@ -128,8 +156,8 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
       placed: false
     }))
 
-    return [...here, ...orphans]
-  }, [edit?.allEvidence, edit?.allPlacements, lensId])
+    return [...arrange(here), ...orphans]
+  }, [edit?.allEvidence, edit?.allPlacements, lensId, arrange])
 
   const run = useCallback(async (id, work) => {
     if (busyId) return
@@ -161,10 +189,45 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
   // rows in between there.
   const dropItem = useCallback((fromId, toId) => {
     if (!fromId || !toId || fromId === toId) return
-    const placed = new Set(manageItems.filter(one => one.placed).map(one => one.id))
-    if (!placed.has(fromId) || !placed.has(toId)) return
-    return run(fromId, () => edit?.onMoveEvidence?.(fromId, lensId, toId))
-  }, [manageItems, run, edit, lensId])
+    const ids = manageItems.filter(one => one.placed).map(one => one.id)
+    const from = ids.indexOf(fromId)
+    const to = ids.indexOf(toId)
+    if (from === -1 || to === -1) return
+
+    // The same splice the route performs, so what the owner sees the instant
+    // they let go is what the table will hold a moment later.
+    const next = ids.slice()
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+
+    const previous = draftOrder
+    setDraftOrder(next)
+    return run(fromId, async () => {
+      try {
+        await edit?.onMoveEvidence?.(fromId, lensId, toId)
+        setDraftOrder(null)
+      } catch (err) {
+        setDraftOrder(previous)
+        throw err
+      }
+    })
+  }, [manageItems, run, edit, lensId, draftOrder])
+
+  // ---- DRAGGING A CARD ON THE PAGE ----
+  //
+  // Owner, in Edit mode, and nowhere else: the grip itself renders only when
+  // editing, so Preview and the public page have nothing to drag by. The drop
+  // sends the same two ids to the same op the panel sends them to, which is
+  // why the two orders cannot come apart.
+  const shownIds = useMemo(
+    () => ordered.slice(0, PORTFOLIO_PREVIEW_DESKTOP).map(one => one.id),
+    [ordered]
+  )
+  const drag = useGridDrag({
+    ids: shownIds,
+    enabled: canEdit && Boolean(edit?.editing),
+    onDrop: dropItem
+  })
 
   // Empty, this section is not on the public page at all - the same rule every
   // other section follows. The owner still sees it, because an absence they
@@ -240,15 +303,22 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
                 section's does on its lead card. The field is what the control
                 is positioned against; the grid keeps its own geometry. */}
             <div className="hp-pf-field" data-more={hidden > 0 ? 'true' : 'false'}>
-            <ul className="hp-pf-grid" data-count={String(shown.length)}>
+            <ul className="hp-pf-grid" ref={drag.fieldRef} data-count={String(shown.length)}>
               {shown.map((item, index) => (
-                <li className="hp-pf-cell" key={item.id}>
+                <li
+                  className="hp-pf-cell"
+                  key={item.id}
+                  data-drag-id={item.id}
+                  data-dragging={drag.dragId === item.id ? 'true' : undefined}
+                  data-drop={drag.dropSide(item.id)}
+                >
                   <PortfolioMat
                     item={item}
                     slug={slug}
                     lensId={lensId}
                     slot={slot}
                     onOpen={() => openAt(index)}
+                    gripProps={drag.gripProps(item.id)}
                   />
                 </li>
               ))}

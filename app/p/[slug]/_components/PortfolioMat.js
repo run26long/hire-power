@@ -41,7 +41,7 @@ import { formatDuration } from '@/lib/portfolio'
 // and why it is not the edit context.
 // ============================================================================
 
-export default function PortfolioMat({ item, slug, lensId, slot = '', onOpen, matRef }) {
+export default function PortfolioMat({ item, slug, lensId, slot = '', onOpen, matRef, gripProps }) {
   const viewerHeaders = useViewerAuthHeaders()
   const [url, setUrl] = useState(null)
   const [failed, setFailed] = useState(false)
@@ -92,7 +92,7 @@ export default function PortfolioMat({ item, slug, lensId, slot = '', onOpen, ma
       onClick={onOpen}
       aria-haspopup="dialog"
     >
-      <EditGrip />
+      <EditGrip {...(gripProps || {})} />
 
       <span className="hp-pf-mat-frame">
         {showPicture ? (

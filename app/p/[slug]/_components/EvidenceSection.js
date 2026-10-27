@@ -12,7 +12,8 @@ import { isEvidenceItem } from '@/lib/portfolio'
 import ManageList from './ManageList'
 import { EvidenceEditPane } from './ManagePanes'
 import { useCanShowEmpty, useCanEdit, useProfileEdit } from '../_lib/editContext'
-import { rowsForDirection, selectForDirection, unplacedItems } from '../_lib/profileData'
+import { placedOnDirection, rowsForDirection, selectForDirection, unplacedItems } from '../_lib/profileData'
+import { useGridDrag } from '../_lib/gridDrag'
 
 // ============================================================================
 // EVIDENCE
@@ -90,10 +91,29 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
 
   const narrow = useNarrow()
 
+  // ---- THE ARRANGEMENT AS THE OWNER JUST LEFT IT ----
+  //
+  // The order moves on the drop and the write follows it, so a slow save is
+  // not a card that refuses to budge. A failure puts the order back and says
+  // why. Same bargain as the Career Directions reorder in the Settings
+  // drawer, and held only until the reload brings the real order back.
+  const [draftOrder, setDraftOrder] = useState(null)
+  const arrange = useCallback((list) => {
+    if (!draftOrder) return list
+    const rank = new Map(draftOrder.map((id, at) => [id, at]))
+    // Stable, so anything the draft does not name keeps the order it had and
+    // stays behind what it does.
+    return [...list].sort(
+      (a, b) =>
+        (rank.has(a.id) ? rank.get(a.id) : Infinity) -
+        (rank.has(b.id) ? rank.get(b.id) : Infinity)
+    )
+  }, [draftOrder])
+
   // Placement order, and nothing but. The lead is whatever this direction put
   // first, so there is one answer to "what leads this section" and it is the
   // same answer the Manage list is showing.
-  const ordered = items
+  const ordered = arrange(items)
 
   // The two ways in start a visit.
   const openDetail = useCallback((item) => {
@@ -139,8 +159,12 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
       title: item.title || typeLabel(item),
       meta: metaOf(item) || typeLabel(item),
       hidden: rows.get(item.id)?.hidden === true,
-      // It has a row on this direction, so it has a position to drag.
-      placed: true
+      // On this direction, so it has a position in it to drag and a switch to
+      // turn off. Asked rather than asserted: this is the same question the
+      // route asks before it materialises, so the list this panel offers
+      // controls over and the list the route resolves them against cannot
+      // drift apart.
+      placed: placedOnDirection(item, rows)
     }))
 
     // On no direction at all, which the owner cannot otherwise see: the item
@@ -158,8 +182,8 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
       placed: false
     }))
 
-    return [...here, ...orphans]
-  }, [edit?.allEvidence, edit?.allPlacements, lensId])
+    return [...arrange(here), ...orphans]
+  }, [edit?.allEvidence, edit?.allPlacements, lensId, arrange])
 
   // Every write reports through the page's own toast, the way the rest of
   // the owner's controls do, and leaves the row it was on unlocked either
@@ -195,10 +219,45 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
   // rows in between there.
   const dropItem = useCallback((fromId, toId) => {
     if (!fromId || !toId || fromId === toId) return
-    const placed = new Set(manageItems.filter(one => one.placed).map(one => one.id))
-    if (!placed.has(fromId) || !placed.has(toId)) return
-    return run(fromId, () => edit?.onMoveEvidence?.(fromId, lensId, toId))
-  }, [manageItems, run, edit, lensId])
+    const ids = manageItems.filter(one => one.placed).map(one => one.id)
+    const from = ids.indexOf(fromId)
+    const to = ids.indexOf(toId)
+    if (from === -1 || to === -1) return
+
+    // The same splice the route performs, so what the owner sees the instant
+    // they let go is what the table will hold a moment later.
+    const next = ids.slice()
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+
+    const previous = draftOrder
+    setDraftOrder(next)
+    return run(fromId, async () => {
+      try {
+        await edit?.onMoveEvidence?.(fromId, lensId, toId)
+        setDraftOrder(null)
+      } catch (err) {
+        setDraftOrder(previous)
+        throw err
+      }
+    })
+  }, [manageItems, run, edit, lensId, draftOrder])
+
+  // ---- DRAGGING A CARD ON THE PAGE ----
+  //
+  // Owner, in Edit mode, and nowhere else: the grip renders only when
+  // editing, so Preview and the public page have nothing to drag by. The drop
+  // sends the same two ids to the same op the panel sends them to.
+  //
+  // The ids are read from the whole collection rather than from the cards on
+  // screen, because how many are on screen depends on the width here and the
+  // list has to mean the same thing at both.
+  const dragIds = useMemo(() => ordered.map(one => one.id), [ordered])
+  const drag = useGridDrag({
+    ids: dragIds,
+    enabled: canEdit && Boolean(edit?.editing),
+    onDrop: dropItem
+  })
 
   // Empty, this section is not on the public page at all. The owner has to
   // see it to put anything in it.
@@ -217,10 +276,13 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
       data-family={item.family}
       data-media={item.media_class}
       data-role={role}
+      data-drag-id={item.id}
+      data-dragging={drag.dragId === item.id ? 'true' : undefined}
+      data-drop={drag.dropSide(item.id)}
       onClick={() => openDetail(item)}
       aria-haspopup="dialog"
     >
-      <EditGrip />
+      <EditGrip {...drag.gripProps(item.id)} />
 
       <span className="hp-ev-tile-mark" aria-hidden="true">
         <StrokeIcon paths={glyphFor(item.media_class)} size={role === 'lead' ? 22 : 18} />
@@ -306,7 +368,7 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
               action; nesting them would be markup no keyboard and no screen
               reader can resolve, whatever it looked like. */}
           <div className="hp-ev-field">
-            <div className="hp-ev-grid" data-count={String(preview.length)}>
+            <div className="hp-ev-grid" ref={drag.fieldRef} data-count={String(preview.length)}>
               <div className="hp-ev-lead-slot" data-more={hasMore ? 'true' : 'false'}>
                 {lead && tile(lead, 'lead')}
 

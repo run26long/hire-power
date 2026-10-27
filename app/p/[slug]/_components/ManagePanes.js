@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 import { useProfileEdit, useNotify } from '../_lib/editContext'
+import { DeleteSessionModal } from '@/app/components/interview/PracticeLeftPanel'
 import { EVIDENCE_TYPES, FAMILY_LABELS, familyForType } from '@/lib/evidenceTypes'
 import { RELATIONSHIP_TYPES } from '@/lib/testimonialTypes'
 import DirectionPicker from './DirectionPicker'
@@ -23,11 +25,16 @@ import BrandSelect from './BrandSelect'
 // reasons in the same comments. What changed is where it is shown and what
 // surrounds it.
 //
-// WHAT DID NOT COME WITH IT
-// Removing an item. The whole point of the placement model is that taking
-// something off a direction is a switch rather than a deletion, and a Remove
-// button inside the control that makes hiding easy is an invitation to use
-// the wrong one. Nothing in these panes deletes anything.
+// REMOVING AN ITEM, AND WHY IT IS HERE RATHER THAN IN THE LIST
+// Taking something off one direction is a switch, and that switch is in the
+// list, one press, no question asked. Deleting is a different act: it takes
+// the item off every direction at once and there is no way back. The two were
+// deliberately kept apart, and they still are - the delete is not in the list
+// beside the switches, it is in this pane, behind a confirmation that names
+// the item, carrying the destructive weight the rest of the product uses for
+// an irreversible act. What that original note was guarding against was a
+// Remove button sitting where Hide should have been pressed; nothing here
+// puts one there.
 // ============================================================================
 
 const GROUPED = Object.entries(
@@ -230,6 +237,9 @@ export function EvidenceEditPane({ item, lensId, onBack }) {
   const edit = useProfileEdit()
   const notify = useNotify()
   const [busy, setBusy] = useState(null)
+  // Nothing is asked until the owner asks for it, and the question names the
+  // item rather than asking about "this".
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [draft, setDraft] = useState({
     title: item.title || '',
     description: item.description || '',
@@ -419,11 +429,63 @@ export function EvidenceEditPane({ item, lensId, onBack }) {
         {item.source_type === 'upload' ? (
           <ReplaceFile item={item} disabled={Boolean(busy)} />
         ) : null}
+
+        {/* A gap on either side, so the one irreversible control in this bar
+            is touching none of the three reversible ones. Saving, swapping the
+            file and going back are all things the owner can undo by doing them
+            again; this is not, and it should not be reachable by missing one
+            of them. */}
         <span className="hp-ed-editor-gap" />
+        {edit?.onDeleteEvidence ? (
+          <button
+            type="button"
+            className="hp-ed-action hp-ed-danger"
+            disabled={Boolean(busy)}
+            onClick={() => setConfirmingDelete(true)}
+          >
+            {busy === 'delete' ? 'Deleting…' : 'Delete'}
+          </button>
+        ) : null}
+        <span className="hp-ed-editor-gap" />
+
         <button type="button" className="hp-ed-action" onClick={onBack} disabled={Boolean(busy)}>
           Back to list
         </button>
       </div>
+
+      {/* Portalled into a layer of its own, the way the Settings drawer raises
+          this same dialog over itself. This pane is inside the manage panel,
+          which is a stacking context at 120, so a dialog rendered in place
+          would be measured inside it and could not stand over the panel that
+          asked the question. The layer carries the z-index, which is why
+          nothing about DeleteSessionModal changes and Interview Practice is
+          untouched. */}
+      {confirmingDelete && typeof document !== 'undefined'
+        ? createPortal(
+            <div className="hp-ed-modal-layer-raised">
+              <DeleteSessionModal
+                deleting={busy === 'delete'}
+                onCancel={() => { if (busy !== 'delete') setConfirmingDelete(false) }}
+                onConfirm={() => run('delete', async () => {
+                  try {
+                    await edit.onDeleteEvidence(item.id)
+                  } finally {
+                    // The question has been answered either way. A failure is
+                    // reported by the toast, which stands above this layer.
+                    setConfirmingDelete(false)
+                  }
+                  // Only on success. The delete has already refreshed the
+                  // list behind this pane, and the item is no longer in it.
+                  onBack()
+                })}
+                title="Delete this item?"
+                body={`${item.title || 'Untitled'} will be removed from your Career Profile on every Career Direction. This can't be undone.`}
+                confirmLabel="Delete"
+              />
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   )
 }

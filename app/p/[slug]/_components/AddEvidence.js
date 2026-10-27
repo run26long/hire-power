@@ -267,6 +267,9 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
   const hasSource = file ? true : Boolean(form.url.trim())
   const canSave = Boolean(hasSource && form.title.trim() && family) && !saving
 
+  // The dialog's own heading, which names the thing being added. The submit
+  // below says Save for every kind: the button carries out the form, and what
+  // kind of thing is being saved is already the heading above it.
   const title = visualOnly ? 'Add a photo or video' : 'Add evidence'
 
   // Back on the left, the way out and the way on together on the right. The
@@ -318,7 +321,8 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
             onClick={save}
             disabled={!canSave}
           >
-            {uploading ? 'Uploading…' : saving ? 'Saving…' : title}
+            {uploading || saving ? <span className="hp-ed-spin" aria-hidden="true" /> : null}
+            {uploading ? `Uploading… ${progress}%` : saving ? 'Saving…' : 'Save'}
           </button>
         ) : null}
 

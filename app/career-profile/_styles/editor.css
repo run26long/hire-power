@@ -541,6 +541,21 @@ html:has(.hp-ed) {
   z-index: 60;
 }
 
+/* The same device one storey up, for a dialog raised from inside a manage
+   panel rather than from the drawer.
+
+   60 is above the drawer and under the panels: the portfolio and evidence
+   panels and the lightbox sit at 120 and the dialogs built on ProfileModal at
+   140, so a confirmation portalled into the layer above would have opened
+   behind the thing that asked for it. This layer clears both. It stays well
+   under the toasts, because an error raised while confirming still has to be
+   the thing on top. */
+.hp-ed-modal-layer-raised {
+  position: fixed;
+  inset: 0;
+  z-index: 160;
+}
+
 .hp-ed-scrim {
   position: fixed;
   inset: 0;
@@ -1356,6 +1371,41 @@ html:has(.hp-ed) {
 }
 
 :is(.hp-profile, .hp-ed-portal) .hp-ed-input::placeholder { color: var(--profile-ink-2); }
+
+/* ---- THE DROPDOWN WEARS THE SAME BOX AS THE FIELDS BESIDE IT ----
+   sections.css already describes that box, and in a dialog none of it reached
+   the screen. The dropdown is a button, and profile.css resets every button
+   inside .hp-profile, .hp-ev-backdrop and .hp-rt-backdrop to no border, no
+   background, no padding and an inherited font. That reset is one class and
+   one element, which outranks the single class the dropdown is described by -
+   so Type stood in the Add evidence form as bare text between Title and
+   Organization, while the inputs on either side of it kept their boxes.
+
+   Restated at two classes, which is what .hp-ed-action a few rules up already
+   does to survive the same reset. It is written here rather than beside the
+   base rule because the rule directly above is the one it has to match: in a
+   dialog .hp-ed-input is not the 16px it is declared as further up this file,
+   it is this 13.5px restatement, and matching the wrong one is how a field
+   ends up looking nearly right. The two are kept adjacent and share their
+   values so they cannot be changed apart. */
+:is(.hp-profile, .hp-ed-portal) .hp-ed-select-field {
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  color: var(--profile-text);
+  background: var(--profile-shade-3);
+  border: 1px solid var(--profile-edge-7);
+  border-radius: 7px;
+  padding: 7px 10px;
+  min-width: 0;
+}
+
+/* Nothing chosen yet reads as a prompt rather than as an answer, which is
+   what it already did. Restated at three so it cannot turn on which of two
+   stylesheets a build happens to put first. */
+:is(.hp-profile, .hp-ed-portal) .hp-ed-select-field[data-empty="true"] {
+  color: var(--profile-meta);
+}
 
 :is(.hp-profile, .hp-ed-portal) .hp-ed-input:focus-visible {
   outline: 2px solid rgb(var(--profile-accent-rgb) / 0.75);
@@ -2255,6 +2305,24 @@ html:has(.hp-ed) {
 }
 
 :is(.hp-profile, .hp-ed-portal) .hp-ed-grip:disabled { cursor: default; }
+
+/* The grip, and only the grip, owns the gesture that starts on it. Without
+   this a finger on the grip scrolls the page instead of picking the card up,
+   and the drag never begins. Everywhere else on the card - and everywhere
+   else on the page - scrolls exactly as it did.
+
+   Only when there is something to drag. A grip that is still the inert mark
+   it has always been leaves the browser's own handling alone. */
+:is(.hp-profile, .hp-ed-portal) .hp-ed-grip[data-drag="true"] {
+  touch-action: none;
+  cursor: grab;
+}
+
+:is(.hp-profile, .hp-ed-portal) .hp-ed-grip[data-drag="true"]:active { cursor: grabbing; }
+
+/* Picked up, the grip stays visible wherever the pointer goes - it is holding
+   the pointer, so the hover that was revealing it has moved on. */
+:is(.hp-profile, .hp-ed-portal) [data-dragging="true"] .hp-ed-grip { opacity: 1; }
 
 .hp-ed-grip svg { width: 13px; height: 13px; }
 

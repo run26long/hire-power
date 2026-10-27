@@ -160,9 +160,11 @@ export async function POST(request) {
         supabase, profile.id, lensId, await synthesisOrder(supabase, profile.id, lensId)
       )
       const existing = rows.find(r => r.testimonial_id === testimonialId)
-      // Nothing to hide is not an error the owner can act on: it is already
-      // not in this direction, which is what they asked for.
-      if (!existing) return Response.json({ placements: rows })
+      // Still no row after materialising means it is genuinely not on this
+      // direction - scoped to particular ones, and not to this one. There is
+      // nothing here to hide, and answering 200 would report a write that
+      // never happened.
+      if (!existing) return Response.json({ error: 'Not found.' }, { status: 404 })
       if (existing.hidden === body.hidden) {
         return Response.json({ placements: rows, unchanged: true })
       }

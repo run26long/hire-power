@@ -196,10 +196,14 @@ export async function POST(request) {
 
       const rows = await evidencePlacements.materialise(supabase, profile.id, lensId)
       const existing = rows.find(r => r.evidence_id === evidenceId)
-      // Nothing to hide is not an error the owner can act on: the item is
-      // already not in this direction, which is what they asked for.
+      // Still no row after materialising means the item is genuinely not on
+      // this direction - scoped to particular ones, and not to this one. There
+      // is nothing here to hide, and that is worth saying rather than
+      // swallowing: this used to answer 200 with the list unchanged, which
+      // reported a write that never happened and left the switch flipping
+      // itself back on the next load with nothing to explain why.
       if (!existing) {
-        return Response.json({ placements: rows })
+        return Response.json({ error: 'Not found.' }, { status: 404 })
       }
       if (existing.hidden === body.hidden) {
         return Response.json({ placements: rows, unchanged: true })

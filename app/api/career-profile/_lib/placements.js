@@ -14,15 +14,33 @@
 // arranged has no rows at all, and renders its items in the collection's
 // default order.
 //
-// That makes a per-direction edit impossible to express until the direction
-// has rows. Hiding one item from such a direction would write nothing at all:
-// there is no row to hide, the item is still on by scope, and the control
-// would silently do nothing. Reordering has the same hole.
+// That makes a per-direction edit impossible to express until the items being
+// edited have rows. Hiding such an item would write nothing at all: there is
+// no row to hide, the item is still on by scope, and the control would
+// silently do nothing. Reordering has the same hole and a louder failure - a
+// drop names the row it landed on, and a row the table has no record of
+// resolves to no position, so the move is refused outright.
 //
-// So the first edit in such a direction writes a row for everything then on
-// it, and the edit is applied to those. The direction stops following the
-// default order at that moment - which is exactly what the owner just asked
-// for by editing it - and every item keeps the position it was already in.
+// So an edit materialises what is missing first and is applied to that. The
+// direction stops following the default order at that moment, which is
+// exactly what the owner just asked for by editing it, and every item keeps
+// the position it was already in.
+//
+// COMPLETING A DIRECTION, NOT SKIPPING ONE
+// This used to return early the moment a direction held any row at all, on
+// the assumption that a direction is either arranged or not. A direction can
+// be neither, and the ordinary route into that state is two steps long:
+// arrange a direction, then upload anything new, which defaults to scope
+// 'all'. The new item is on that direction by scope, is listed in its manage
+// panel, and has no row in any direction. The panel offered a drag and a
+// switch for it and both failed - the drag refused with a 404, the switch
+// silently wrote nothing and reported success.
+//
+// So a direction is completed rather than skipped. Every item on it by scope
+// with no row of its own gets one, appended after the rows already there, in
+// the order the page is already displaying them. Nothing that already holds a
+// row is renumbered: materialising is not a reorder, and the owner asked for
+// one of those separately or not at all.
 //
 // HIDING IS NOT DELETING, AND THAT IS THE POINT OF THE COLUMN
 // Taking an item off a direction used to mean deleting its placement, which
@@ -89,13 +107,14 @@ export function placementStore({
    * Returns that direction's placements either way, so a caller can use the
    * return value and never has to ask twice.
    *
-   * A no-op for a direction that already has rows - including one whose rows
-   * are all hidden, which is a direction curated down to nothing rather than
-   * one that has never been curated.
+   * A no-op only for a direction that already holds a row for everything on
+   * it. Rows that are all hidden are a direction curated down to nothing
+   * rather than one that has never been curated, and are left alone.
    *
-   * What gets written is everything on this direction by scope, in the order
-   * the direction is currently reading them. That is the whole point: the
-   * owner's first edit must not reshuffle the section underneath them.
+   * What gets written is everything on this direction by scope and missing
+   * from it, behind the rows already there, in the order the direction is
+   * currently reading them. That is the whole point: the owner's first edit
+   * must not reshuffle the section underneath them.
    *
    * `orderHint` is a list of item ids giving that order where the collection's
    * own column is not it. Testimonials are exactly that case: the page orders
@@ -108,11 +127,10 @@ export function placementStore({
     if (!lensId) return []
 
     const own = await listFor(supabase, profileId, lensId)
-    if (own.length > 0) return own
+    const held = new Set(own.map(row => row[itemColumn]))
 
-    // On this direction by scope, since nothing is here by row yet. An item
-    // scoped to particular directions and not placed in this one is not here
-    // and is not written in.
+    // On this direction by scope. An item scoped to particular directions and
+    // not placed in this one is not here and is not written in.
     const { data: items, error: itemError } = await defaultOrder(
       liveOnly(
         supabase
@@ -124,7 +142,11 @@ export function placementStore({
     )
     if (itemError) throw itemError
 
-    const source = (items || []).map(row => row.id)
+    // Only what this direction is missing. Everything already rowed is left
+    // exactly where it is, including anything hidden - a hidden row holds a
+    // position, and re-adding it would be restoring something the owner
+    // turned off.
+    const source = (items || []).map(row => row.id).filter(id => !held.has(id))
     if (source.length === 0) return own
 
     const ranking = Array.isArray(orderHint) ? orderHint : []
@@ -141,20 +163,28 @@ export function placementStore({
       ordered = [...ranked, ...source.filter(id => !placed.has(id))]
     }
 
-    // Nothing is hidden and nothing leads: a direction that has never been
-    // arranged has made neither decision, and writing one down here would
-    // invent it.
+    // After everything already here, counted from the highest number in use
+    // rather than from how many rows there are: a sequence with a hole in it
+    // would otherwise take a new row into the middle of an order somebody
+    // chose. Behind the existing rows is also exactly where the page is
+    // already drawing these items, so completing a direction never changes
+    // what it looks like.
+    const base = own.reduce((high, row) => Math.max(high, row.sort_order ?? 0), -1) + 1
+
+    // Nothing is hidden: an item that is on this direction by scope has not
+    // been turned off here, and writing that down would invent a decision
+    // nobody made.
     const rows = ordered.map((id, index) => ({
       profile_id: profileId,
       [itemColumn]: id,
       lens_id: lensId,
-      sort_order: index,
+      sort_order: base + index,
       hidden: false,
     }))
 
     const { error } = await supabase.from(table).insert(rows)
-    // A concurrent first edit in the same direction can take the slot between
-    // the read and the insert. The rows we wanted exist either way.
+    // A concurrent edit in the same direction can take the slot between the
+    // read and the insert. The rows we wanted exist either way.
     if (error && error.code !== '23505') throw error
 
     return listFor(supabase, profileId, lensId)

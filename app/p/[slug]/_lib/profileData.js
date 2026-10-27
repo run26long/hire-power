@@ -245,10 +245,20 @@ export function rowsForDirection(placements, lensId, itemKey) {
 // at all it is on no direction, which is where deleting a direction leaves
 // something that was only on that one.
 // ---------------------------------------------------------------------------
+// Membership on its own, with no view on whether the direction is currently
+// showing it. This is the half the manage panels want, and they want it
+// without the hidden test: an item turned off here is precisely the one whose
+// switch has to stay in front of the owner, and it still holds a position in
+// this direction to drag. It is also the question the route asks before it
+// materialises, so a panel that derives from this cannot offer a control over
+// a row the route would refuse to find.
+export function placedOnDirection(item, rowsForLens) {
+  return item?.placement_scope === 'all' || Boolean(rowsForLens?.get?.(item?.id))
+}
+
 export function onDirection(item, rowsForLens) {
-  const row = rowsForLens?.get?.(item?.id)
-  if (row?.hidden === true) return false
-  return item?.placement_scope === 'all' || Boolean(row)
+  if (rowsForLens?.get?.(item?.id)?.hidden === true) return false
+  return placedOnDirection(item, rowsForLens)
 }
 
 // ---------------------------------------------------------------------------
@@ -272,13 +282,9 @@ export function onDirection(item, rowsForLens) {
 // the manage panes ask for the items this direction has hidden as well as the
 // ones it shows. The public page never passes it.
 export function selectForDirection(items, rowsForLens, { order = null, includeHidden = false } = {}) {
-  const here = (Array.isArray(items) ? items : []).filter(item => {
-    if (includeHidden) {
-      const row = rowsForLens?.get?.(item?.id)
-      return item?.placement_scope === 'all' || Boolean(row)
-    }
-    return onDirection(item, rowsForLens)
-  })
+  const here = (Array.isArray(items) ? items : []).filter(item =>
+    includeHidden ? placedOnDirection(item, rowsForLens) : onDirection(item, rowsForLens)
+  )
   const rowed = []
   const loose = []
   for (const item of here) {

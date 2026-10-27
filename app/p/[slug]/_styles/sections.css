@@ -3248,6 +3248,54 @@
 
 .hp-pf-cell { display: flex; }
 
+/* ---- WHERE A DRAGGED CARD WILL LAND ----
+   A vertical line on the edge the card arrives at, never a horizontal one: in
+   a grid a rule between two rows says nothing about which cell is meant. The
+   cell is only positioned while a drag is happening, so nothing about the
+   grid's stacking changes when nothing is being dragged.
+
+   The line sits in the 12px gutter rather than on the mat, so it reads as a
+   gap opening up rather than as a border the card has grown. */
+.hp-pf-cell[data-drop] { position: relative; }
+
+.hp-pf-cell[data-drop]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--profile-accent);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.hp-pf-cell[data-drop="before"]::after { left: -7px; }
+.hp-pf-cell[data-drop="after"]::after { right: -7px; }
+
+/* The card that has been picked up stands back, so the line is read against
+   the order rather than against the card being moved. */
+.hp-pf-cell[data-dragging="true"] { opacity: 0.4; }
+
+/* The same two marks on an evidence tile. The line is inset rather than in
+   the gutter because the tile clips its own overflow, and an edge drawn
+   outside it would simply not be painted. */
+.hp-profile .hp-ev-tile[data-drop]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--profile-accent);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.hp-profile .hp-ev-tile[data-drop="before"]::after { left: 0; }
+.hp-profile .hp-ev-tile[data-drop="after"]::after { right: 0; }
+.hp-profile .hp-ev-tile[data-dragging="true"] { opacity: 0.4; }
+
 /* ---- One mat ----
    Carried by two selectors, and both are needed.
 
@@ -3801,10 +3849,17 @@
   color: var(--profile-ink-12);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
+  /* The way out has a column of its own that runs the height of the block.
+     It used to share a row with the title, which made that row as tall as the
+     button - so the description started a button's height below the title
+     instead of a line below it, and the gap read as something broken. Spanning
+     all three rows takes the button out of the title's row entirely: the title,
+     the description and the meta line are then spaced by their own margins,
+     exactly as they are on an item with no link at all. */
   grid-template-areas:
     "title out"
-    "note  note"
-    "meta  meta";
+    "note  out"
+    "meta  out";
   column-gap: 16px;
 }
 

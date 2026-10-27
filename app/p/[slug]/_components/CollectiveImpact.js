@@ -97,6 +97,12 @@ export default function CollectiveImpact({
   // merged in where they exist. Placed ones keep their placement order and
   // their switch; the rest sit above, newest first, carrying the state they
   // are actually in.
+  // The arrangement as the owner just left it, held until the reload brings
+  // the real order back. The drop moves the row and the write follows it; a
+  // failure puts the row back and says why. Same bargain as the Career
+  // Directions reorder in the Settings drawer.
+  const [draftOrder, setDraftOrder] = useState(null)
+
   const manageItems = useMemo(() => {
     const all = edit?.testimonials || []
     const rows = rowsForDirection(edit?.allTestimonialPlacements, lensId, 'testimonial_id')
@@ -114,7 +120,20 @@ export default function CollectiveImpact({
       rows,
       { order: impact?.testimonialOrder, includeHidden: true }
     )
-    const rankOf = new Map(here.map((item, at) => [item.id, at]))
+    // The draft speaks for the order while it is held, which is what makes
+    // the drop immediate. Stable, so a testimonial it does not name keeps the
+    // position it had.
+    const shown = draftOrder
+      ? (() => {
+          const rank = new Map(draftOrder.map((id, at) => [id, at]))
+          return [...here].sort(
+            (a, b) =>
+              (rank.has(a.id) ? rank.get(a.id) : Infinity) -
+              (rank.has(b.id) ? rank.get(b.id) : Infinity)
+          )
+        })()
+      : here
+    const rankOf = new Map(shown.map((item, at) => [item.id, at]))
 
     // ---- THE FOUR STATES ----
     //
@@ -166,7 +185,7 @@ export default function CollectiveImpact({
     const pending = listed.filter(row => row.rank === -1).sort((a, b) => String(b.at).localeCompare(String(a.at)))
     const placed = listed.filter(row => row.rank !== -1).sort((a, b) => a.rank - b.rank)
     return [...pending, ...placed]
-  }, [edit?.testimonials, edit?.allTestimonialPlacements, lensId, impact])
+  }, [edit?.testimonials, edit?.allTestimonialPlacements, lensId, impact, draftOrder])
 
   // How many are waiting on the owner rather than on the person who was asked.
   // A request nobody has answered is not work for them and is deliberately not
@@ -197,10 +216,29 @@ export default function CollectiveImpact({
   // route has no row for.
   const dropItem = useCallback((fromId, toId) => {
     if (!fromId || !toId || fromId === toId) return
-    const placed = new Set(manageItems.filter(one => one.placed).map(one => one.id))
-    if (!placed.has(fromId) || !placed.has(toId)) return
-    return run(fromId, () => edit?.onMoveTestimonial?.(fromId, lensId, toId))
-  }, [manageItems, run, edit, lensId])
+    const ids = manageItems.filter(one => one.placed).map(one => one.id)
+    const from = ids.indexOf(fromId)
+    const to = ids.indexOf(toId)
+    if (from === -1 || to === -1) return
+
+    // The same splice the route performs, so what the owner sees the instant
+    // they let go is what the table will hold a moment later.
+    const next = ids.slice()
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+
+    const previous = draftOrder
+    setDraftOrder(next)
+    return run(fromId, async () => {
+      try {
+        await edit?.onMoveTestimonial?.(fromId, lensId, toId)
+        setDraftOrder(null)
+      } catch (err) {
+        setDraftOrder(previous)
+        throw err
+      }
+    })
+  }, [manageItems, run, edit, lensId, draftOrder])
 
   const bodyRefs = useRef(new Map())
   const scrollRef = useRef(null)

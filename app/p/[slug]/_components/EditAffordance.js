@@ -131,20 +131,24 @@ export function EditPencil({ field, label, persists = false, tourId }) {
   )
 }
 
-// A mark rather than a control, and deliberately so.
+// The handle a card is dragged by, and it stays a span.
 //
-// The thing it sits on - an evidence tile - is itself a button, and a button
-// inside a button is markup no keyboard and no screen reader can resolve. So
-// while this is inert it is a decorative span, hidden from assistive
-// technology, showing where the handle will be. When reordering becomes real
-// the tile has to stop being a single button anyway, and the handle becomes a
-// real control in the same change. What it must not do is ship as a fake
-// control that breaks the tile it is advertising.
-export function EditGrip() {
+// The thing it sits on is itself a button, and a button inside a button is
+// markup no keyboard and no screen reader can resolve. So this takes pointer
+// handlers rather than becoming a control: it is the same decorative,
+// aria-hidden span the Manage list's grip is, and the drag is a pointer
+// gesture with no keyboard path through it either way. The keyboard route to
+// reordering is the Manage panel, which is a real list of real controls.
+//
+// Passed nothing it is still inert, which is what it is anywhere reordering
+// is not offered. Edit mode only, so Preview and the public page render no
+// grip at all - that was already true and is the reason this returns null
+// before it returns anything else.
+export function EditGrip(props) {
   const edit = useProfileEdit()
   if (!edit?.editing) return null
   return (
-    <span className="hp-ed-grip" aria-hidden="true">
+    <span className="hp-ed-grip" aria-hidden="true" {...props}>
       <GripIcon />
     </span>
   )
