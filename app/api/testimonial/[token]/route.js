@@ -160,96 +160,198 @@ export async function GET(request, { params }) {
 }
 
 // ---------------------------------------------------------------------------
-// Two or three sentences, in the third person, from what they actually wrote.
+// A light edit of what they actually wrote, in their own voice.
+//
+// This used to rewrite. It asked for two or three sentences in the third
+// person about the candidate, told the model to lead with the strongest point
+// and to cut anything said twice, and forbade the word "I" anywhere in the
+// result. Every one of those is a licence to reorder, drop and recast, and
+// together they produced the thing a referee least expects: somebody else's
+// sentences over their name.
+//
+// The case that showed it: "Jessica helped me reconnect the decisions I made"
+// came back as a third-person sentence about the referee, with a gender
+// invented for them, the opening sentence gone and the scope of the claim
+// moved. Nothing there was a bug in the model. It was the prompt being
+// obeyed.
+//
+// A testimonial is a quotation. The referee writing "helped me" is the normal
+// voice of one, and the name printed underneath is what tells a reader whose
+// "me" it is. So the job here is proofreading, not editing: grammar,
+// spelling, punctuation and genuinely awkward phrasing, and nothing else.
 // ---------------------------------------------------------------------------
 function buildPolishPrompt({ raw, candidateName, candidateFirst, refereeName }) {
-  return `${refereeName} has written a testimonial about ${candidateName}. Edit it into two or three sentences for a professional profile.
+  return `${refereeName} has written a testimonial about ${candidateName}. Proofread it.
 
 WHAT YOU ARE DOING
-Making this read as well as ${refereeName} would have written it with an hour and a good editor, and no better than that. It is going on a profile a recruiter will read, so it has to sound considered rather than dashed off. It is also a quotation attributed to a real person, so it has to still sound like them.
+Correcting it, not improving it. This is a quotation that will be printed on a profile with ${refereeName}'s name underneath it, so the words have to stay theirs. You are the pass a careful person makes before sending something: typos, grammar, punctuation, and the occasional sentence that genuinely does not parse. Nothing beyond that.
 
-WHERE TO ACTUALLY IMPROVE IT
-- Clarity. Turn spoken shorthand into written prose. Resolve vague pronouns and dangling references so each sentence stands on its own.
-- Specificity. Their concrete details are the most valuable thing in the text and are usually buried. Bring them forward and state them plainly. Specificity means surfacing what they wrote, never supplying what they did not.
-- Flow. Lead with the strongest point rather than whatever came out first. Join the fragments into sentences that carry weight. Cut the throat-clearing, the hedging and anything said twice.
-- Presentation. Repetition, filler and false starts go. Their voice does not. This should read as a better version of the person who wrote it, not as a corporate rewrite of them: somebody who wrote warmly and casually still sounds warm and casual, somebody who wrote formally stays formal, and contractions they used are theirs to keep. Their judgement stays exactly as strong or as qualified as they made it, and their qualifiers go with it: "somewhat", "generally" and "mostly" are part of what they said, not hedging to be tidied away.
+If the original is already well written, return it with the few corrections it needs, or unchanged. Returning it almost exactly as it arrived is the correct answer far more often than not, and it is never a failure.
 
-HOW FAR TO GO
-As far as the original allows and no further. Rambling, colloquial writing can change a great deal, because there is a great deal in the way of what they meant. Writing that is already clear and professional should come back close to untouched, and returning it nearly unchanged is the right answer in that case. Never restructure a sentence that was already working, never reach for a grander word than the one they chose, and never make a change whose only purpose is to look like you did something.
+WHAT YOU MAY CHANGE
+- Spelling and typos.
+- Grammar: agreement, tense, a missing or doubled word, a run-on that needs a full stop.
+- Punctuation and capitalisation.
+- Phrasing that is genuinely awkward or unreadable, repaired with the smallest change that makes it read. Awkward means a reader has to go back over it. It does not mean plain, casual, repetitive or shorter than you would have written.
 
-HOW LONG IT SHOULD BE
-Proportional to what they gave you. A short response tightens into a couple of strong sentences and does not acquire a third in order to look substantial. A detailed response keeps its substance and loses its filler. The edited version should rarely be longer than the original and must never be padded: no scene-setting, no summarising sentence at the end, nothing added to reach a length. Shorter than what they wrote is a perfectly good outcome.
+WHAT YOU MAY NOT CHANGE
+- The point of view. If they wrote "I", "me", "my", "we" or "our", those stay exactly as they are. Never convert their sentence into one about themselves in the third person, and never remove them from their own sentence. "${candidateFirst} helped me see it" stays "helped me see it".
+- The order. Sentences stay in the order they wrote them. Never lead with the strongest point, never move a sentence, never merge two sentences that were separate or split one that was whole.
+- The content. Never drop a sentence, a point, a detail or a qualifier, however slight or repetitive it looks. Never add a claim, a result, a number, a person, a group, a quality or an implication. Never widen or narrow what they said: if they named customers, it is customers and not also colleagues.
+- Pronouns and gender. Use only the pronouns they used, for everyone. If they never said whether somebody is he or she, your version does not say either. Where they used a name, keep that name; where they used no pronoun, add none.
+- Their register. Warm and casual stays warm and casual. Formal stays formal. Contractions they used are theirs. Their qualifiers are part of what they said: "somewhat", "generally" and "mostly" stay.
+- The length. Roughly what they gave you. Nothing added to round it out, nothing cut to tighten it.
 
-THE LINE YOU DO NOT CROSS
-Their meaning, their facts and their judgement are not yours to adjust. Do not add a claim, a number, a scope or a result they did not give. Do not warm up a measured assessment or sharpen a mild one. If they were vague about something, the edited version is vague about it too.
+NUMBERS
+A figure appears exactly as they wrote it or not at all. Never calculate, convert, round or restate one, and never say a figure was reduced, cut or improved unless they said what it became.
 
-Nothing may appear that they did not put there, and that covers far more than facts and figures. Do not add people, audiences, relationships, results, qualities or implications they did not state. Widening is the form this usually takes, because it reads as a natural completion rather than as an invention. If they wrote "customers trust him", the edited version says "customers trust him", not "customers and colleagues trust him". They named customers. Colleagues are a group nobody mentioned, and adding them puts a claim on somebody's profile that no referee ever made. The same trap catches a stated quality that acquires a second one beside it, a described situation that acquires a consequence, and one named person who quietly becomes a team.
+NAMES
+Leave every name as they wrote it, including the one they use for ${candidateName}. If they call him "Jim" throughout, he stays "Jim". Do not standardise it to "${candidateFirst}" and do not add a surname.
 
-NUMBERS ARE COPIED, NEVER COMPUTED
-A figure appears exactly as they wrote it or it does not appear. Do not calculate, invert, convert, round or restate one. "We were throwing away 60 percent before he set up the nesting" becomes a sentence containing "60 percent", not one containing any other number. Working out what a figure implies is inventing a fact, and it is the easiest way to put a number on somebody's profile that nobody ever said.
-
-A BEFORE IS NOT AN AFTER
-The same trap without the arithmetic. "We were throwing away 60 percent of the sheet metal before he set up the nesting software" says what the waste was beforehand and says nothing whatever about what it became. It does not become "cut waste to nearly nothing", "reduced waste dramatically" or any other ending, because they did not give one. Where they described a problem and an action but not a result, the edited version describes the problem and the action and stops there. Keep the figure while you do it: it is the most concrete thing they said and dropping it to stay safe loses the reader the one detail worth having. State it as the before that it was.
-
-No verb of change either. "reduced waste from 60 percent", "brought the scrap rate down from 60 percent" and "improved on 60 percent" each assert that the number moved, which is the invented ending again with the figure left in to make it look sourced. The word "before" in what they wrote marks when the figure was true. It is not a claim that anything came after it.
-
-So, given "we were throwing away 60 percent of the sheet metal before he set up the nesting software":
-
-Wrong: "set up nesting software that brought sheet metal waste down from 60 percent" - invents the result.
-Wrong: "set up nesting software that addressed the sheet metal waste problem" - throws away the figure, which was the best thing in the sentence.
-Right: "the shop was throwing away 60 percent of its sheet metal when he set up the nesting software" - the figure, the action, no ending.
-
-WHAT TO DO WITH THE SENTENCES ABOUT THEMSELVES
-Referees write things like "I would work with him again" and "I did not see him handle a crisis". Those are about ${refereeName}, and this text carries ${refereeName}'s name underneath it already. Turn such a sentence into what it says about the candidate, or leave it out. Never name ${refereeName} and never replace "I" with ${refereeName} or with any description of them. The result must not contain the word "${refereeName}" or any part of it.
-
-The word "I" must not survive anywhere in your answer, including in the middle of a sentence. "I would work with him again" does not become "he is someone I would work with again", which is the same first-person sentence with a clause in front of it. It becomes a statement about the candidate or it is dropped.
-
-WHO THE SENTENCES ARE ABOUT
-The candidate, always. This becomes a quotation printed on their profile with "${refereeName}" already shown underneath it as the person who said it, so naming ${refereeName} in the text itself makes it read as a third party describing the wrong person. Never write "${refereeName}" and never write "they" meaning ${refereeName}. "Worked with him for three years" becomes a statement about the candidate, not about ${refereeName}.
-
-WHAT TO CALL THEM
-The name ${refereeName} uses, whenever they use one name consistently and it is plausibly his. Colleagues call people different things, and which name somebody reaches for is part of how they talk about them. "Jim" all the way through stays "Jim". "Jamie" all the way through stays "Jamie". Neither gets standardised to "${candidateFirst}", because which one he prefers is not yours to decide.
-
-Fall back to "${candidateFirst}" only where there is no such name:
-- They never named him.
-- More than one name is used for the person being described. Do not settle on whichever came first and quietly drop the rest: if he is "Jim" in one sentence and "Rob", "Jimmy" or "Dave" in another, the naming is unreliable and "${candidateFirst}" is the only safe name to print.
-- What they used is not a name at all, such as "Pickleball".
-- The name is unrelated to his own and reads as a mistake rather than a preference.
-- The name they use for him is also ${refereeName}'s own, which a reader cannot tell apart from the signature under the quotation.
-
-Whichever name you land on, write that name and nothing more. Never a surname, and never a first and last name together. The only exception is a surname ${refereeName} wrote themselves in a sentence that genuinely needs it, which is rare. The page already prints his full name above the quotation.
-
-Use the name once, where a sentence needs one, then pronouns. Do not repeat it in every sentence.
-
-RULES
-- Two or three sentences. No more.
-- Third person, about the candidate, under the name chosen in WHAT TO CALL THEM. Never "I", never "${refereeName}", never address the reader.
-- Never invent a fact, a number, a role, a company or a period of time. If they were vague, stay vague.
-- Never add a person, a group, a relationship, a quality or an outcome they did not state.
-- Never say a figure was reduced, cut or improved unless they said what it became.
-- Do not add praise they did not give. If they were measured, stay measured.
-- Sound like them. Warm and casual stays warm and casual, formal stays formal.
+FORMAT
 - No em dashes. Use a comma or a full stop.
-- Do not open with the name followed by "is", whichever name you settled on.
 - No quotation marks around the result.
+- No preamble and no explanation.
 
 WHAT THEY WROTE
 ${raw}
 
 CHECK YOUR ANSWER BEFORE YOU GIVE IT
-Read what you have written back against what they wrote above, one claim at a time. For every person, group, relationship, quality, fact, figure and outcome in your version, find the specific phrase in their text that it came from. Anything you cannot trace to a phrase they actually wrote comes out, even where it is plausible, flattering and almost certainly true. Correct it, then answer with the corrected version.
+Read your version beside theirs, sentence by sentence, in order. There should be the same number of sentences, saying the same things, in the same order, from the same point of view, with the same names and pronouns and numbers. Every difference between the two should be a correction you can name: a spelling, a tense, a comma, a sentence that did not parse. If you cannot name what a difference corrects, put their version back.
 
-Trace the words themselves and not the impression they leave. These are the ones that get through most often, so check each by name:
+Return ONLY the proofread testimonial.`
+}
 
-1. A word swapped for a nearby one. It is a different claim. "never late" is about timekeeping and does not become "never missed a shift", which is about attendance. "helped with" does not become "led". "asked his advice" does not become "relied on him". Where their word was narrower, keep their word.
-2. A result they did not give. Never say an action reduced, cut, fixed, improved or solved anything unless they said it did. "set up the nesting software" is an action. "set up nesting software that reduced waste" is an action and a result, and the result is yours, not theirs. Say what they did and stop. Where a figure was attached to it, the figure stays: take out the result, never the number. A comparison they set up is not an outcome either: "fixed the press when the vendor said two weeks" says what the vendor said and says nothing about how long it actually took, so "fixed it in days" is a duration nobody gave.
-3. A qualifier moved. "generally reliable" and "mostly hit his deadlines" are two claims qualified two ways. They do not become "generally hit his deadlines". Each qualifier stays on the claim they put it on.
-4. A sentence whose subject is the writer, including one with the subject dropped. "Ran the night shift with him" is their sentence with the "I" left off, and so is "Worked alongside him for years". Make it a statement about the candidate or leave it out.
-5. A person, group or audience they did not name, or a second quality standing next to the one they gave.
-6. The name. If they used one plausible name for him all the way through, your version uses that exact name: swapping their "Jim" or "Jamie" for "${candidateFirst}" rewrites what this person calls him, and it is the one substitution that looks like tidying and is not. If instead more than one name appeared, or what they used was not plausibly his name, your version says "${candidateFirst}". Either way it is one first name on its own, with no surname attached to it.
-7. The figure. If they gave a number, it is in your version. Dropping it to avoid claiming a result is the wrong repair: keep the number and drop the result.
 
-Return ONLY the polished testimonial. No preamble, no explanation.`
+// ---------------------------------------------------------------------------
+// THE VERIFICATION PASS
+//
+// The prompt asks for a proofread. This checks that it got one, by comparing
+// the answer to what the referee wrote, and it is the half that does not
+// depend on the model having behaved. Where it finds a rewrite rather than a
+// correction, the referee's own words are used instead: a light touch that
+// did not happen is no loss, and their words are never wrong.
+//
+// Deterministic on purpose. A second model call to grade the first would be
+// another thing that can hallucinate, and every rule here is a counting
+// question that code answers exactly.
+//
+// WHAT IT CHECKS, AND WHY EACH ONE
+//   point of view   they wrote "I" and the answer does not, or the other way
+//                   round. This is the failure that started all of this.
+//   pronouns        a he, she, they, him, her or their in the answer that is
+//                   not in what they wrote. This is how a gender gets
+//                   invented for somebody who never stated one.
+//   sentence count  a sentence dropped or added.
+//   order           sentence by sentence, each one still has most of its
+//                   words in common with the one in the same position. A
+//                   reordering, a merge, a split or a swapped-out sentence
+//                   all fail here.
+//   numbers         every figure they wrote, the same ones, no others.
+//   new names       a capitalised word in the answer that they never used,
+//                   which is a person, a company or a product arriving.
+// ---------------------------------------------------------------------------
+const FIRST_PERSON = /\b(i|me|my|mine|myself|we|us|our|ours)\b/gi
+const PRONOUNS = /\b(he|him|his|she|her|hers|they|them|their|theirs)\b/gi
+
+const sentencesOf = (text) => String(text || '')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .split(/(?<=[.!?])\s+/)
+  .map(one => one.trim())
+  .filter(Boolean)
+
+const wordsOf = (text) => new Set(
+  String(text || '').toLowerCase().match(/[\p{L}\p{N}']{3,}/gu) || []
+)
+
+const matched = (value, re) => {
+  const found = String(value || '').match(re) || []
+  return new Set(found.map(one => one.toLowerCase()))
+}
+
+const figuresOf = (text) => (String(text || '').match(/\d[\d,.]*/g) || [])
+  .map(one => one.replace(/[.,]$/, ''))
+  .sort()
+
+const capsOf = (text) => new Set(
+  (String(text || '').match(/\b\p{Lu}[\p{L}'-]+/gu) || []).map(one => one.toLowerCase())
+)
+
+const openersOf = (list) => new Set(
+  list.map(one => (one.match(/^[\p{L}']+/u) || [''])[0].toLowerCase())
+)
+
+function verifyLightTouch(polished, raw) {
+  const theirs = String(raw || '').trim()
+  if (!theirs) return { ok: true }
+
+  // Point of view. Either direction is a change of who is speaking.
+  const mineThere = FIRST_PERSON.test(theirs); FIRST_PERSON.lastIndex = 0
+  const mineHere = FIRST_PERSON.test(polished); FIRST_PERSON.lastIndex = 0
+  if (mineThere !== mineHere) {
+    return { reason: mineThere ? 'point of view dropped' : 'point of view added' }
+  }
+
+  // A pronoun nobody used. Gender arrives this way and cannot be taken back
+  // once it is printed under somebody's name.
+  const theirPronouns = matched(theirs, PRONOUNS)
+  for (const word of matched(polished, PRONOUNS)) {
+    if (!theirPronouns.has(word)) return { reason: `pronoun introduced: "${word}"` }
+  }
+
+  // A sentence dropped or added.
+  const a = sentencesOf(theirs)
+  const b = sentencesOf(polished)
+  if (a.length !== b.length) {
+    return { reason: `sentence count changed (${a.length} to ${b.length})` }
+  }
+
+  // Still in their order. Each sentence keeps most of the words it had, so a
+  // correction passes and a move, a merge or a substitution does not. Scored
+  // against the shorter of the two, so trimming a filler word is not a
+  // failure and replacing the sentence is.
+  for (let at = 0; at < a.length; at++) {
+    const mine = wordsOf(a[at])
+    const back = wordsOf(b[at])
+    if (mine.size === 0) continue
+
+    // Most of their words are still in it. A spelling or a tense keeps them
+    // all; a move, a merge or a substituted sentence does not.
+    let shared = 0
+    for (const word of mine) if (back.has(word)) shared++
+    if (shared < Math.max(1, Math.ceil(mine.size * 0.6))) {
+      return { reason: `sentence ${at + 1} rewritten or reordered` }
+    }
+
+    // And it has not grown a clause. Keeping every word they wrote and
+    // adding a few is the one way a claim arrives that the checks above do
+    // not see: no pronoun, no figure, no name, just a consequence tacked on
+    // the end. A couple of words is a repair; a handful is a sentence they
+    // did not write.
+    let extra = 0
+    for (const word of back) if (!mine.has(word)) extra++
+    if (extra > Math.max(2, Math.ceil(mine.size * 0.25))) {
+      return { reason: `sentence ${at + 1} gained content` }
+    }
+  }
+
+  // Every figure they gave, the same ones, and no figure they did not.
+  if (figuresOf(theirs).join('|') !== figuresOf(polished).join('|')) {
+    return { reason: 'numbers changed' }
+  }
+
+  // A capitalised word they never wrote: a person, a company or a product
+  // arriving in somebody else's quotation. The first word of a sentence is
+  // capitalised by grammar rather than by choice, so it is not evidence.
+  const theirCaps = capsOf(theirs)
+  const openers = openersOf(b)
+  for (const word of capsOf(polished)) {
+    if (theirCaps.has(word) || openers.has(word)) continue
+    return { reason: `name introduced: "${word}"` }
+  }
+
+  return { ok: true }
 }
 
 function validatePolished(text, candidateName, refereeName, raw) {
@@ -263,15 +365,12 @@ function validatePolished(text, candidateName, refereeName, raw) {
   if (cleaned.length < POLISHED_MIN) return { reason: `too short (${cleaned.length})` }
   if (cleaned.length > POLISHED_MAX) return { reason: `too long (${cleaned.length})` }
   if (cleaned.includes(EM_DASH)) return { reason: 'em dash survived' }
-  // A testimonial written as the referee speaking in the first person reads as
-  // the candidate talking about themselves once it is on the page.
-  //
-  // Anywhere, not only at the start of a sentence. The check used to look for
-  // "I" after a full stop, which let "he is someone I would work with again"
-  // through: the same first-person sentence with a clause bolted on the front.
-  // A lone "I" in a third-person quotation is wrong wherever it sits, and a
-  // refusal here is visible and retryable while a shipped one is permanent.
-  if (/\bI\b/.test(cleaned)) return { reason: 'first person' }
+  // First person is no longer refused. It used to be, on the reading that a
+  // referee's "I" would be mistaken for the candidate speaking - but the name
+  // printed under the quotation is what says whose "I" it is, and refusing it
+  // is what forced "helped me" to be rewritten as a sentence about the
+  // referee, with a gender invented for them along the way. Their point of
+  // view is theirs, and the verification pass below is what keeps it.
 
   // And one that names the referee reads as a third party describing the wrong
   // person, because the page already prints "Marcus Feld" underneath it. The
@@ -306,13 +405,9 @@ function validatePolished(text, candidateName, refereeName, raw) {
     if (named.test(cleaned)) return { reason: `names the referee: "${part}"` }
   }
 
-  // A rewrite that came back as the thing it was given is not a rewrite. It is
-  // the one failure that looks like a success on the page, because the referee
-  // sees their own words in the place the polished version belongs and has no
-  // way to tell the difference.
-  if (cleaned.toLowerCase() === String(raw || '').trim().toLowerCase()) {
-    return { reason: 'unchanged from the original' }
-  }
+  // Unchanged is no longer refused either. Under a proofreading brief it is
+  // the right answer for anything already well written, and refusing it was
+  // what pushed the model to go looking for something to change.
 
   return { text: cleaned }
 }
@@ -544,9 +639,9 @@ export async function POST(request, { params }) {
           ? prompt
           : `${prompt}
 
-Your previous version was rejected: ${refusals[refusals.length - 1]}. Write it again, fixing only that and keeping everything else.
+Your previous version was rejected: ${refusals[refusals.length - 1]}. Write it again, fixing only that and leaving everything else exactly as they wrote it.
 
-It must still be third person throughout, written as ${row.recipient_name} describing ${candidateName}: never "I", never "my", and never ${row.recipient_name}'s own name inside the quotation.`
+It must still be their words, in their order, from their point of view: the same sentences, the same count, the same names, the same pronouns and the same numbers.`
 
         const message = await anthropic.messages.create({
           model: MODEL,
@@ -555,8 +650,16 @@ It must still be third person throughout, written as ${row.recipient_name} descr
           messages: [{ role: 'user', content }]
         })
         const checked = validatePolished(message?.content?.[0]?.text, candidateName, row.recipient_name, raw)
-        if (checked.text) polished = checked.text
-        else {
+        if (checked.text) {
+          // The shape is right. Whether it is still their testimonial is a
+          // separate question, and the one this step exists to answer.
+          const faithful = verifyLightTouch(checked.text, raw)
+          if (faithful.ok) polished = checked.text
+          else {
+            refusals.push(faithful.reason)
+            console.error('[testimonial] Polish not a light touch for row', row.id, `attempt ${attempt + 1}:`, faithful.reason)
+          }
+        } else {
           refusals.push(checked.reason)
           console.error('[testimonial] Polish refused for row', row.id, `attempt ${attempt + 1}:`, checked.reason)
         }
@@ -566,6 +669,19 @@ It must still be third person throughout, written as ${row.recipient_name} descr
         refusals.push('the request did not complete')
         console.error('[testimonial] Polish errored for row', row.id, `attempt ${attempt + 1}:`, error?.message)
       }
+    }
+
+    // ---- WHAT THEY WROTE, WHERE THE POLISH DID NOT EARN ITS PLACE ----
+    //
+    // Three attempts that each failed the comparison means the model will not
+    // leave this one alone, so it is left alone instead. Their own words are
+    // a correct answer to "what should this testimonial say" - they are the
+    // testimonial - and showing them is better than showing a rewrite that
+    // changed who was speaking, or than telling the referee their visit
+    // failed over a step that is cosmetic.
+    if (!polished && String(raw || '').trim()) {
+      console.error('[testimonial] Polish fell back to the original for row', row.id, refusals.join('; '))
+      polished = String(raw).trim()
     }
 
     // The draft is stored so a referee who closes the tab comes back to it, and

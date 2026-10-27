@@ -16,6 +16,7 @@ import EditorGuide from './_components/EditorGuide'
 import Tour, { tourSeen, TourReplayButton } from '@/app/components/Tour'
 
 import './_styles/editor.css'
+import { currentPath, signInUrl } from '@/lib/returnPath'
 
 // ============================================================================
 // /career-profile: the owner's view of their own Career Profile.
@@ -154,7 +155,7 @@ export default function CareerProfileEditorPage() {
     const { data } = await supabase.auth.getSession()
     const token = data?.session?.access_token
     if (!token) {
-      router.push('/dashboard')
+      router.push(signInUrl(currentPath()))
       throw new Error('Your session has ended. Please sign in again.')
     }
     return { Authorization: `Bearer ${token}` }
@@ -165,7 +166,11 @@ export default function CareerProfileEditorPage() {
       const { data: sessionData } = await supabase.auth.getSession()
       setLoadError(null)
       const session = sessionData?.session
-      if (!session) { router.push('/dashboard'); return }
+      // The address they were trying to reach travels with them, so signing
+      // in lands them back on it rather than on the dashboard. The link in
+      // the testimonial notification is the case this exists for: it names a
+      // testimonial to review, and losing the query lost the review.
+      if (!session) { router.push(signInUrl(currentPath())); return }
 
       const headers = { Authorization: `Bearer ${session.access_token}` }
 

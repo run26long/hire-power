@@ -7,6 +7,7 @@ import MainNav from '../components/MainNav';
 import ErrorToast from '../components/ErrorToast';
 import { canAccessBuiltWork } from '@/lib/tiers';
 import { fetchJSON } from '@/lib/fetchJSON';
+import { afterSignIn, safeReturnPath } from '@/lib/returnPath';
 
 // ── Module-level components (no hooks inside render functions) ──
 
@@ -112,7 +113,12 @@ function DashboardContent() {
           setLoginView('reset');
         }
       });
-      window.history.replaceState({}, '', '/dashboard');
+      // The code comes out of the bar once it has been spent. A return path
+      // has not been used yet and has to survive for the sign-in below.
+      const keep = safeReturnPath(searchParams.get('next'));
+      window.history.replaceState(
+        {}, '', keep ? `/dashboard?next=${encodeURIComponent(keep)}` : '/dashboard'
+      );
     }
   }, [searchParams]);
 
@@ -288,7 +294,9 @@ function DashboardContent() {
       }
       setLoginLoading(false);
       setShowLoginModal(false);
-      window.location.href = '/dashboard';
+      // Back to wherever they were headed when they were asked to sign in,
+      // if that was a path on this site. Anything else, and the dashboard.
+      window.location.href = afterSignIn(searchParams);
     }
   };
 
