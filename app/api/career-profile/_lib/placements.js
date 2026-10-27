@@ -42,11 +42,20 @@
 // row is renumbered: materialising is not a reorder, and the owner asked for
 // one of those separately or not at all.
 //
-// HIDING IS NOT DELETING, AND THAT IS THE POINT OF THE COLUMN
-// Taking an item off a direction used to mean deleting its placement, which
-// threw away its position and its lead status; putting it back landed it at
-// the end of the list. `hidden` leaves the row exactly where it is and stops
-// it rendering. Restoring is one boolean rather than a guess.
+// HIDING IS RETIRED, AND OFF IS THE ABSENCE OF A ROW
+// `hidden` was how a direction took an item off without losing its position:
+// the row stayed exactly where it was and stopped rendering, and restoring
+// was one boolean rather than a guess. It answered the same question as "is
+// there a row", and two answers to one question is what made "off" mean
+// different things depending on which control you reached for - the manage
+// panel's switch hid, the direction picker deleted.
+//
+// Now every control writes through setDirections, so off is the absence of a
+// row and nothing sets the flag. It keeps its position only until it is
+// turned off, and comes back at the end of the direction, which is what the
+// picker always did. The column stays and the read path still honours it, so
+// a row that somehow carries one is not misread; setDirections clears it on
+// any row it keeps.
 // ============================================================================
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -211,14 +220,38 @@ export function placementStore({
   async function setDirections(supabase, profileId, itemId, scope, lensIds) {
     const { data: existing, error } = await supabase
       .from(table)
-      .select(`id, lens_id`)
+      .select(`id, lens_id, hidden`)
       .eq('profile_id', profileId)
       .eq(itemColumn, itemId)
     if (error) throw error
 
-    if (scope === 'all') return
-
     const keep = new Set(Array.isArray(lensIds) ? lensIds : [])
+
+    // ---- ON A DIRECTION MEANS ON IT ----
+    //
+    // This route is now the only way an item's membership changes: the manage
+    // panels' per-direction toggles write through it, the same as the picker
+    // always has. So a row this write keeps is a direction the owner has just
+    // said the item is on, and a `hidden` left over from the switch this
+    // replaced would make the row say the opposite. Cleared here rather than
+    // trusted to be false, because the flag outlived the control that set it
+    // and a row still carrying one would accept the press and change nothing.
+    //
+    // Nothing writes true to the column any more. It is kept because the read
+    // path still honours it, so a row that somehow acquires one behaves the
+    // way it always did.
+    const unhide = (existing || [])
+      .filter(row => row.hidden === true && (scope === 'all' || keep.has(row.lens_id)))
+      .map(row => row.id)
+    if (unhide.length > 0) {
+      const { error: showError } = await supabase
+        .from(table)
+        .update({ hidden: false, updated_at: new Date().toISOString() })
+        .in('id', unhide)
+      if (showError) throw showError
+    }
+
+    if (scope === 'all') return
     const stale = (existing || []).filter(row => !keep.has(row.lens_id)).map(row => row.id)
     if (stale.length > 0) {
       const { error: dropError } = await supabase.from(table).delete().in('id', stale)

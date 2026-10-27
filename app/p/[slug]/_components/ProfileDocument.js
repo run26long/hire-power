@@ -686,6 +686,10 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   )
 
   // ---- READY ----
+  // Where the cover's content stops. Act I renders the marker as the last
+  // row of its stage and the Career Directions bar watches it, so the bar
+  // takes hold the moment that content clears the chrome above it.
+  const heroEnd = useRef(null)
   const animate = !reducedMotion
   const showGenerate = Boolean(data?.isOwner && selectedLens && !selectedLens.bio)
 
@@ -696,6 +700,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
           composition, so the header and the selector are passed into it rather
           than stacked around it. */}
       <IdentityAct
+        endRef={heroEnd}
         displayName={displayName}
         headline={headline}
         proofPoints={proofPoints}
@@ -725,9 +730,15 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
         }
       />
 
-      {/* Takes the top edge once the act has been scrolled past. Sticky in
-          normal flow, so it holds its own space and cannot overlap anything. */}
+      {/* Takes the top edge once the cover's content has been scrolled past.
+          The line it watches is inside Act I, at the foot of the composition,
+          because the cover's box runs on below it: the frame holds a
+          min-height floor open and the stage packs its rows to the top, so
+          the last few hundred pixels of the section are field. Watching the
+          section's end left a stretch with neither the cover's content nor
+          this bar on screen. */}
       <LensBar
+        sentinelRef={heroEnd}
         lenses={lenses}
         activeIndex={activeIndex}
         onSelect={selectLens}

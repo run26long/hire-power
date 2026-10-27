@@ -277,7 +277,10 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
   // still on screen at the bottom of a scroll.
   const foot = (
     <>
-      <span className="hp-ed-foot-left">
+      {/* One group, on the right, with the primary furthest right. Back used
+          to stand alone on the left, which reads as a second decision rather
+          than as the first of the three ways out of this step. */}
+      <span className="hp-ed-foot-right">
         {step === 'form' ? (
           <button
             type="button"
@@ -293,9 +296,7 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
             Back
           </button>
         ) : null}
-      </span>
 
-      <span className="hp-ed-foot-right">
         {/* Once something has been added, the way on is the secondary act and
             finishing is the primary one, so Add another stands to the left of
             Done rather than taking the weight off it. */}
@@ -605,13 +606,6 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
                 : saved.where.length > 0
                   ? ` is now in ${saved.where.join(' and ')}.`
                   : ' is saved.'}
-            </p>
-            {/* Where it went, and why it may not be on screen. The collection
-                is shown a few at a time and a new piece joins the end of it. */}
-            <p className="hp-ed-proof-note">
-              New evidence joins the end of the collection, so it may sit behind
-              {' '}<em>View all evidence</em> rather than in the preview above.
-              Ordering and featuring arrive in the next pass.
             </p>
             {saved.warning ? <p className="hp-ed-add-note">{saved.warning}</p> : null}
           </>

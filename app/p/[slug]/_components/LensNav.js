@@ -364,23 +364,63 @@ export function LensStage({ lenses, activeIndex, onSelect, reducedMotion, ghosts
 // underneath it. It stays empty until it is actually stuck, so it does not
 // restate the invitation sitting directly above it.
 // ----------------------------------------------------------------------------
-export function LensBar({ lenses, activeIndex, onSelect, reducedMotion, actions }) {
-  const sentinelRef = useRef(null)
+// `sentinelRef` is the cover's own end-of-content marker, rendered by Act I
+// and handed here. The bar used to carry its own, immediately before itself -
+// which put it after the whole section, below the floor the cover's frame
+// holds open. Between the last line of the cover and that marker neither the
+// cover's content nor this bar was on screen.
+export function LensBar({ lenses, activeIndex, onSelect, reducedMotion, actions, sentinelRef }) {
   const trackRef = useRef(null)
   const itemRefs = useRef([])
   const [stuck, setStuck] = useState(false)
 
+  // The bar takes hold when the cover's content reaches the bottom of
+  // whatever chrome is standing over the page: nothing on the public page,
+  // the app nav and the owner's toolbar on the management page. Written as a
+  // negative top rootMargin, so the marker stops intersecting at that line
+  // rather than at the top of the viewport, which under the editor's chrome
+  // meant the content had already travelled behind the strips before the
+  // observer fired and the bar then drew below them.
+  //
+  // The height is read off the sentinel's own scroll-margin-top, which the
+  // stylesheet sets from --profile-chrome-top. A custom property read
+  // directly comes back as the unresolved calc() it was written as; a real
+  // length property comes back resolved in pixels, which is the number this
+  // needs. The property has no other effect here - nothing scrolls a 1px
+  // marker into view.
   useEffect(() => {
-    const node = sentinelRef.current
+    const node = sentinelRef?.current
     if (!node || typeof IntersectionObserver === 'undefined') return
 
-    const observer = new IntersectionObserver(
-      ([entry]) => setStuck(!entry.isIntersecting && entry.boundingClientRect.top < 0),
-      { threshold: 0 }
-    )
-    observer.observe(node)
-    return () => observer.disconnect()
-  }, [])
+    let observer = null
+    let applied = null
+
+    const attach = () => {
+      const chrome = Math.max(0, Math.round(parseFloat(getComputedStyle(node).scrollMarginTop)) || 0)
+      if (observer && chrome === applied) return
+      observer?.disconnect()
+      applied = chrome
+      observer = new IntersectionObserver(
+        ([entry]) => setStuck(!entry.isIntersecting && entry.boundingClientRect.top < chrome),
+        { threshold: 0, rootMargin: `${-chrome}px 0px 0px 0px` }
+      )
+      observer.observe(node)
+    }
+
+    attach()
+    // The toolbar's real height is measured onto the shell after this effect
+    // has run, because a child's effects fire before its parent's, so the
+    // first read can be the declared height rather than the measured one. A
+    // frame later it is the measured one, and a resize can change it again.
+    // attach() is a no-op when the number has not moved.
+    const frame = requestAnimationFrame(attach)
+    window.addEventListener('resize', attach)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('resize', attach)
+      observer?.disconnect()
+    }
+  }, [sentinelRef])
 
   // The same rail the opening selector uses. Scrolling into view waits until
   // the bar is actually stuck, because until then it is hidden and there is
@@ -392,7 +432,6 @@ export function LensBar({ lenses, activeIndex, onSelect, reducedMotion, actions 
 
   return (
     <>
-      <div ref={sentinelRef} className="hp-bar-sentinel" aria-hidden="true" />
       <div className="hp-bar" data-stuck={stuck ? 'true' : 'false'}>
         <div className="hp-frame hp-bar-inner">
           {lenses.length === 1 ? (

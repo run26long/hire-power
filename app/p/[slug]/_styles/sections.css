@@ -4114,7 +4114,90 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  /* The room the trash and Edit take at the end of every row. Declared once
+     because two things depend on it agreeing: the actions themselves, and
+     the column header above, which right-aligns the direction names past
+     exactly this much so each name stands over its own switch. */
+  --hp-manage-acts: 92px;
 }
+
+/* ---- One column per Career Direction ----------------------------------
+   The switches sit in a fixed track rather than flowing, so the names above
+   them line up without the header and the rows having to share a grid - the
+   rows scroll and a scroll container cannot be a subgrid. 80px is a 38px
+   switch with room either side, and three of them plus the actions still
+   leave the title the larger half of a 600px panel. */
+.hp-manage-dirs {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(var(--hp-manage-cols, 1), 80px);
+  align-items: center;
+  justify-items: center;
+}
+
+.hp-manage-head {
+  display: flex;
+  justify-content: flex-end;
+  /* The row's own right padding, plus its gap, plus the actions. */
+  padding: 0 2px 8px;
+  padding-right: calc(var(--hp-manage-acts) + 14px);
+}
+
+/* Two lines and then an ellipsis. A direction's name is a phrase, not a
+   label, and the full one is on the title attribute for anybody who needs
+   it. */
+.hp-manage-dir-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  padding: 0 4px;
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  color: var(--profile-meta);
+}
+
+/* The one the page behind is showing. The others are still answerable from
+   here, but this is the column the order and the drag belong to. */
+.hp-manage-dir-name[data-open="true"] { color: var(--profile-accent); }
+
+.hp-manage-dirs > .hp-manage-dir[data-open="true"],
+.hp-manage-head .hp-manage-dir-name[data-open="true"] {
+  background: rgb(var(--profile-accent-rgb) / 0.07);
+  border-radius: 8px;
+}
+
+.hp-manage-dir {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  width: 100%;
+}
+
+/* Where a row has nothing to place - a testimonial nobody has written, one
+   waiting on the owner - the reason stands across the whole track instead. */
+.hp-manage-dirs > .hp-manage-status {
+  grid-column: 1 / -1;
+  margin-left: 0;
+}
+
+/* Everything below this is in the collection's order, not this direction's,
+   because this direction does not hold it. Heavier than the hairline between
+   rows and carrying its own air, so it reads as a break rather than as one
+   more row boundary. */
+.hp-manage-split {
+  height: 0;
+  margin: 10px 2px;
+  border-top: 1px solid var(--profile-accent-edge);
+}
+
+/* One direction at a time, below the breakpoint the three columns stop
+   fitting at. */
+.hp-manage-switcher { margin: 0 0 12px; }
 
 .hp-manage-rows {
   list-style: none;
@@ -4132,12 +4215,18 @@
   border-bottom: 1px solid var(--profile-line);
 }
 
-.hp-manage-row:last-child { border-bottom: 0; }
+/* Held to one width, so the names in the header stand over the switches
+   rather than over whatever the longest Edit label happened to make. */
+.hp-manage-acts {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: var(--hp-manage-acts);
+}
 
-/* A hidden row is still a row. It goes quiet rather than going away, because
-   the whole point of it being here is that it can come back. */
-.hp-manage-row[data-hidden="true"] .hp-manage-title,
-.hp-manage-row[data-hidden="true"] .hp-manage-meta { opacity: 0.5; }
+.hp-manage-row:last-child { border-bottom: 0; }
 
 .hp-manage-row[data-dragging="true"] { opacity: 0.45; }
 
@@ -4174,6 +4263,14 @@
    direction. The handle stays, so the rows stay aligned, and stops claiming
    to be a handle. */
 .hp-manage-grip[data-drag="false"] { cursor: default; opacity: 0.35; touch-action: auto; }
+
+/* Below the divider there is no position in this direction to move, so there
+   is no handle - but the mark still holds its 14px, because a row that
+   dropped it would start its title 14px left of every row above it. Hidden
+   rather than not drawn: this element is sized by its contents, and an
+   explicit width here would fight its own padding under border-box and
+   collapse the icon to nothing. */
+.hp-manage-grip[data-drag="false"] .hp-manage-grip-mark { visibility: hidden; }
 
 .hp-manage-grip[data-drag="true"]:active { cursor: grabbing; }
 .hp-manage-grip-mark { width: 14px; height: 14px; fill: currentColor; }
@@ -4505,7 +4602,7 @@
 .hp-manage-foot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   margin-top: 14px;
   padding-top: 14px;
@@ -4526,26 +4623,34 @@
   white-space: nowrap;
 }
 
-/* Everything in this footer is a button, and the filled one is the thing this
-   modal is for: adding. Done and the reference sheet are both ways of leaving
-   with what you came for, and they are outlined. */
-:is(.hp-manage, .hp-manage-pane) .hp-manage-add {
+/* Everything in this footer is a button, and the filled one is the one this
+   footer is for: leaving, with what you came for. Adding opens another dialog
+   over this one and the reference sheet is a download, so both of those are
+   outlined and stand to the left of it. */
+:is(.hp-manage, .hp-manage-pane) .hp-manage-done {
   border: 1px solid transparent;
   background: var(--profile-primary-fill);
   color: var(--profile-on-action);
 }
 
-:is(.hp-manage, .hp-manage-pane) .hp-manage-add:hover { opacity: 0.9; }
+:is(.hp-manage, .hp-manage-pane) .hp-manage-done:hover { opacity: 0.9; }
 
 :is(.hp-manage, .hp-manage-pane) .hp-manage-secondary,
-:is(.hp-manage, .hp-manage-pane) .hp-manage-done {
+:is(.hp-manage, .hp-manage-pane) .hp-manage-add {
   border: 1px solid var(--profile-line-strong);
   background: transparent;
   color: var(--profile-body);
 }
 
 :is(.hp-manage, .hp-manage-pane) .hp-manage-secondary:hover,
-:is(.hp-manage, .hp-manage-pane) .hp-manage-done:hover { color: var(--profile-text); border-color: var(--profile-accent-edge); }
+:is(.hp-manage, .hp-manage-pane) .hp-manage-add:hover { color: var(--profile-text); border-color: var(--profile-accent-edge); }
+
+/* The reference sheet stands on its own, at the other end. It is the only
+   control here that neither adds to the collection nor closes the panel - it
+   takes a copy of the collection away - so it is not one of the pair somebody
+   is choosing between. The auto margin is what groups the other two: with no
+   reference sheet to place, the footer is the same right-aligned pair it was. */
+.hp-manage-foot .hp-manage-secondary { margin-right: auto; }
 
 :is(.hp-manage, .hp-manage-pane) .hp-manage-add:focus-visible,
 :is(.hp-manage, .hp-manage-pane) .hp-manage-secondary:focus-visible,
@@ -4614,14 +4719,11 @@
 .hp-manage-pane-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   padding: 10px 0;
   border-bottom: 1px solid var(--profile-line);
   margin-bottom: 4px;
 }
-
-.hp-manage-pane-label { font-size: 13px; color: var(--profile-body); }
 
 :is(.hp-manage, .hp-manage-pane) .hp-manage-linkish {
   appearance: none;
@@ -4638,25 +4740,39 @@
 :is(.hp-manage, .hp-manage-pane) .hp-manage-linkish:disabled { opacity: 0.5; cursor: default; }
 :is(.hp-manage, .hp-manage-pane) .hp-manage-linkish:focus-visible { outline: 2px solid var(--profile-accent); outline-offset: 2px; }
 
-/* Two actions on the left rather than one: asking for a testimonial and
-   taking the reference sheet away are both things done from here. Same gap
-   as the one between the left pair and Done, so the row reads evenly. */
-.hp-manage-foot-left { display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-
 @media (max-width: 520px) {
   /* The row is already carrying a grip and a toggle at this width. */
   :is(.hp-manage, .hp-manage-pane) .hp-manage-edit { padding: 5px 8px; }
 }
 
-/* Both galleries centre their one child, so the list and a pane would each be
-   as wide as whatever text happened to be in them, and switching between them
-   would move the whole modal. One measure for both instead. */
-.hp-manage,
+/* Both galleries centre their one child, so a pane would be as wide as
+   whatever text happened to be in it, and switching between the list and a
+   pane would move the whole modal. One measure, centred. */
 .hp-manage-pane {
   width: 100%;
   max-width: 600px;
   justify-self: center;
 }
+
+/* The list takes that same measure, in the same place - but it takes it per
+   part rather than as one block, so one of the parts can opt out.
+   `margin-inline: auto` rather than `justify-self`, because this is what
+   centres a child of a flex column in every browser rather than only where
+   block-level alignment has landed.
+
+   The part that opts out is the note. It is the panel's own sentence, about
+   the panel, and starting it at the list's left edge left it adrift of the
+   eyebrow and title it belongs under. It keeps the measure and loses the
+   centring, so it begins where the heading begins. */
+.hp-manage { width: 100%; }
+
+.hp-manage > * {
+  width: 100%;
+  max-width: 600px;
+  margin-inline: auto;
+}
+
+.hp-manage > .hp-manage-note { margin-inline: 0 auto; }
 
 /* Managing is a list, not a wall of mats: the panel takes the measure of the
    evidence modal beside it and only as much height as the rows need, so the

@@ -706,7 +706,22 @@
    as the small sibling of the selector above: one type size for both states,
    the heaviest width reserved, and the same mark. */
 
-.hp-bar-sentinel { height: 1px; }
+/* The marker the bar watches. Its scroll-margin-top carries the height of
+   the chrome standing over the page - zero here, the nav and the owner's
+   toolbar on the management page, which sets --profile-chrome-top. Nothing
+   scrolls this 1px marker into view, so the property does no layout work:
+   it is here because a length property reads back resolved in pixels and the
+   custom property it comes from reads back as the calc() it was written as,
+   and the observer needs the number. */
+.hp-bar-sentinel { height: 1px; scroll-margin-top: var(--profile-chrome-top, 0px); }
+
+/* The stage is a grid, and an auto-placed item one column wide would be
+   tucked into the first gap it found - beside the identity, or under the
+   lead figure. Spanning every column, the first row it can take is the one
+   after the last occupied one, which is the foot of the composition at both
+   of the stage's arrangements. Below 768 the stage is a flex column and this
+   does nothing. */
+.hp-act1-stage > .hp-bar-sentinel { grid-column: 1 / -1; }
 
 /* The bar reserves no space in the flow until it is actually showing.
    It used to hold its 68px at all times so that taking hold could not shift

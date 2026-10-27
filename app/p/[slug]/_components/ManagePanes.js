@@ -101,7 +101,7 @@ function PaneHead({ title, note }) {
 // asked for while the request is in flight, and a failure reports through the
 // page's own toast and re-reads. There is no local truth to drift.
 // ---------------------------------------------------------------------------
-function DirectionsRow({ item, onSave, busy, idPrefix, placements, itemKey, trailing = null }) {
+function DirectionsRow({ item, onSave, busy, idPrefix, placements, itemKey }) {
   const edit = useProfileEdit()
   const notify = useNotify()
   const [pending, setPending] = useState(null)
@@ -127,31 +127,30 @@ function DirectionsRow({ item, onSave, busy, idPrefix, placements, itemKey, trai
 
   if (!onSave) return null
 
+  // No label over it. The summary is a sentence - "Showing on all Career
+  // Directions" - so a heading above it said the same thing twice, in a pane
+  // whose other rows carry no heading either.
   return (
-    <div className="hp-manage-pane-stack">
-      <span className="hp-manage-pane-label">Where this appears</span>
-      <DirectionPicker
-        lenses={lenses}
-        scope={scope}
-        lensIds={lensIds}
-        disabled={Boolean(busy)}
-        idPrefix={idPrefix}
-        trailing={trailing}
-        onChange={async (nextScope, nextIds) => {
-          setPending({ scope: nextScope, lensIds: nextIds })
-          try {
-            await onSave(item.id, nextScope, nextIds)
-          } catch (err) {
-            notify?.({
-              type: 'error',
-              message: err?.message || "We couldn't save where that appears. Please try again."
-            })
-          } finally {
-            setPending(null)
-          }
-        }}
-      />
-    </div>
+    <DirectionPicker
+      lenses={lenses}
+      scope={scope}
+      lensIds={lensIds}
+      disabled={Boolean(busy)}
+      idPrefix={idPrefix}
+      onChange={async (nextScope, nextIds) => {
+        setPending({ scope: nextScope, lensIds: nextIds })
+        try {
+          await onSave(item.id, nextScope, nextIds)
+        } catch (err) {
+          notify?.({
+            type: 'error',
+            message: err?.message || "We couldn't save where that appears. Please try again."
+          })
+        } finally {
+          setPending(null)
+        }
+      }}
+    />
   )
 }
 
@@ -346,16 +345,11 @@ export function EvidenceEditPane({ item, lensId, onBack }) {
     <div className="hp-manage-pane">
       <PaneHead title={item.title || 'Untitled'} />
 
-      {/* Who sees this, asked once. Where it appears and whether it is
-          public are the same subject, so they share a line: the directions
-          and their Change on the left, the state and the control that
-          changes it on the right.
-
-          The privacy half is offered where it can be used. A free account
-          cannot make an item private, and a button that always answered
-          PRO_REQUIRED would be worse than no button - but an already-private
-          item keeps the way back, so a lapsed account is never stuck. Where
-          it is not offered, the row is the directions row it always was. */}
+      {/* Two rows, one subject. Where it appears, then who can see it, each
+          a state and the control that changes it - the control next to the
+          words it acts on rather than across the row from them, so a summary
+          long enough to wrap takes its own line instead of pushing the pair
+          below it out of alignment. */}
       <DirectionsRow
         item={item}
         busy={busy}
@@ -363,23 +357,28 @@ export function EvidenceEditPane({ item, lensId, onBack }) {
         placements={edit?.allPlacements}
         itemKey="evidence_id"
         onSave={edit?.onSetEvidenceDirections}
-        trailing={edit?.canUseProfileTools || isPrivate ? (
-          <>
-            <span className="hp-ed-dirpick-summary">
-              {isPrivate ? 'Private. Only you can see this.' : 'Public'}
-            </span>
-            <button
-              type="button"
-              className="hp-ed-dirpick-toggle"
-              disabled={Boolean(busy)}
-              onClick={() => run('privacy',
-                () => edit?.onEditEvidence?.(item.id, { privacy: isPrivate ? 'public' : 'private' }))}
-            >
-              {isPrivate ? 'Make public' : 'Make private'}
-            </button>
-          </>
-        ) : null}
       />
+
+      {/* Offered where it can be used. A free account cannot make an item
+          private, and a button that always answered PRO_REQUIRED would be
+          worse than no button - but an already-private item keeps the way
+          back, so a lapsed account is never stuck. */}
+      {edit?.canUseProfileTools || isPrivate ? (
+        <div className="hp-manage-pane-row">
+          <span className="hp-ed-dirpick-summary">
+            {isPrivate ? 'Private. Only you can see this.' : 'Public'}
+          </span>
+          <button
+            type="button"
+            className="hp-ed-dirpick-toggle"
+            disabled={Boolean(busy)}
+            onClick={() => run('privacy',
+              () => edit?.onEditEvidence?.(item.id, { privacy: isPrivate ? 'public' : 'private' }))}
+          >
+            {isPrivate ? 'Make public' : 'Make private'}
+          </button>
+        </div>
+      ) : null}
 
       <label className="hp-ed-field-label" htmlFor={`t-${item.id}`}>Title</label>
       <input
@@ -464,12 +463,6 @@ export function EvidenceEditPane({ item, lensId, onBack }) {
         disabled={Boolean(busy)}
         onChange={e => setDraft(d => ({ ...d, url: e.target.value }))}
       />
-
-      {item.source_type === 'upload' ? null : (
-        <p className="hp-ed-proof-note">
-          This address is what the item opens. It can be corrected, but not emptied.
-        </p>
-      )}
 
       {/* Replace file and Delete on the left: the two things this pane does to
           the item itself rather than to a field of it. Cancel and Save on the
@@ -851,14 +844,16 @@ export function TestimonialRequestPane({ onBack, onSent }) {
         whether it appears on your profile.
       </p>
 
+      {/* One group, on the right, with the primary furthest right. */}
       <div className="hp-ed-editor-bar">
-        <button type="button" className="hp-ed-action" data-primary="true" onClick={send} disabled={!canSend}>
-          {sending ? 'Sending…' : 'Send the request'}
-        </button>
-        <span className="hp-ed-editor-gap" />
-        <button type="button" className="hp-ed-action" onClick={onBack} disabled={sending}>
-          Back to list
-        </button>
+        <span className="hp-ed-foot-right">
+          <button type="button" className="hp-ed-action" onClick={onBack} disabled={sending}>
+            Back to list
+          </button>
+          <button type="button" className="hp-ed-action" data-primary="true" onClick={send} disabled={!canSend}>
+            {sending ? 'Sending…' : 'Send the request'}
+          </button>
+        </span>
       </div>
     </div>
   )

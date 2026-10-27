@@ -256,6 +256,40 @@ export function placedOnDirection(item, rowsForLens) {
   return item?.placement_scope === 'all' || Boolean(rowsForLens?.get?.(item?.id))
 }
 
+// ---------------------------------------------------------------------------
+// WHICH DIRECTIONS EACH ITEM IS ON
+//
+// The manage panels ask this of every item at once, so it is built as one
+// lookup rather than asked again per switch.
+//
+// `pickable` is the set of directions the answer is allowed to name: the ones
+// the direction picker offers. The panels write the whole membership back
+// through the route the picker uses, so an answer naming anything else would
+// either drop the item from a direction nobody touched or pin it to one no
+// control on the page can see.
+//
+// An item on 'all' is on every one of them without a row to say so, which is
+// the whole point of the flag - so it answers with the full set rather than
+// with the rows it happens to hold.
+// ---------------------------------------------------------------------------
+export function directionsByItem(items, placements, itemKey, pickable) {
+  const allowed = pickable instanceof Set ? pickable : new Set(pickable || [])
+  const rowed = new Map()
+  for (const row of Array.isArray(placements) ? placements : []) {
+    if (!row || !allowed.has(row.lens_id)) continue
+    const held = rowed.get(row[itemKey])
+    if (held) held.push(row.lens_id)
+    else rowed.set(row[itemKey], [row.lens_id])
+  }
+
+  const every = [...allowed]
+  const out = new Map()
+  for (const item of Array.isArray(items) ? items : []) {
+    out.set(item?.id, item?.placement_scope === 'all' ? every : (rowed.get(item?.id) || []))
+  }
+  return out
+}
+
 export function onDirection(item, rowsForLens) {
   if (rowsForLens?.get?.(item?.id)?.hidden === true) return false
   return placedOnDirection(item, rowsForLens)

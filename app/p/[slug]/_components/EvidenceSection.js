@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import Reveal from './Reveal'
 import StrokeIcon from './StrokeIcon'
@@ -12,8 +12,10 @@ import { isEvidenceItem } from '@/lib/portfolio'
 import ManageList from './ManageList'
 import { EvidenceEditPane, useEvidenceDelete } from './ManagePanes'
 import { useCanShowEmpty, useCanEdit, useProfileEdit } from '../_lib/editContext'
-import { placedOnDirection, rowsForDirection, selectForDirection, unplacedItems } from '../_lib/profileData'
+import { directionsByItem, rowsForDirection, selectForDirection } from '../_lib/profileData'
+import { PICKABLE } from './DirectionPicker'
 import { useGridDrag } from '../_lib/gridDrag'
+import useNarrow from '../_lib/useNarrow'
 
 // ============================================================================
 // EVIDENCE
@@ -39,26 +41,6 @@ const FAMILY_LABEL = { work: 'Work', credentials: 'Credentials', recognition: 'R
 // past evidence rather than reading it.
 const PREVIEW_DESKTOP = 5
 const PREVIEW_MOBILE = 3
-
-// The same boundary the CSS arrangements switch on, so the count the page plans
-// for and the shape it renders can never disagree.
-const NARROW = '(max-width: 767px)'
-
-const subscribe = (notify) => {
-  if (typeof window === 'undefined' || !window.matchMedia) return () => {}
-  const query = window.matchMedia(NARROW)
-  query.addEventListener('change', notify)
-  return () => query.removeEventListener('change', notify)
-}
-const isNarrowNow = () =>
-  typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(NARROW).matches : false
-
-// Read rather than stored: a media query is external state, and subscribing to
-// it is what useSyncExternalStore is for. The server assumes the wide layout and
-// the client corrects it on the first paint, without a render spent on it.
-function useNarrow() {
-  return useSyncExternalStore(subscribe, isNarrowNow, () => false)
-}
 
 const typeLabel = (item) => item.evidence_type || FAMILY_LABEL[item.family] || 'Evidence'
 const metaOf = (item) => [item.organization, item.date_label].filter(Boolean).join(' · ')
@@ -145,45 +127,58 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
     setOverlay({ mode: 'manage' })
   }, [])
 
-  // Everything this direction holds, which now includes the items that are
-  // here by saying "all directions" and have no row of their own yet.
-  // includeHidden, because the switch for an item taken off this direction
-  // has to stay where the owner can turn it back on.
+  // A column for each direction that is on the profile, and no more: three
+  // is the most the plan allows at once and the panel is built for three.
+  const columns = useMemo(
+    () => (edit?.allLenses || [])
+      .filter(one => one?.status === 'active')
+      .map(one => ({ id: one.id, name: one.name })),
+    [edit?.allLenses]
+  )
+
+  // Wider than the columns. The picker offers hidden directions too, and a
+  // toggle writes the whole membership back, so a direction with no column
+  // still has to be in the set or the write would take the item off it.
+  const pickable = useMemo(
+    () => new Set(
+      (edit?.allLenses || []).filter(one => PICKABLE.has(one?.status)).map(one => one.id)
+    ),
+    [edit?.allLenses]
+  )
+
+  // EVERY piece of evidence the owner has, whichever direction is open. The
+  // list is answering "where does this appear", and the items it would once
+  // have left out are exactly the ones whose answer is "not here".
+  //
+  // In two groups, never interleaved. The open direction's own order first,
+  // because that is the order this panel's drag rearranges; then everything
+  // it does not hold, in the collection's order, which is the order the
+  // payload arrives in.
   const manageItems = useMemo(() => {
     const rows = rowsForDirection(edit?.allPlacements, lensId, 'evidence_id')
     // Portfolio takes the visual uploads; this section is everything else,
     // and the management list has to agree with what it renders.
     const mine = (edit?.allEvidence || []).filter(isEvidenceItem)
-    const here = selectForDirection(mine, rows, { includeHidden: true }).map(item => ({
+    const on = directionsByItem(mine, edit?.allPlacements, 'evidence_id', pickable)
+
+    const here = arrange(selectForDirection(mine, rows, { includeHidden: true }))
+    const held = new Set(here.map(one => one.id))
+    const rest = mine.filter(one => !held.has(one.id))
+
+    const row = (item, placed) => ({
       id: item.id,
       title: item.title || typeLabel(item),
       meta: metaOf(item) || typeLabel(item),
-      hidden: rows.get(item.id)?.hidden === true,
-      // On this direction, so it has a position in it to drag and a switch to
-      // turn off. Asked rather than asserted: this is the same question the
-      // route asks before it materialises, so the list this panel offers
-      // controls over and the list the route resolves them against cannot
-      // drift apart.
-      placed: placedOnDirection(item, rows)
-    }))
+      on: on.get(item.id) || [],
+      // On the open direction, so it has a position in it to drag. Asked
+      // rather than asserted: the same question the route asks before it
+      // materialises, so the list this panel offers controls over and the
+      // list the route resolves them against cannot drift apart.
+      placed
+    })
 
-    // On no direction at all, which the owner cannot otherwise see: the item
-    // is in their library and on nothing, and the only control that fixes it
-    // is the picker inside this row.
-    const orphans = unplacedItems(mine, edit?.allPlacements, 'evidence_id').map(item => ({
-      id: item.id,
-      title: item.title || typeLabel(item),
-      meta: metaOf(item) || typeLabel(item),
-      hidden: false,
-      status: 'Not shown on any Career Direction',
-      statusTone: 'wait',
-      // On no direction, so it has no position in this one. Dragging it or
-      // dropping onto it would name a row the route has none of.
-      placed: false
-    }))
-
-    return [...arrange(here), ...orphans]
-  }, [edit?.allEvidence, edit?.allPlacements, lensId, arrange])
+    return [...here.map(one => row(one, true)), ...rest.map(one => row(one, false))]
+  }, [edit?.allEvidence, edit?.allPlacements, lensId, arrange, pickable])
 
   // Every write reports through the page's own toast, the way the rest of
   // the owner's controls do, and leaves the row it was on unlocked either
@@ -200,9 +195,18 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
     }
   }, [busyId, edit])
 
-  const toggleItem = useCallback(
-    (id, nextHidden) => run(id, () => edit?.onHideEvidence?.(id, lensId, nextHidden)),
-    [run, edit, lensId]
+  // One switch moves one direction, but the route takes the whole set: scope
+  // and rows are one decision, and sending them apart has an intermediate
+  // state where the item is on nothing. This is the call the direction picker
+  // makes, with the set the switch just changed.
+  const setDirection = useCallback(
+    (row, directionId, next) => {
+      const now = new Set(row.on || [])
+      if (next) now.add(directionId)
+      else now.delete(directionId)
+      return run(row.id, () => edit?.onSetEvidenceDirections?.(row.id, 'selected', [...now]))
+    },
+    [run, edit]
   )
   // The item whose fields are showing, resolved from the record rather than
   // held in state: an edit that lands changes the record, and the pane has
@@ -493,15 +497,17 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
           <ManageList
             items={manageItems}
             busyId={busyId}
-            onToggle={toggleItem}
             onDrop={dropItem}
             onEdit={setEditingId}
             onDelete={del.available ? del.ask : undefined}
             deletingId={del.deletingId}
+            directions={columns}
+            activeLensId={lensId}
+            onSetDirection={setDirection}
             onAdd={() => { close(); setOpenAdd(n => n + 1) }}
             addLabel="Add evidence"
             onDone={close}
-            emptyNote="Nothing is placed on this career direction yet. Add evidence to start."
+            emptyNote="Nothing here yet. Add evidence to start."
           />
         )}
       />

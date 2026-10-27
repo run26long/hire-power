@@ -8,7 +8,8 @@ import PortfolioMat from './PortfolioMat'
 import AddEvidence from './AddEvidence'
 import { SlotGuide, SlotGhost, UpgradeNote, useEditSlot } from './EditAffordance'
 import { useCanShowEmpty, useCanEdit, useProfileEdit } from '../_lib/editContext'
-import { placedOnDirection, rowsForDirection, selectForDirection, unplacedItems } from '../_lib/profileData'
+import { directionsByItem, rowsForDirection, selectForDirection } from '../_lib/profileData'
+import { PICKABLE } from './DirectionPicker'
 import { PORTFOLIO_PREVIEW_DESKTOP, isPortfolioItem } from '@/lib/portfolio'
 import ManageList from './ManageList'
 import { EvidenceEditPane, useEvidenceDelete } from './ManagePanes'
@@ -123,41 +124,54 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
     setOverlay({ mode: 'manage' })
   }, [])
 
+  // A column for each direction that is on the profile, and no more: three
+  // is the most the plan allows at once and the panel is built for three.
+  const columns = useMemo(
+    () => (edit?.allLenses || [])
+      .filter(one => one?.status === 'active')
+      .map(one => ({ id: one.id, name: one.name })),
+    [edit?.allLenses]
+  )
+
+  // Wider than the columns. The picker offers hidden directions too, and a
+  // toggle writes the whole membership back, so a direction with no column
+  // still has to be in the set or the write would take the item off it.
+  const pickable = useMemo(
+    () => new Set(
+      (edit?.allLenses || []).filter(one => PICKABLE.has(one?.status)).map(one => one.id)
+    ),
+    [edit?.allLenses]
+  )
+
+  // EVERY piece of work the owner has, whichever direction is open, in two
+  // groups: the open direction's own order first, because that is what this
+  // panel's drag rearranges, then everything it does not hold in the
+  // collection's order.
   const manageItems = useMemo(() => {
     const rows = rowsForDirection(edit?.allPlacements, lensId, 'evidence_id')
     // Portfolio is the visual half of the same collection, so the list is
     // filtered to what this section actually renders.
     const mine = (edit?.allEvidence || []).filter(isPortfolioItem)
-    const here = selectForDirection(mine, rows, { includeHidden: true }).map(item => ({
+    const on = directionsByItem(mine, edit?.allPlacements, 'evidence_id', pickable)
+
+    const here = arrange(selectForDirection(mine, rows, { includeHidden: true }))
+    const held = new Set(here.map(one => one.id))
+    const rest = mine.filter(one => !held.has(one.id))
+
+    const row = (item, placed) => ({
       id: item.id,
       title: item.title || 'Untitled',
       meta: [item.organization, item.date_label].filter(Boolean).join(' · '),
-      hidden: rows.get(item.id)?.hidden === true,
-      // On this direction, so it has a position in it to drag and a switch to
-      // turn off. Asked rather than asserted: this is the same question the
-      // route asks before it materialises, so the list this panel offers
-      // controls over and the list the route resolves them against cannot
-      // drift apart.
-      placed: placedOnDirection(item, rows)
-    }))
+      on: on.get(item.id) || [],
+      // On the open direction, so it has a position in it to drag. The same
+      // question the route asks before it materialises, so the list this
+      // panel offers controls over and the list the route resolves them
+      // against cannot drift apart.
+      placed
+    })
 
-    // On no direction at all, which the owner cannot otherwise see: the item
-    // is in their library and on nothing, and the only control that fixes it
-    // is the picker inside this row.
-    const orphans = unplacedItems(mine, edit?.allPlacements, 'evidence_id').map(item => ({
-      id: item.id,
-      title: item.title || 'Untitled',
-      meta: [item.organization, item.date_label].filter(Boolean).join(' · '),
-      hidden: false,
-      status: 'Not shown on any Career Direction',
-      statusTone: 'wait',
-      // On no direction, so it has no position in this one. Dragging it or
-      // dropping onto it would name a row the route has none of.
-      placed: false
-    }))
-
-    return [...arrange(here), ...orphans]
-  }, [edit?.allEvidence, edit?.allPlacements, lensId, arrange])
+    return [...here.map(one => row(one, true)), ...rest.map(one => row(one, false))]
+  }, [edit?.allEvidence, edit?.allPlacements, lensId, arrange, pickable])
 
   const run = useCallback(async (id, work) => {
     if (busyId) return
@@ -171,9 +185,18 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
     }
   }, [busyId, edit])
 
-  const toggleItem = useCallback(
-    (id, nextHidden) => run(id, () => edit?.onHideEvidence?.(id, lensId, nextHidden)),
-    [run, edit, lensId]
+  // One switch moves one direction, but the route takes the whole set: scope
+  // and rows are one decision, and sending them apart has an intermediate
+  // state where the item is on nothing. This is the call the direction picker
+  // makes, with the set the switch just changed.
+  const setDirection = useCallback(
+    (row, directionId, next) => {
+      const now = new Set(row.on || [])
+      if (next) now.add(directionId)
+      else now.delete(directionId)
+      return run(row.id, () => edit?.onSetEvidenceDirections?.(row.id, 'selected', [...now]))
+    },
+    [run, edit]
   )
   // Resolved from the record rather than held in state: an edit that lands
   // changes the record, and the pane has to be looking at what was saved.
@@ -425,15 +448,17 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
           <ManageList
             items={manageItems}
             busyId={busyId}
-            onToggle={toggleItem}
             onDrop={dropItem}
             onEdit={setEditingId}
             onDelete={del.available ? del.ask : undefined}
             deletingId={del.deletingId}
+            directions={columns}
+            activeLensId={lensId}
+            onSetDirection={setDirection}
             onAdd={() => { close(); setOpenAdd(n => n + 1) }}
             addLabel="Add to portfolio"
             onDone={close}
-            emptyNote="Nothing is placed on this career direction yet. Add work to start."
+            emptyNote="Nothing here yet. Add work to start."
           />
         )}
       />

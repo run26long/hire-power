@@ -7,7 +7,8 @@ import ProfileModal from './ProfileModal'
 import ManageList from './ManageList'
 import { TestimonialEditPane, TestimonialRequestPane } from './ManagePanes'
 import { useCanShowEmpty, useProfileEdit } from '../_lib/editContext'
-import { rowsForDirection, selectForDirection } from '../_lib/profileData'
+import { directionsByItem, rowsForDirection, selectForDirection } from '../_lib/profileData'
+import { PICKABLE } from './DirectionPicker'
 
 // ============================================================================
 // COLLECTIVE IMPACT + FIRSTHAND ACCOUNTS
@@ -103,9 +104,28 @@ export default function CollectiveImpact({
   // Directions reorder in the Settings drawer.
   const [draftOrder, setDraftOrder] = useState(null)
 
+  // A column for each direction that is on the profile, and no more.
+  const columns = useMemo(
+    () => (edit?.allLenses || [])
+      .filter(one => one?.status === 'active')
+      .map(one => ({ id: one.id, name: one.name })),
+    [edit?.allLenses]
+  )
+
+  // Wider than the columns. The picker offers hidden directions too, and a
+  // switch writes the whole membership back, so a direction with no column
+  // still has to be in the set or the write would take the item off it.
+  const pickable = useMemo(
+    () => new Set(
+      (edit?.allLenses || []).filter(one => PICKABLE.has(one?.status)).map(one => one.id)
+    ),
+    [edit?.allLenses]
+  )
+
   const manageItems = useMemo(() => {
     const all = edit?.testimonials || []
     const rows = rowsForDirection(edit?.allTestimonialPlacements, lensId, 'testimonial_id')
+    const on = directionsByItem(all, edit?.allTestimonialPlacements, 'testimonial_id', pickable)
 
     // The order this direction reads them in, which is the same call the
     // public page makes: the rows where there are rows, the synthesis's own
@@ -165,11 +185,15 @@ export default function CollectiveImpact({
         id: item.id,
         title: item.recipient_name || 'A referee',
         meta: [item.recipient_title, item.relationship].filter(Boolean).join(' · '),
-        hidden,
-        // Placed means this direction has something to order and to show or
-        // hide. That is now a question about membership rather than about a
-        // row: a testimonial on all directions is on this one and can be
-        // ordered here, whether or not anybody has arranged it yet.
+        // Switches only where there is something to place. A testimonial
+        // nobody has written, or one the owner has not reviewed, is not on
+        // the profile at all - so there is no direction to put it on, and the
+        // row says which of the two it is waiting on instead.
+        on: published ? (on.get(item.id) || []) : undefined,
+        // Placed means this direction has something to order. A question
+        // about membership rather than about a row: a testimonial on all
+        // directions is on this one and can be ordered here, whether or not
+        // anybody has arranged it yet.
         placed: rankOf.has(item.id),
         status: state,
         statusTone: state === 'Published' ? 'live' : state === 'Ready to review' ? 'review' : 'wait',
@@ -181,11 +205,15 @@ export default function CollectiveImpact({
       }
     }
 
+    // The open direction's order first, because that is what the drag in this
+    // panel rearranges. Everything it does not hold follows below the
+    // divider, newest first, which is the order this collection has when
+    // nothing has arranged it.
     const listed = all.map(rowFor)
-    const pending = listed.filter(row => row.rank === -1).sort((a, b) => String(b.at).localeCompare(String(a.at)))
     const placed = listed.filter(row => row.rank !== -1).sort((a, b) => a.rank - b.rank)
-    return [...pending, ...placed]
-  }, [edit?.testimonials, edit?.allTestimonialPlacements, lensId, impact, draftOrder])
+    const rest = listed.filter(row => row.rank === -1).sort((a, b) => String(b.at).localeCompare(String(a.at)))
+    return [...placed, ...rest]
+  }, [edit?.testimonials, edit?.allTestimonialPlacements, lensId, impact, draftOrder, pickable])
 
   // How many are waiting on the owner rather than on the person who was asked.
   // A request nobody has answered is not work for them and is deliberately not
@@ -205,9 +233,18 @@ export default function CollectiveImpact({
     }
   }, [busyId, edit])
 
-  const toggleItem = useCallback(
-    (id, nextHidden) => run(id, () => edit?.onHideTestimonial?.(id, lensId, nextHidden)),
-    [run, edit, lensId]
+  // One switch moves one direction, but the route takes the whole set: scope
+  // and rows are one decision, and sending them apart has an intermediate
+  // state where the testimonial is on nothing. The same call the direction
+  // picker in the review pane makes.
+  const setDirection = useCallback(
+    (row, directionId, next) => {
+      const now = new Set(row.on || [])
+      if (next) now.add(directionId)
+      else now.delete(directionId)
+      return run(row.id, () => edit?.onSetTestimonialDirections?.(row.id, 'selected', [...now]))
+    },
+    [run, edit]
   )
   // A drop says where the testimonial goes, by naming the row it was dropped
   // on, and the route resolves the position. Only the placed rows have an
@@ -572,9 +609,11 @@ export default function CollectiveImpact({
                 <ManageList
                   items={manageItems}
                   busyId={busyId}
-                  onToggle={toggleItem}
                   onDrop={dropItem}
                   onEdit={setPane}
+                  directions={columns}
+                  activeLensId={lensId}
+                  onSetDirection={setDirection}
                   onAdd={() => setPane('request')}
                   addLabel="Request a testimonial"
                   secondaryLabel="Download reference sheet"
@@ -582,7 +621,7 @@ export default function CollectiveImpact({
                   onDone={closeManage}
                   emptyNote="Nobody has been asked yet. Request a testimonial to start."
                   notice={sentTo ? `Request sent to ${sentTo}. It is in the list below, waiting on them.` : null}
-                  note="Manage requests, review what people have shared, and choose what appears on your profile. You can show, hide, or re-order testimonials anytime."
+                  note="Drag any item in the current Career Direction to reorder. Use the toggles to choose which Career Direction(s) each item appears in."
                 />
               )}
             </ProfileModal>

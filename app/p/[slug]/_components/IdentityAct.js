@@ -69,6 +69,12 @@ function ProofValue({ value, className }) {
   )
 }
 
+// `endRef` marks where the cover's content stops, which is not where its box
+// stops: the frame carries a min-height floor and the stage packs its rows to
+// the top, so a few hundred pixels of the cover below the last row are field
+// rather than content. The Career Directions bar takes hold at this line, so
+// it is handed down from the document and parked on the stage's last grid
+// row rather than after the section.
 export default function IdentityAct({
   displayName,
   headline,
@@ -77,7 +83,8 @@ export default function IdentityAct({
   chrome,
   directions,
   glowKey,
-  animate
+  animate,
+  endRef
 }) {
   const hasProof = proofPoints.length > 0
   const [lead, ...supporting] = proofPoints
@@ -240,6 +247,13 @@ export default function IdentityAct({
               </div>
             </div>
           )}
+
+          {/* The foot of the composition, wherever the composition happens to
+              end. Full width so auto-placement cannot tuck it into a gap
+              beside the identity or the figures - spanning every column, the
+              first row it can take is the one after the last occupied one,
+              at both of the stage's arrangements. */}
+          <span ref={endRef} className="hp-bar-sentinel" aria-hidden="true" />
         </div>
       </div>
     </section>
