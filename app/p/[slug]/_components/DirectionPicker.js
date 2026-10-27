@@ -22,10 +22,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 //   ('all', [])            on every direction, including ones made later
 //   ('selected', [ids])    on exactly these
 //
-// Unticking the last box returns to 'all' rather than leaving nothing ticked,
-// because "none" is not a thing anybody picks on purpose here. It is a thing
-// that HAPPENS, when the only direction an item was on gets deleted, and that
-// state is shown plainly rather than offered.
+// Unticking the last box leaves nothing ticked, and that is a state the owner
+// can choose: an item on no direction is in their library and on none of
+// their profiles, which the manage panels already list and already say. This
+// used to bounce back to 'all', so the last untick turned every box on - the
+// opposite of the press, and a disagreement with the toggles in the panels,
+// which write exactly what they show.
 //
 // WHICH DIRECTIONS ARE LISTED
 // Active and hidden. A hidden direction is one the owner has turned off and
@@ -105,9 +107,8 @@ export default function DirectionPicker({
     if (on) next.add(lensId)
     else next.delete(lensId)
 
-    // Back to all directions, rather than to nothing. See the note above.
-    if (next.size === 0) onChange?.('all', [])
-    else onChange?.('selected', [...next])
+    // Exactly what the boxes now say, including none of them.
+    onChange?.('selected', [...next])
   }
 
   return (
@@ -151,10 +152,10 @@ export default function DirectionPicker({
                     disabled={disabled}
                     onChange={event => {
                       if (scope === 'all' && !event.target.checked) {
-                        // Narrowing from everything: keep the others.
+                        // Narrowing from everything: keep the others, even
+                        // where there are none left to keep.
                         const rest = options.map(one => one.id).filter(one => one !== lens.id)
-                        if (rest.length === 0) onChange?.('all', [])
-                        else onChange?.('selected', rest)
+                        onChange?.('selected', rest)
                         return
                       }
                       toggle(lens.id, event.target.checked)

@@ -426,7 +426,13 @@ export async function POST(request, { params }) {
             candidateFirstName: firstNameOf(candidate, notifyName),
             refereeName: row.recipient_name,
             refereeFirstName: firstWordOf(row.recipient_name),
-            profileUrl: `${site}/career-profile`
+            // The link in this email is "review it here", so it says which
+            // one. The editor opens its Review panel on the testimonial
+            // named here while that one is still waiting on a decision, and
+            // on whatever else is waiting when it is not - a link followed
+            // twice, or followed after the owner has already decided, lands
+            // somewhere sensible rather than on an empty panel.
+            profileUrl: `${site}/career-profile?review=${row.id}`
           }
         })
       }

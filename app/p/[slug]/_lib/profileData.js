@@ -274,18 +274,33 @@ export function placedOnDirection(item, rowsForLens) {
 // ---------------------------------------------------------------------------
 export function directionsByItem(items, placements, itemKey, pickable) {
   const allowed = pickable instanceof Set ? pickable : new Set(pickable || [])
+
+  // Two lookups, because a row answers two different questions. One says the
+  // direction holds this item; the other says the direction is not showing
+  // it. `onDirection` below is the rule the public page and Preview read, and
+  // this has to give the same answer or the switch in the manage panel says
+  // an item is on a direction the page will not render it on - which is the
+  // disagreement the per-direction switches were built to end.
   const rowed = new Map()
+  const off = new Map()
   for (const row of Array.isArray(placements) ? placements : []) {
     if (!row || !allowed.has(row.lens_id)) continue
-    const held = rowed.get(row[itemKey])
-    if (held) held.push(row.lens_id)
-    else rowed.set(row[itemKey], [row.lens_id])
+    const bucket = row.hidden === true ? off : rowed
+    const held = bucket.get(row[itemKey])
+    if (held) held.add(row.lens_id)
+    else bucket.set(row[itemKey], new Set([row.lens_id]))
   }
 
   const every = [...allowed]
   const out = new Map()
   for (const item of Array.isArray(items) ? items : []) {
-    out.set(item?.id, item?.placement_scope === 'all' ? every : (rowed.get(item?.id) || []))
+    // On every direction by saying so, less any this one has been taken off:
+    // a hidden row against an 'all' item is exactly how one direction drops
+    // it without the item ceasing to be an all-directions item.
+    const hiddenHere = off.get(item?.id)
+    out.set(item?.id, item?.placement_scope === 'all'
+      ? (hiddenHere ? every.filter(id => !hiddenHere.has(id)) : every)
+      : [...(rowed.get(item?.id) || [])])
   }
   return out
 }

@@ -394,14 +394,18 @@ export default function ManageList({
                     </button>
                   ) : null}
 
+                  {/* A row nobody has decided on yet is not asking to be
+                      edited, it is asking to be answered, so the same control
+                      says so and takes the weight. */}
                   {onEdit ? (
                     <button
                       type="button"
                       className="hp-manage-edit"
+                      data-primary={row.review ? 'true' : undefined}
                       disabled={busy}
                       onClick={() => onEdit(row.id)}
                     >
-                      Edit
+                      {row.review ? 'Review' : 'Edit'}
                     </button>
                   ) : null}
                 </span>

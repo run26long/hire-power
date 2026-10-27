@@ -5,7 +5,8 @@ import Reveal from './Reveal'
 import { GhostText, useEditSlot } from './EditAffordance'
 import ProfileModal from './ProfileModal'
 import ManageList from './ManageList'
-import { TestimonialEditPane, TestimonialRequestPane } from './ManagePanes'
+import { TestimonialEditPane, TestimonialRequestPane, useTestimonialDelete } from './ManagePanes'
+import TestimonialReview from './TestimonialReview'
 import { useCanShowEmpty, useProfileEdit } from '../_lib/editContext'
 import { directionsByItem, rowsForDirection, selectForDirection } from '../_lib/profileData'
 import { PICKABLE } from './DirectionPicker'
@@ -200,19 +201,42 @@ export default function CollectiveImpact({
         // Only what is on the profile takes part in the profile's order.
         rank: rankOf.has(item.id) ? rankOf.get(item.id) : -1,
         at: item.created_at || '',
+        // Whether anybody has written yet. The trash asks a different
+        // question of an answer than it does of a request nobody has
+        // answered, and this is what tells the two apart.
+        answered,
+        // Nobody has decided on this one, so its row offers Review rather
+        // than Edit and the panel opens on it.
+        review: answered && !published,
         // What the badge on the section's control counts.
         toReview: answered && !published
       }
     }
 
-    // The open direction's order first, because that is what the drag in this
-    // panel rearranges. Everything it does not hold follows below the
-    // divider, newest first, which is the order this collection has when
-    // nothing has arranged it.
+    // Three groups. What is waiting on somebody comes first - an answer the
+    // owner has not decided on, then a request nobody has answered - because
+    // those are the rows that want doing, and burying them under an order
+    // they have no place in is how the approve control became unreachable
+    // once before. Neither is on any direction, so neither can be dragged.
+    //
+    // Then the open direction's own order, which is what the drag in this
+    // panel rearranges, and below the divider everything that direction does
+    // not hold, newest first - the order this collection has when nothing has
+    // arranged it.
     const listed = all.map(rowFor)
-    const placed = listed.filter(row => row.rank !== -1).sort((a, b) => a.rank - b.rank)
-    const rest = listed.filter(row => row.rank === -1).sort((a, b) => String(b.at).localeCompare(String(a.at)))
-    return [...placed, ...rest]
+    const byNewest = (a, b) => String(b.at).localeCompare(String(a.at))
+
+    const waiting = listed.filter(row => row.toReview).sort(byNewest)
+    const asked = listed.filter(row => !row.toReview && row.status === 'Requested').sort(byNewest)
+    const seen = new Set([...waiting, ...asked].map(row => row.id))
+    const placed = listed
+      .filter(row => !seen.has(row.id) && row.rank !== -1)
+      .sort((a, b) => a.rank - b.rank)
+    const rest = listed
+      .filter(row => !seen.has(row.id) && row.rank === -1)
+      .sort(byNewest)
+
+    return [...waiting, ...asked, ...placed, ...rest]
   }, [edit?.testimonials, edit?.allTestimonialPlacements, lensId, impact, draftOrder, pickable])
 
   // How many are waiting on the owner rather than on the person who was asked.
@@ -220,6 +244,70 @@ export default function CollectiveImpact({
   // counted: a badge that never cleared until somebody else acted would be a
   // number they could do nothing about.
   const toReviewCount = manageItems.filter(row => row.toReview).length
+
+  // ---- WHAT IS WAITING ON THE OWNER ----
+  //
+  // In the order the list shows them, newest first, which is the order the
+  // panel walks through them in.
+  const waiting = useMemo(
+    () => manageItems.filter(row => row.review).map(row => row.id),
+    [manageItems]
+  )
+
+  // Which one the Review panel is on, or null. Its own state rather than a
+  // value of `pane`: reviewing is a panel in its own right, not a pane inside
+  // Manage, and it can be open with Manage shut.
+  const [reviewId, setReviewId] = useState(null)
+  // Dismissed for this visit. In memory and nowhere else: closing the panel
+  // means "not now", not "never", so the next visit asks again.
+  const [reviewDone, setReviewDone] = useState(false)
+
+  const reviewItem = useMemo(
+    () => (reviewId ? (edit?.testimonials || []).find(one => one.id === reviewId) || null : null),
+    [reviewId, edit?.testimonials]
+  )
+
+  const openReview = useCallback((id) => {
+    setManageOpen(false)
+    setPane(null)
+    setReviewId(id)
+  }, [])
+
+  const closeReview = useCallback(() => {
+    setReviewId(null)
+    setReviewDone(true)
+  }, [])
+
+  // Decided. The next one in the queue takes its place, and when there is no
+  // next one the panel closes - read before the refresh lands, because after
+  // it the one just decided on is no longer in the queue to count from.
+  const afterReview = useCallback((id) => {
+    const at = waiting.indexOf(id)
+    const next = at === -1 ? null : waiting[at + 1] || null
+    if (next) setReviewId(next)
+    else closeReview()
+  }, [waiting, closeReview])
+
+  // ---- OPENING IT WITHOUT BEING ASKED ----
+  //
+  // Two of the three ways in land here. The notification email's "review it
+  // here" carries the id, so that one opens on the testimonial it is about;
+  // any other visit opens on the first thing waiting. Either way it is the
+  // owner's own editor, never Preview and never the public page.
+  //
+  // Read from the address rather than from a router hook, because this
+  // component is the same component on the public page and has no business
+  // subscribing to search params there.
+  useEffect(() => {
+    if (!canShowEmpty || reviewDone || reviewId || waiting.length === 0) return
+    let asked = null
+    try {
+      asked = new URLSearchParams(window.location.search).get('review')
+    } catch {
+      asked = null
+    }
+    setReviewId(waiting.includes(asked) ? asked : waiting[0])
+  }, [canShowEmpty, reviewDone, reviewId, waiting])
 
   const run = useCallback(async (id, work) => {
     if (busyId) return
@@ -232,6 +320,11 @@ export default function CollectiveImpact({
       setBusyId(null)
     }
   }, [busyId, edit])
+
+  // Withdrawing one, from a row in the list. Same hook, same dialog and same
+  // call as the Delete in the pane, so the two cannot drift - and the dialog
+  // says whether it is deleting an answer or withdrawing a request.
+  const del = useTestimonialDelete()
 
   // One switch moves one direction, but the route takes the whole set: scope
   // and rows are one decision, and sending them apart has an intermediate
@@ -374,6 +467,23 @@ export default function CollectiveImpact({
             waiting on the owner. */}
         {canShowEmpty ? (
           <div className="hp-ed-manage-row">
+            {/* Beside Manage rather than under it, and only once the column
+                has something in it: while it is empty the invitation stands
+                in the first quote position and asks there, and a second
+                control saying the same thing would be the owner asked the
+                same question twice. The row renders only for an owner in
+                Edit mode, so neither Preview nor the public page has it. */}
+            {hasQuotes ? (
+              <button
+                type="button"
+                className="hp-ed-action"
+                data-primary="true"
+                onClick={() => { setPane('request'); setManageOpen(true) }}
+              >
+                + Request a testimonial
+              </button>
+            ) : null}
+
             <button
               type="button"
               className="hp-ed-manage"
@@ -610,7 +720,13 @@ export default function CollectiveImpact({
                   items={manageItems}
                   busyId={busyId}
                   onDrop={dropItem}
-                  onEdit={setPane}
+                  onEdit={(id) => {
+                    const row = manageItems.find(one => one.id === id)
+                    if (row?.review) openReview(id)
+                    else setPane(id)
+                  }}
+                  onDelete={del.available ? del.ask : undefined}
+                  deletingId={del.deletingId}
                   directions={columns}
                   activeLensId={lensId}
                   onSetDirection={setDirection}
@@ -626,6 +742,23 @@ export default function CollectiveImpact({
               )}
             </ProfileModal>
           ) : null}
+
+          {/* The decision nobody has taken yet, in its own panel. It portals
+              onto the body, so it stands over whatever is open behind it. */}
+          {canShowEmpty && reviewItem ? (
+            <TestimonialReview
+              item={reviewItem}
+              position={Math.max(1, waiting.indexOf(reviewItem.id) + 1)}
+              total={waiting.length}
+              onClose={closeReview}
+              onDone={afterReview}
+            />
+          ) : null}
+
+          {/* The same question the pane's Delete asks, asked by the same
+              hook. It portals onto the body, so it stands over the panel the
+              row was pressed in. */}
+          {del.modal}
         </div>
       </div>
     </section>

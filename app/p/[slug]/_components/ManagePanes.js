@@ -307,6 +307,81 @@ export function useEvidenceDelete({ onDeleted } = {}) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// WITHDRAWING ONE TESTIMONIAL, ASKED ONCE AND ANSWERED IN ONE PLACE
+//
+// The same shape as useEvidenceDelete above, over the other collection, so the
+// pane's control and the row's trash ask the same question in the same dialog
+// and run the same call.
+//
+// One act, two sentences. An answered testimonial is somebody's words coming
+// off the profile for good. A request nobody has answered is a request being
+// withdrawn - and because the token lives on the row, deleting it is what
+// stops the link in their inbox working. The route has always done both with
+// one delete; this only says which of them is happening.
+// ---------------------------------------------------------------------------
+export function useTestimonialDelete({ onDeleted } = {}) {
+  const edit = useProfileEdit()
+  const notify = useNotify()
+  const [target, setTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const ask = useCallback(one => { if (one) setTarget(one) }, [])
+  const cancel = useCallback(() => { if (!deleting) setTarget(null) }, [deleting])
+
+  const confirm = useCallback(async () => {
+    if (!target || deleting) return
+    setDeleting(true)
+    try {
+      await edit?.onDeleteTestimonial?.(target.id)
+      setTarget(null)
+      onDeleted?.(target)
+    } catch (err) {
+      setTarget(null)
+      notify({ type: 'error', message: err?.message || "We couldn't remove that. Please try again." })
+    } finally {
+      setDeleting(false)
+    }
+  }, [target, deleting, edit, notify, onDeleted])
+
+  const who = target?.title || target?.recipient_name || 'this referee'
+  const answered = Boolean(target?.answered)
+  // Declining is the same delete again, and the third sentence it can carry.
+  // What separates it from the other two is that the testimonial was never on
+  // the profile, so nothing is being taken off one - and that the person who
+  // wrote it is not told, which they would otherwise be left to assume.
+  const declining = Boolean(target?.decline)
+
+  const modal = target && typeof document !== 'undefined'
+    ? createPortal(
+        <div className="hp-ed-modal-layer-raised">
+          <DeleteSessionModal
+            deleting={deleting}
+            onCancel={cancel}
+            onConfirm={confirm}
+            title={declining
+              ? 'Decline this testimonial?'
+              : answered ? 'Delete this testimonial?' : 'Cancel this request?'}
+            body={declining
+              ? `${who}'s words will be deleted and will never appear on your Career Profile. They are not told. This can't be undone.`
+              : answered
+              ? `${who}'s words will be removed from your Career Profile on every Career Direction. This can't be undone.`
+              : `The request to ${who} will be withdrawn and the link in their inbox will stop working.`}
+            confirmLabel={declining ? 'Decline' : answered ? 'Delete' : 'Cancel the request'}
+          />
+        </div>,
+        document.body
+      )
+    : null
+
+  return {
+    ask,
+    deletingId: deleting ? target?.id || null : null,
+    modal,
+    available: Boolean(edit?.onDeleteTestimonial)
+  }
+}
+
 export function EvidenceEditPane({ item, lensId, onBack }) {
   const edit = useProfileEdit()
   const notify = useNotify()
@@ -540,21 +615,25 @@ export function TestimonialEditPane({ item, onBack }) {
   const edit = useProfileEdit()
   const notify = useNotify()
   const [busy, setBusy] = useState(null)
-  // Permanent and unrecoverable, so it is asked for twice. The second press is
-  // a different button in the same place rather than a dialog over the pane:
-  // the thing being deleted is on screen behind it and should stay readable
-  // while the owner decides.
-  const [confirmingDelete, setConfirmingDelete] = useState(false)
-  // Deleting an answered testimonial is behind this rather than in the bar.
-  const [moreOpen, setMoreOpen] = useState(false)
 
   const published = item.status === 'published'
-  const ready = Boolean(item.polished_text)
-  // Whether anything has come back at all. The status alone does not say:
-  // a row carries the referee's words long before anybody decides about them,
-  // which is how "No response yet" came to sit over a paragraph they had
-  // already written.
   const answered = Boolean(item.polished_text || item.raw_text)
+
+  // The same question, the same dialog and the same call the row's trash in
+  // the Manage list uses.
+  const del = useTestimonialDelete({ onDeleted: onBack })
+
+  // The one field on this pane that is the owner's to write, held as a draft
+  // and committed by Save - the way Edit work holds its fields. Where it
+  // appears and whether it is public are states rather than fields, so they
+  // are written the moment they are changed, which is also what Edit work
+  // does with those two rows.
+  const [draft, setDraft] = useState({ relationship_type: item.relationship_type || '' })
+  // Whether there is a tidied version to put on the profile. The status alone
+  // does not say: a row carries the referee's words long before anybody
+  // decides about them, which is how "No response yet" came to sit over a
+  // paragraph they had already written.
+  const ready = Boolean(item.polished_text)
 
   async function run(key, work) {
     if (busy) return
@@ -586,14 +665,13 @@ export function TestimonialEditPane({ item, onBack }) {
         </label>
         <BrandSelect
           id={`rel-${item.id}`}
-          value={item.relationship_type || ''}
+          value={draft.relationship_type}
           options={RELATIONSHIP_TYPES}
           placeholder="Not said"
           disabled={Boolean(busy)}
-          onChange={next => run('rel', () => edit?.onCategoriseTestimonial?.(item.id, next || null))}
+          onChange={next => setDraft(d => ({ ...d, relationship_type: next || '' }))}
         />
-        {busy === 'rel' ? <span className="hp-ed-hint">Saving…</span> : null}
-        {published && !item.relationship_type ? (
+        {published && !draft.relationship_type ? (
           <span className="hp-ed-hint">Counts toward the 360 view once you say.</span>
         ) : null}
       </div>
@@ -626,41 +704,10 @@ export function TestimonialEditPane({ item, onBack }) {
           arrives: nothing anybody wrote about them goes onto their profile
           until they say so. Off later keeps the row here in full - the words
           stay, and turning it back on puts them back. */}
-      {answered ? (
-        <div className="hp-ed-tm-show">
-          <span className="hp-ed-tm-show-label">
-            <span className="hp-ed-field-label">Show on profile</span>
-            <span className="hp-ed-hint">
-              {busy === 'pub'
-                ? 'Saving…'
-                : published
-                ? 'Visible to anyone who opens your profile.'
-                : ready
-                ? 'Saved here. Nobody else can see it yet.'
-                : 'Needs a tidied version before it can go on your profile.'}
-            </span>
-          </span>
-          <button
-            type="button"
-            className="hp-manage-switch"
-            role="switch"
-            aria-checked={published}
-            aria-label="Show this testimonial on my profile"
-            data-on={published ? 'true' : 'false'}
-            // A row with no polished text cannot be published: the route
-            // refuses it, and a switch that flicks back is worse than one that
-            // will not move.
-            disabled={Boolean(busy) || !ready}
-            onClick={() => run('pub',
-              () => edit?.onPublishTestimonial?.(item.id, published ? 'polished' : 'published'))}
-          >
-            <span className="hp-manage-knob" aria-hidden="true" />
-          </button>
-        </div>
-      ) : null}
-
-      {/* Beside publishing, because they are the two halves of the same
-          review: whether this goes on the profile, and which parts of it. */}
+      {/* Two rows, one subject, the same two Edit work carries: where this
+          appears, then who can see it. Both are states rather than fields, so
+          both are written the moment they change - the footer's Save is for
+          the field above them. */}
       <DirectionsRow
         item={item}
         busy={busy}
@@ -670,88 +717,79 @@ export function TestimonialEditPane({ item, onBack }) {
         onSave={edit?.onSetTestimonialDirections}
       />
 
-      {/* ---- THE WAY OUT OF EACH ONE ----
-          Two different acts wearing one word. Cancelling a request nobody has
-          answered costs nothing and belongs in the open, so it stands in the
-          bar. Deleting an answer destroys something a colleague wrote as a
-          favour, and Show on profile already does what an owner almost always
-          means - so it moves behind More, where it has to be asked for. Both
-          are the same delete underneath: the row is the request, and the token
-          lives on it, so a withdrawn one left in place would leave its referee
-          a working link. */}
-      {confirmingDelete ? (
-        <div className="hp-ed-tm-danger">
-          <p className="hp-ed-hint">
-            {answered
-              ? 'Delete this testimonial and their words for good? This cannot be undone.'
-              : 'Cancel this request? Their link stops working.'}
-          </p>
-          <div className="hp-ed-tm-danger-acts">
-            <button
-              type="button"
-              className="hp-ed-action"
-              data-primary="true"
-              disabled={Boolean(busy)}
-              onClick={() => run('del', async () => {
-                await edit?.onDeleteTestimonial?.(item.id)
-                onBack()
-              })}
-            >
-              {busy === 'del' ? 'Deleting…' : answered ? 'Delete for good' : 'Cancel the request'}
-            </button>
-            <button
-              type="button"
-              className="hp-ed-action"
-              disabled={Boolean(busy)}
-              onClick={() => setConfirmingDelete(false)}
-            >
-              Keep it
-            </button>
-          </div>
+      {/* Nothing anybody wrote about them goes onto the profile until they
+          say so, so a new answer arrives private. A row with no tidied
+          version cannot go public at all: the route refuses it, and a control
+          that flicks back is worse than one that will not move. */}
+      {answered ? (
+        <div className="hp-manage-pane-row">
+          <span className="hp-ed-dirpick-summary">
+            {busy === 'pub'
+              ? 'Saving…'
+              : published
+              ? 'Public'
+              : ready
+              ? 'Private. Only you can see this.'
+              : 'Private. Needs a tidied version before it can go on your profile.'}
+          </span>
+          <button
+            type="button"
+            className="hp-ed-dirpick-toggle"
+            disabled={Boolean(busy) || !ready}
+            onClick={() => run('pub',
+              () => edit?.onPublishTestimonial?.(item.id, published ? 'polished' : 'published'))}
+          >
+            {published ? 'Make private' : 'Make public'}
+          </button>
         </div>
       ) : null}
 
+      {/* Delete alone on the left - the one irreversible control here - and
+          the way out and the way on together on the right. Withdrawing a
+          request and deleting an answer are the same delete underneath: the
+          token lives on the row, so a withdrawn one left in place would leave
+          its referee a working link. The dialog says which of the two is
+          happening. */}
       <div className="hp-ed-editor-bar">
-        {!confirmingDelete && !answered ? (
+        <span className="hp-ed-foot-left">
+          {del.available ? (
+            <button
+              type="button"
+              className="hp-ed-action hp-ed-danger"
+              disabled={Boolean(busy) || Boolean(del.deletingId)}
+              onClick={() => del.ask({ id: item.id, title: item.recipient_name, answered })}
+            >
+              {del.deletingId ? 'Deleting…' : answered ? 'Delete' : 'Cancel request'}
+            </button>
+          ) : null}
+        </span>
+
+        <span className="hp-ed-foot-right">
+          <button type="button" className="hp-ed-action" onClick={onBack} disabled={Boolean(busy)}>
+            Cancel
+          </button>
+
           <button
             type="button"
             className="hp-ed-action"
+            data-primary="true"
             disabled={Boolean(busy)}
-            onClick={() => setConfirmingDelete(true)}
+            onClick={() => run('save', async () => {
+              // Sent only when it changed. Nothing else on this pane is a
+              // draft, so an unchanged select makes Save a way of closing.
+              const next = draft.relationship_type || null
+              if (next !== (item.relationship_type || null)) {
+                await edit?.onCategoriseTestimonial?.(item.id, next)
+              }
+              onBack()
+            })}
           >
-            Cancel request
+            {busy === 'save' ? 'Saving…' : 'Save'}
           </button>
-        ) : null}
-
-        {!confirmingDelete && answered ? (
-          <>
-            <button
-              type="button"
-              className="hp-ed-action"
-              aria-expanded={moreOpen}
-              disabled={Boolean(busy)}
-              onClick={() => setMoreOpen(was => !was)}
-            >
-              More
-            </button>
-            {moreOpen ? (
-              <button
-                type="button"
-                className="hp-ed-action"
-                disabled={Boolean(busy)}
-                onClick={() => { setMoreOpen(false); setConfirmingDelete(true) }}
-              >
-                Delete permanently
-              </button>
-            ) : null}
-          </>
-        ) : null}
-
-        <span className="hp-ed-editor-gap" />
-        <button type="button" className="hp-ed-action" onClick={onBack} disabled={Boolean(busy)}>
-          Back to list
-        </button>
+        </span>
       </div>
+
+      {del.modal}
     </div>
   )
 }
@@ -848,7 +886,7 @@ export function TestimonialRequestPane({ onBack, onSent }) {
       <div className="hp-ed-editor-bar">
         <span className="hp-ed-foot-right">
           <button type="button" className="hp-ed-action" onClick={onBack} disabled={sending}>
-            Back to list
+            Cancel
           </button>
           <button type="button" className="hp-ed-action" data-primary="true" onClick={send} disabled={!canSend}>
             {sending ? 'Sending…' : 'Send the request'}

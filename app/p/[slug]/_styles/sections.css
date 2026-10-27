@@ -1046,7 +1046,22 @@
   /* Either side alone takes a readable share of the frame rather than the whole
      of it, and never leaves a column standing empty beside it. */
   .hp-impact-flow[data-voices="false"] .hp-impact-synthesis { grid-column: 1 / 9; }
-  .hp-impact-flow[data-synthesis="false"] .hp-impact-voices { grid-column: 1 / 8; }
+
+  /* And alone, the accounts column has to size itself. The rule above hands
+     its height to the card beside it - no height of its own, then 100% of
+     whatever the row settled on - which only works while there is a card in
+     the row to settle it. With no synthesis there is nothing: 100% of a row
+     holding one zero-height item is zero, the scroller inside it is clipped
+     to nothing, and the heading above the scroller overflows and stays
+     visible. A direction with accounts and no synthesis therefore printed
+     "Firsthand Accounts" over an empty space in Preview and on the public
+     page, while the editor looked right - the editor always draws a ghost
+     synthesis card, and that card was giving the row its height. */
+  .hp-impact-flow[data-synthesis="false"] .hp-impact-voices {
+    grid-column: 1 / 8;
+    height: auto;
+    min-height: 0;
+  }
 
   .hp-impact-summary { font-size: 20px; line-height: 1.42; }
 
@@ -4327,49 +4342,9 @@
   border-color: var(--profile-line-strong);
 }
 
-/* ---- SHOW ON PROFILE ----
-   The one control in the pane that is a state rather than an action, so it
-   gets a row of its own with the switch at the end of it. */
-.hp-ed-tm-show {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 16px;
-  padding: 12px 0;
-  border-top: 1px solid var(--profile-line);
-  border-bottom: 1px solid var(--profile-line);
-}
-
-.hp-ed-tm-show-label {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
 /* One version of the words, under one label. */
 .hp-ed-tm-final { margin-top: 14px; }
 .hp-ed-tm-final .hp-ed-field-label { margin: 0 0 6px; }
-
-/* Asked for once it has been asked for. Set apart from the action bar so the
-   question does not read as one more button in the row. */
-.hp-ed-tm-danger {
-  margin-top: 16px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--profile-line-strong);
-  background: var(--profile-fill-4);
-}
-
-.hp-ed-tm-danger .hp-ed-hint { margin: 0 0 10px; display: block; }
-
-.hp-ed-tm-danger-acts {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
 
 /* ---- THE DROPDOWN THAT IS NOT A SELECT ----
    Built out of a button and a list so the open menu can be painted: a native
@@ -4689,6 +4664,21 @@
   color: var(--profile-text);
   border-color: var(--profile-accent-edge);
   background: var(--profile-accent-wash);
+}
+
+/* The same filled treatment the footer's primary carries, for the one row
+   control that is the thing the panel wants doing rather than one of the
+   things it offers. */
+:is(.hp-manage, .hp-manage-pane) .hp-manage-edit[data-primary="true"] {
+  border-color: transparent;
+  background: var(--profile-primary-fill);
+  color: var(--profile-on-action);
+}
+
+:is(.hp-manage, .hp-manage-pane) .hp-manage-edit[data-primary="true"]:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--profile-primary-fill);
+  opacity: 0.9;
 }
 
 :is(.hp-manage, .hp-manage-pane) .hp-manage-edit:focus-visible { outline: 2px solid var(--profile-accent); outline-offset: 1px; }
