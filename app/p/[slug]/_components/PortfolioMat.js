@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import StrokeIcon, { ICON_MEDIA } from './StrokeIcon'
 import { EditGrip } from './EditAffordance'
 import { useViewerAuthHeaders } from '../_lib/viewerAuth'
+import { forgetMediaUrl, mediaUrl } from '../_lib/mediaUrl'
 import { formatDuration } from '@/lib/portfolio'
 
 // ============================================================================
@@ -53,27 +54,21 @@ export default function PortfolioMat({ item, slug, lensId, slot = '', onOpen, ma
 
   const wanted = item?.has_thumbnail === true
 
+  // Through the shared link cache, so a mat that has already been drawn once
+  // comes back with the same URL and the browser recognises the picture.
+  // Twenty mats asking for twenty different files at once is still twenty
+  // requests; twenty asking for the same one is a single request they share.
+  //
+  // The viewer's own session goes with it, where there is one. The route
+  // reads the token and decides whether this caller owns the profile; a draft
+  // serves its files to nobody else, and on a published profile the header
+  // changes nothing. Asked of the session rather than the edit context
+  // because Preview mode and the /p/<slug> link have no edit context, and
+  // both of them are how an owner looks at their own unpublished page.
   useEffect(() => {
     if (!wanted || !item?.id) return
-    const suffix = lensId ? `&lens=${encodeURIComponent(lensId)}` : ''
     let live = true
-    const ask = async () => {
-      // The viewer's own session, where there is one. The route reads the
-      // token and decides whether this caller owns the profile; a draft serves
-      // its files to nobody else, and on a published profile the header
-      // changes nothing. Asked of the session rather than the edit context
-      // because Preview mode and the /p/<slug> link have no edit context, and
-      // both of them are how an owner looks at their own unpublished page.
-      const headers = await viewerHeaders()
-      const res = await fetch(
-        `/api/career-profile/${encodeURIComponent(slug)}/evidence/`
-        + `${encodeURIComponent(item.id)}?variant=thumbnail${suffix}`,
-        { headers }
-      )
-      if (!res.ok) throw new Error(String(res.status))
-      return res.json()
-    }
-    ask()
+    mediaUrl({ slug, id: item.id, variant: 'thumbnail', lensId, headers: viewerHeaders })
       .then(body => { if (live) setUrl(body.url || null) })
       .catch(() => { if (live) setFailed(true) })
     return () => { live = false }
@@ -106,7 +101,15 @@ export default function PortfolioMat({ item, slug, lensId, slot = '', onOpen, ma
             // A signed URL lives ten minutes. One that expires under a reader
             // who left the page open is asked for again, once - a second
             // failure is a real one and the mat keeps its mark.
-            onError={() => (attempt === 0 ? setAttempt(1) : setFailed(true))}
+            onError={() => {
+              // The held link is the one that just failed, so it goes before
+              // the retry asks again - otherwise the retry is handed the same
+              // dead signature out of the cache and fails for the same
+              // reason. One retry; a second failure is a real one.
+              forgetMediaUrl({ slug, id: item.id, variant: 'thumbnail', lensId })
+              if (attempt === 0) setAttempt(1)
+              else setFailed(true)
+            }}
           />
         ) : (
           <span className="hp-pf-mat-mark" aria-hidden="true">

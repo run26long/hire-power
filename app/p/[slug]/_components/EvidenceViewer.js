@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useViewerAuthHeaders } from '../_lib/viewerAuth'
+import { mediaUrl } from '../_lib/mediaUrl'
 
 import StrokeIcon, { ICON_MEDIA } from './StrokeIcon'
 import EvidencePdf from './EvidencePdf'
@@ -70,33 +71,29 @@ export function EvidenceStage({ item, slug, lensId }) {
   // The direction goes with the request, and the answer is stamped with the
   // direction and the id it answers for, so a reply arriving late can never be
   // read against a different item or a direction the reader has since left.
-  // Nothing is cached: a new opening asks again, because a link that outlives
-  // its signature is worse than no link at all.
+  // The link is held only while its signature is good, by the shared cache
+  // in _lib/mediaUrl. Asking again on every opening was the safe-looking
+  // version of this and it is what made a document already read take as long
+  // to open the second time as the first: a fresh signature is a fresh URL,
+  // and a fresh URL is a file the browser has never seen. The cache drops an
+  // entry a minute before its signature dies, so a link that outlives its
+  // signature is still not a thing that can be handed out.
   const stamp = `${lensId || ''}:${item?.id || ''}`
 
   useEffect(() => {
     if (!needsFile || !item?.id) return
     const key = `${lensId || ''}:${item.id}`
-    const suffix = lensId ? `?lens=${encodeURIComponent(lensId)}` : ''
 
     let live = true
-    const ask = async () => {
-      // The viewer's own session, where there is one. The route reads the
-      // token and decides whether this caller owns the profile; a draft serves
-      // its files to nobody else, and on a published profile the header
-      // changes nothing. Asked of the session rather than the edit context
-      // because Preview mode and the /p/<slug> link have no edit context, and
-      // both of them are how an owner looks at their own unpublished page.
-      const headers = await viewerHeaders()
-      const res = await fetch(
-        `/api/career-profile/${encodeURIComponent(slug)}/evidence/${encodeURIComponent(item.id)}${suffix}`,
-        { headers }
-      )
-      if (!res.ok) throw new Error(String(res.status))
-      return res.json()
-    }
-    ask()
-      .then(body => { if (live) setMedia({ id: key, state: 'ready', url: body.url, mime: body.mime_type || null }) })
+    // The viewer's own session goes with it, where there is one. The route
+    // reads the token and decides whether this caller owns the profile; a
+    // draft serves its files to nobody else, and on a published profile the
+    // header changes nothing. Asked of the session rather than the edit
+    // context because Preview mode and the /p/<slug> link have no edit
+    // context, and both of them are how an owner looks at their own
+    // unpublished page.
+    mediaUrl({ slug, id: item.id, variant: 'display', lensId, headers: viewerHeaders })
+      .then(body => { if (live) setMedia({ id: key, state: 'ready', url: body.url, mime: body.mime || null }) })
       .catch(() => { if (live) setMedia({ id: key, state: 'failed', url: null, mime: null }) })
     return () => { live = false }
   }, [needsFile, slug, lensId, item?.id, viewerHeaders])

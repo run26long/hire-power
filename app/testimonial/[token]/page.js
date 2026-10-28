@@ -145,8 +145,11 @@ export default function TestimonialPage() {
       const res = await fetch(`/api/testimonial/${encodeURIComponent(token)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // Whichever version is on screen is the one that goes.
-        body: JSON.stringify({ action: 'approve', version })
+        // Whichever version is on screen is the one that goes. Where there
+        // was only one, it is the polished field either way - the two hold
+        // the same words, and sending a choice the page never offered would
+        // be recording a decision nobody made.
+        body: JSON.stringify({ action: 'approve', version: edited ? version : 'polished' })
       })
       const payload = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(payload?.error || "We couldn't send that. Please try again.")
@@ -218,6 +221,18 @@ export default function TestimonialPage() {
   // "working with James Long" in every sentence reads like a form. The full
   // name is still what the route identifies and validates against.
   const first = record?.candidate_first_name || candidate
+
+  // Whether there are two versions at all.
+  //
+  // The polish is a proofread now rather than a rewrite, so an answer that
+  // needed no corrections comes back exactly as it went in - and so does one
+  // where the polish could not be trusted and fell back to their own words.
+  // Either way there is one version, and a choice between a thing and itself
+  // is a question with no answer: two tabs showing identical paragraphs read
+  // as a fault in the page.
+  const polishedText = String(record?.polished_text || '').trim()
+  const originalText = String(record?.raw_text || '').trim()
+  const edited = Boolean(polishedText) && Boolean(originalText) && polishedText !== originalText
   // Whether this testimonial has actually been submitted. The row carries
   // text long before it carries a decision, so the status is what says so.
   const alreadySent = record?.status === 'polished' || record?.status === 'published'
@@ -267,47 +282,51 @@ export default function TestimonialPage() {
             <span className="hp-tm-eyebrow">Review your response</span>
             <p className="hp-tm-lead">Here is your testimonial for {first}.</p>
             <p className="hp-tm-sub">
-              We polished your response to make your perspective clear and compelling while
-              keeping your meaning intact. Compare the Hire Power version with your original
-              wording, then choose the version you want to send.
+              {edited
+                ? 'We fixed a few small things. Compare the two versions and choose the one you want to send.'
+                : 'Take a moment to review your testimonial before you send it.'}
             </p>
 
-            {/* Two versions, one on screen. A radiogroup rather than two
-                buttons, so a keyboard moves between them with the arrow keys
-                and a screen reader announces which of the two is chosen. */}
-            <div className="hp-tm-seg" role="radiogroup" aria-label="Which version to send">
-              <button
-                type="button"
-                role="radio"
-                className="hp-tm-seg-btn"
-                aria-checked={version === 'polished'}
-                data-on={version === 'polished' ? 'true' : undefined}
-                onClick={() => setVersion('polished')}
-                disabled={approving}
-              >
-                Hire Power version
-              </button>
-              <button
-                type="button"
-                role="radio"
-                className="hp-tm-seg-btn"
-                aria-checked={version === 'original'}
-                data-on={version === 'original' ? 'true' : undefined}
-                onClick={() => setVersion('original')}
-                disabled={approving}
-              >
-                Original wording
-              </button>
-            </div>
+            {/* Two versions, one on screen, and only where there are two. A
+                radiogroup rather than two buttons, so a keyboard moves between
+                them with the arrow keys and a screen reader announces which of
+                the two is chosen. */}
+            {edited ? (
+              <div className="hp-tm-seg" role="radiogroup" aria-label="Which version to send">
+                <button
+                  type="button"
+                  role="radio"
+                  className="hp-tm-seg-btn"
+                  aria-checked={version === 'polished'}
+                  data-on={version === 'polished' ? 'true' : undefined}
+                  onClick={() => setVersion('polished')}
+                  disabled={approving}
+                >
+                  Hire Power version
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  className="hp-tm-seg-btn"
+                  aria-checked={version === 'original'}
+                  data-on={version === 'original' ? 'true' : undefined}
+                  onClick={() => setVersion('original')}
+                  disabled={approving}
+                >
+                  Original wording
+                </button>
+              </div>
+            ) : null}
 
-            <blockquote className="hp-tm-quote" data-version={version}>
-              {version === 'original' ? record?.raw_text : record?.polished_text}
+            <blockquote className="hp-tm-quote" data-version={edited ? version : 'polished'}>
+              {edited
+                ? (version === 'original' ? record?.raw_text : record?.polished_text)
+                : (record?.polished_text || record?.raw_text)}
             </blockquote>
 
-            <div className="hp-tm-actions">
-              <button type="button" className="hp-tm-btn" onClick={approve} disabled={approving}>
-                {approving ? 'Sending…' : 'Send it'}
-              </button>
+            {/* Grouped on the right, with the way on furthest right and the
+                way back beside it. */}
+            <div className="hp-tm-actions" data-end="true">
               <button
                 type="button"
                 className="hp-tm-btn"
@@ -316,6 +335,9 @@ export default function TestimonialPage() {
                 disabled={approving || (record?.submissions_left ?? 0) <= 0}
               >
                 Change it
+              </button>
+              <button type="button" className="hp-tm-btn" onClick={approve} disabled={approving}>
+                {approving ? 'Sending…' : 'Send it'}
               </button>
             </div>
 

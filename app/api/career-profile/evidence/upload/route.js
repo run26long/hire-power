@@ -72,6 +72,19 @@ const BUCKET = 'profile-media'
 const THUMB_WIDTH = 800
 const THUMB_QUALITY = 78
 
+// The one in between. The viewer and the lightbox used to open the original,
+// which on a phone photograph is several megabytes to fill a box that is
+// never more than about twelve hundred pixels across; 2000 on the longest
+// edge is that box with a retina margin and nothing spare. One notch above
+// the thumbnail's quality, because webp artefacts that nobody can see in an
+// 800px tile are visible in a gradient four times the size.
+//
+// The longest edge, not the width: `fit: 'inside'` with both bounds set is
+// what caps a tall portrait as well as a wide landscape, where the
+// thumbnail's `{ width }` form constrains one axis only.
+const DISPLAY_EDGE = 2000
+const DISPLAY_QUALITY = 80
+
 // A guard against decompression bombs: a 3KB PNG can declare dimensions that
 // cost gigabytes to decode. Well above any real photograph.
 const MAX_DECODED_PIXELS = 80_000_000
@@ -451,6 +464,58 @@ async function makeThumbnail(supabase, source, namedFor = source) {
 }
 
 // ---------------------------------------------------------------------------
+// The same picture at a size a screen can show, or nothing.
+//
+// Never fatal, for the reason the thumbnail is not: a file sharp will not
+// decode is still a file the owner uploaded, and the item still opens. What
+// null means here is "serve the original", which is what the viewer did for
+// every upload before this existed - so a failure costs the download it was
+// meant to save and nothing else.
+//
+// Images only. There is no ffmpeg here and sharp does not open video
+// containers, and a PDF is not missing a picture.
+// ---------------------------------------------------------------------------
+async function makeDisplay(supabase, source) {
+  try {
+    const { data: blob, error } = await supabase.storage.from(BUCKET).download(source)
+    if (error || !blob) return null
+
+    const input = Buffer.from(await blob.arrayBuffer())
+    const { default: sharp } = await import('sharp')
+
+    const output = await sharp(input, {
+      limitInputPixels: MAX_DECODED_PIXELS,
+      sequentialRead: true,
+      animated: false
+    })
+      .rotate()              // honour EXIF orientation, then drop it
+      .resize({
+        width: DISPLAY_EDGE,
+        height: DISPLAY_EDGE,
+        fit: 'inside',
+        // A picture smaller than the box keeps its own size. Upscaling makes
+        // a bigger file out of no more detail.
+        withoutEnlargement: true
+      })
+      .webp({ quality: DISPLAY_QUALITY })
+      .toBuffer()
+
+    const displayPath = `${source.replace(/\.[^.]+$/, '')}-display.webp`
+    const { error: upErr } = await supabase.storage
+      .from(BUCKET)
+      .upload(displayPath, output, { contentType: 'image/webp', upsert: true })
+    if (upErr) {
+      console.error('[career-profile] Display variant upload failed:', upErr)
+      return null
+    }
+    return displayPath
+  } catch (error) {
+    console.error('[career-profile] Display variant generation failed (non-fatal):', error)
+    return null
+  }
+}
+
+// ---------------------------------------------------------------------------
 // The frame a browser chose, turned into a thumbnail this server made.
 //
 // Never fatal, for the same reason image thumbnails are not: a video with no
@@ -659,7 +724,7 @@ export async function PUT(request) {
     if (replaceId) {
       const { data: row } = await supabase
         .from('profile_evidence')
-        .select('id, media_class, source_type, storage_path, thumbnail_path')
+        .select('id, media_class, source_type, storage_path, thumbnail_path, display_path')
         .eq('id', replaceId)
         .eq('user_id', user.id)
         .eq('source_type', 'upload')
@@ -718,11 +783,25 @@ export async function PUT(request) {
     // owner picked, which arrived as a second object and is re-encoded through
     // the same pipeline before anything points at it.
     let thumbnailPath = null
+    let displayPath = null
     if (kind.media_class === 'image') {
-      thumbnailPath = await makeThumbnail(supabase, path)
+      // Both from the same source and in parallel: they are two reads of one
+      // object, and running them one after the other adds the slower of the
+      // two to every upload for no reason.
+      ;[thumbnailPath, displayPath] = await Promise.all([
+        makeThumbnail(supabase, path),
+        makeDisplay(supabase, path)
+      ])
     } else if (kind.media_class === 'video') {
       thumbnailPath = await posterThumbnail(supabase, body, user.id, path)
     }
+
+    // Everything this request put in the bucket. Named once, because two
+    // places take it back when the row fails to save and a third compares it
+    // against what the replaced row used to point at - and a derived object
+    // missing from any of the three is either an orphan nothing can find or a
+    // file deleted out from under the row that still names it.
+    const madeNow = [path, thumbnailPath, displayPath].filter(Boolean)
 
     // ---- REPLACING: THE SAME ROW, A DIFFERENT FILE ----
     //
@@ -744,6 +823,7 @@ export async function PUT(request) {
         .update({
           storage_path: path,
           thumbnail_path: thumbnailPath,
+          display_path: displayPath,
           mime_type: kind.mime,
           file_size: Number.isFinite(size) ? size : null,
           duration_seconds: durationSeconds,
@@ -756,13 +836,13 @@ export async function PUT(request) {
 
       if (replaceError || !updated) {
         console.error('[career-profile] Evidence replace failed:', replaceError)
-        await supabase.storage.from(BUCKET).remove(thumbnailPath ? [path, thumbnailPath] : [path])
+        await supabase.storage.from(BUCKET).remove(madeNow)
         return Response.json({ error: "We couldn't save that. Please try again." }, { status: 500 })
       }
 
-      const stale = [replacing.storage_path, replacing.thumbnail_path]
+      const stale = [replacing.storage_path, replacing.thumbnail_path, replacing.display_path]
         .filter(Boolean)
-        .filter(one => one !== path && one !== thumbnailPath)
+        .filter(one => !madeNow.includes(one))
       if (stale.length) {
         const { error: sweepError } = await supabase.storage.from(BUCKET).remove(stale)
         // Not fatal. The row is right; what is left behind is an object
@@ -802,6 +882,7 @@ export async function PUT(request) {
         url,
         storage_path: path,
         thumbnail_path: thumbnailPath,
+        display_path: displayPath,
         mime_type: kind.mime,
         file_size: Number.isFinite(size) ? size : null,
         duration_seconds: durationSeconds,
@@ -818,7 +899,7 @@ export async function PUT(request) {
       // The file has no record pointing at it, so it is not evidence and not
       // anything else. Leaving it would be leaving somebody's document in a
       // bucket with nothing to ever find or delete it by.
-      await supabase.storage.from(BUCKET).remove(thumbnailPath ? [path, thumbnailPath] : [path])
+      await supabase.storage.from(BUCKET).remove(madeNow)
       return Response.json({ error: "We couldn't save that. Please try again." }, { status: 500 })
     }
 

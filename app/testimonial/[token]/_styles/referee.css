@@ -333,6 +333,11 @@
 
 .hp-tm-state .hp-tm-actions { justify-content: center; }
 
+/* The review step groups its two to the right, with the way on furthest
+   right. The other steps offer a single button and keep it where the text
+   it follows begins. */
+.hp-tm-actions[data-end="true"] { justify-content: flex-end; }
+
 .hp-tm-spinner {
   width: 26px;
   height: 26px;

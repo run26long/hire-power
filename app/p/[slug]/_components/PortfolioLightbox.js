@@ -8,6 +8,7 @@ import StrokeIcon, { ICON_MEDIA, ICON_ARROW_LEFT, ICON_ARROW_RIGHT } from './Str
 import PortfolioMat from './PortfolioMat'
 import { externalUrl } from './EvidenceViewer'
 import { useViewerAuthHeaders } from '../_lib/viewerAuth'
+import { mediaUrl, preloadMedia } from '../_lib/mediaUrl'
 import { formatDuration } from '@/lib/portfolio'
 
 // ============================================================================
@@ -73,6 +74,10 @@ export default function PortfolioLightbox({
 }) {
   const [index, setIndex] = useState(startIndex || 0)
 
+  // Here as well as in the media component below, because the preload reads
+  // the same route and has to ask as the same viewer.
+  const viewerHeaders = useViewerAuthHeaders()
+
   const surfaceRef = useRef(null)
   const closeRef = useRef(null)
   const scrollerRef = useRef(null)
@@ -90,6 +95,31 @@ export default function PortfolioLightbox({
 
   const count = items?.length || 0
   const item = count > 0 ? items[Math.min(index, count - 1)] : null
+
+  // ---- THE ONE EITHER SIDE ----
+  //
+  // Asked for while the reader is looking at this one, through the same
+  // cache the step onto it will read, so the step is the browser's own copy
+  // rather than a download. Pictures only, and failures are ignored: this is
+  // work done ahead of a request nobody has made yet.
+  //
+  // Only in the item view. Opening the grid would otherwise sign two files
+  // nobody has chosen to look at.
+  useEffect(() => {
+    if (mode !== 'item' || count < 2 || !slug) return
+    for (const step of [1, -1]) {
+      const near = items[(index + step + count) % count]
+      if (!near?.id || near.id === item?.id) continue
+      preloadMedia({
+        slug,
+        id: near.id,
+        variant: 'display',
+        lensId,
+        headers: viewerHeaders,
+        mediaClass: near.media_class
+      })
+    }
+  }, [mode, index, count, items, item?.id, slug, lensId, viewerHeaders])
 
   const go = useCallback((step) => {
     if (count < 2) return
@@ -359,26 +389,20 @@ function PortfolioMedia({ item, slug, lensId }) {
   const [state, setState] = useState({ status: 'loading', url: null })
   const viewerHeaders = useViewerAuthHeaders()
 
+  // Through the shared link cache. This component is keyed on the item, so
+  // stepping to the next picture unmounts it and stepping back mounts it
+  // again - which used to mean a new signature and a second download of a
+  // file the reader had already waited for. The cache hands back the same
+  // URL, so the second viewing is the browser's own copy.
+  //
+  // The viewer's own session goes with it, where there is one. The route
+  // reads the token and decides whether this caller owns the profile; a draft
+  // serves its files to nobody else, and on a published profile the header
+  // changes nothing.
   useEffect(() => {
     if (!item?.id) return
-    const suffix = lensId ? `?lens=${encodeURIComponent(lensId)}` : ''
     let live = true
-    const ask = async () => {
-      // The viewer's own session, where there is one. The route reads the
-      // token and decides whether this caller owns the profile; a draft serves
-      // its files to nobody else, and on a published profile the header
-      // changes nothing. Asked of the session rather than the edit context
-      // because Preview mode and the /p/<slug> link have no edit context, and
-      // both of them are how an owner looks at their own unpublished page.
-      const headers = await viewerHeaders()
-      const res = await fetch(
-        `/api/career-profile/${encodeURIComponent(slug)}/evidence/${encodeURIComponent(item.id)}${suffix}`,
-        { headers }
-      )
-      if (!res.ok) throw new Error(String(res.status))
-      return res.json()
-    }
-    ask()
+    mediaUrl({ slug, id: item.id, variant: 'display', lensId, headers: viewerHeaders })
       .then(body => { if (live) setState({ status: 'ready', url: body.url || null }) })
       .catch(() => { if (live) setState({ status: 'failed', url: null }) })
     return () => { live = false }

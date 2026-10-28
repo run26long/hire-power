@@ -9,7 +9,7 @@ const MEDIA_BUCKET = 'profile-media'
 const SIGNED_URL_TTL_SECONDS = 600
 
 // ============================================================================
-// GET /api/career-profile/[slug]/evidence/[evidenceId]?variant=file|thumbnail
+// GET /api/career-profile/[slug]/evidence/[evidenceId]?variant=file|display|thumbnail
 //
 // Hands back a temporary link to one uploaded piece of evidence.
 //
@@ -64,7 +64,8 @@ export async function GET(request, { params }) {
     if (!UUID.test(evidenceId)) return notFound()
 
     const query = new URL(request.url).searchParams
-    const variant = query.get('variant') === 'thumbnail' ? 'thumbnail' : 'file'
+    const asked = query.get('variant')
+    const variant = asked === 'thumbnail' ? 'thumbnail' : asked === 'display' ? 'display' : 'file'
 
     // The direction the reader is looking through. Malformed is refused here
     // rather than looked up; absent is decided below, once it is known whether
@@ -120,7 +121,7 @@ export async function GET(request, { params }) {
     // is not something this route can be talked into reading.
     const { data: item, error: itemError } = await supabase
       .from('profile_evidence')
-      .select('id, media_class, mime_type, storage_path, thumbnail_path, source_type, placement_scope')
+      .select('id, media_class, mime_type, storage_path, thumbnail_path, display_path, source_type, placement_scope')
       .eq('id', evidenceId)
       .eq('profile_id', profile.id)
       .eq('privacy', 'public')
@@ -187,11 +188,24 @@ export async function GET(request, { params }) {
       return notFound()
     }
 
-    // The path comes from the row, never from the request. A thumbnail is only
-    // signed where the row actually carries one; there is no falling back to
-    // the source file, because a thumbnail request is not permission to hand
-    // over the original.
-    const path = variant === 'thumbnail' ? item.thumbnail_path : item.storage_path
+    // The path comes from the row, never from the request.
+    //
+    // A thumbnail is only signed where the row actually carries one, and
+    // there is no falling back to the source file: a thumbnail request is a
+    // request for a small object and must not be answered with a large one.
+    //
+    // A display variant falls back, and the difference is deliberate. It is
+    // the same picture at a size a screen can show, so where the row has none
+    // - a photograph sharp could not decode, or anything uploaded before the
+    // variant existed - the original is the right answer rather than a 404.
+    // Nothing is widened by it: the caller has already passed every
+    // eligibility check above to reach this line, and the original is what
+    // they would have been served before display existed at all.
+    const path = variant === 'thumbnail'
+      ? item.thumbnail_path
+      : variant === 'display'
+        ? (item.display_path || item.storage_path)
+        : item.storage_path
     if (!path) return notFound()
 
     const { data: signed, error: signError } = await supabase.storage
