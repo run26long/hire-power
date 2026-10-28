@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useProfileEdit, useFieldEditor, useCanEdit, useShowUpgrade } from '../_lib/editContext'
-import { UPGRADE_HREF, UPGRADE_LABEL, upgradeCopyFor } from '@/lib/profileTier'
+import { PRO_UPGRADE_HREF, PRO_UPGRADE_LABEL, upgradeCopyFor } from '@/lib/profileTier'
 
 // ============================================================================
 // EDIT AFFORDANCES
@@ -69,7 +69,7 @@ export function UpgradeNote({ feature }) {
   return (
     <p className="hp-ed-upsell">
       <span className="hp-ed-upsell-text">{upgradeCopyFor(feature)}</span>
-      <a className="hp-ed-upsell-link" href={UPGRADE_HREF}>{UPGRADE_LABEL}</a>
+      <a className="hp-ed-upsell-link" href={PRO_UPGRADE_HREF}>{PRO_UPGRADE_LABEL}</a>
     </p>
   )
 }
@@ -253,7 +253,7 @@ export function GuideAction({ label, feature, onAction }) {
     return (
       <span className="hp-ed-guide-locked">
         <span className="hp-ed-locked-mark"><LockIcon /></span>
-        <a className="hp-ed-locked-link" href={UPGRADE_HREF}>{upgradeCopyFor(feature)}</a>
+        <a className="hp-ed-locked-link" href={PRO_UPGRADE_HREF}>{upgradeCopyFor(feature)}</a>
       </span>
     )
   }
@@ -323,7 +323,7 @@ export function GhostNote({ children, feature, field, action }) {
     return (
       <p className="hp-ed-ghost-note" data-locked="true">
         <span className="hp-ed-locked-mark"><LockIcon /></span>
-        <a className="hp-ed-locked-link" href={UPGRADE_HREF}>
+        <a className="hp-ed-locked-link" href={PRO_UPGRADE_HREF}>
           {upgradeCopyFor(feature || field)}
         </a>
       </p>

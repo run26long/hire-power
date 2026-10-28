@@ -24,7 +24,11 @@ const service = () =>
   createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
 export const UPGRADE_REQUIRED = {
-  error: 'Customizing your profile is part of Vault and Pro.',
+  // Pro, not "Vault and Pro". Both plans do allow it, but the only account
+  // that ever reads this sentence is a free one, and every upgrade prompt on
+  // the Career Profile points at Pro - naming two plans here would be the one
+  // place on the page that offers the other one.
+  error: 'Customizing your profile is part of Pro.',
   code: 'UPGRADE_REQUIRED'
 }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { UPGRADE_HREF, UPGRADE_LABEL, upgradeCopyFor } from '@/lib/profileTier'
+import { PRO_UPGRADE_HREF, PRO_UPGRADE_LABEL, upgradeCopyFor } from '@/lib/profileTier'
 import { lensRefusalNote, rewriteOfferNote, REWRITE_OFFER } from '@/lib/lensRefusal'
 import { COLOR_MODES, normalizeColorMode } from '@/lib/profileColorMode'
 import { ACCENTS, DEFAULT_ACCENT, OFFERED_ACCENTS, accentFor } from '@/lib/profileAccent'
@@ -1108,7 +1108,7 @@ export default function SettingsDrawer({
                               {busy ? 'Adding…' : 'Add to Career Profile'}
                             </button>
                           ) : (
-                            <a className="hp-ed-lens-add" href={UPGRADE_HREF}>{UPGRADE_LABEL}</a>
+                            <a className="hp-ed-lens-add" href={PRO_UPGRADE_HREF}>{PRO_UPGRADE_LABEL}</a>
                           )}
                         </div>
                       )
@@ -1152,7 +1152,7 @@ export default function SettingsDrawer({
                       {creating ? 'Building…' : 'Create'}
                     </button>
                   ) : (
-                    <a className="hp-ed-lens-add" href={UPGRADE_HREF}>{UPGRADE_LABEL}</a>
+                    <a className="hp-ed-lens-add" href={PRO_UPGRADE_HREF}>{PRO_UPGRADE_LABEL}</a>
                   )}
                 </div>
                 {creating && (
@@ -1284,7 +1284,7 @@ export default function SettingsDrawer({
             <Group label="Contact address">
               <p className="hp-ed-upsell">
                 <span className="hp-ed-upsell-text">{upgradeCopyFor('contact')}</span>
-                <a className="hp-ed-upsell-link" href={UPGRADE_HREF}>{UPGRADE_LABEL}</a>
+                <a className="hp-ed-upsell-link" href={PRO_UPGRADE_HREF}>{PRO_UPGRADE_LABEL}</a>
               </p>
             </Group>
           ) : (

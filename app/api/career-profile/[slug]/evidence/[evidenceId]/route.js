@@ -50,9 +50,16 @@ const SIGNED_URL_TTL_SECONDS = 600
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-// The directions a reader is allowed to be looking through. The same two the
-// profile payload treats as visible; named once so the two cannot drift.
-const VISIBLE_LENS_STATUS = ['active', 'suggested']
+// The directions a reader is allowed to be looking through: the ones the page
+// can actually render, which is active and only active.
+//
+// This used to accept 'suggested' as well, on the claim that it matched the
+// profile payload. It did not - that route has always read active only - so a
+// direction nobody had put on the profile could still have its files signed
+// by anyone holding the id. Nothing sends such an id, because the payload's
+// directions are active ones, but the route is what decides that and it was
+// deciding it more generously than the page.
+const VISIBLE_LENS_STATUS = ['active']
 
 const notFound = () => Response.json({ error: 'NOT_FOUND' }, { status: 404 })
 

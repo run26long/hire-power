@@ -692,9 +692,24 @@
   .hp-direction:not([data-active="true"]):hover { color: var(--profile-body); }
 }
 
-/* A single direction is a statement about this person, not a choice. */
+/* A single direction is a statement about this person, not a choice.
+
+   Sized to its own name, the way a tab is. The mark under it is a block that
+   fills whatever box it is given, so the box has to be the name's: as an
+   inline-block in a plain parent that is already true, but from 1200 up the
+   wrapper around it is `display: contents` and this becomes a grid item of
+   the invitation row - and a grid item stretches to its column, which is
+   four twelfths of the stage. The name stayed where it was and the underline
+   ran out to the end of the column.
+
+   `justify-self` answers the grid case and `width: fit-content` answers any
+   other context that blockifies it, so the rule holds at every width rather
+   than at the one where the fault was seen. */
 .hp-direction-single {
   display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  justify-self: start;
   font-family: var(--profile-font-display);
   font-size: 20px;
   font-weight: 650;
