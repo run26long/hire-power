@@ -40,6 +40,16 @@ export default function EvidenceOverlay({
   onOpenItem,    // gallery -> detail
   onBack,        // detail -> gallery, only when the reader came that way
   onClose,
+  // The owner's way from the gallery into the list, in Edit mode only. The
+  // section passes it or does not, so Preview and the public page have no
+  // control to hide: there is nothing rendered to hide.
+  //
+  // It changes this overlay's mode rather than opening anything. The gallery
+  // and the Manage list are two views of one surface, so "closes the gallery
+  // and opens Manage in its place" is literally what a mode change is here -
+  // and a second dialog over this one is the thing the whole component was
+  // built to avoid.
+  onManage,
   // ---- management mode ----
   // The same surface the reader's gallery uses, with the owner's controls in
   // it instead of the tiles. The section passes the whole body, because it is
@@ -243,9 +253,23 @@ export default function EvidenceOverlay({
                 All evidence <span className="hp-ev-count">({items.length})</span>
               </h2>
             </div>
-            <button type="button" className="hp-ev-close" ref={closeRef} aria-label="Close" onClick={onClose}>
-              <span aria-hidden="true">×</span>
-            </button>
+            {/* Beside the close rather than in a row of its own, because it
+                is the other way out of this view. */}
+            <span className="hp-ev-head-acts">
+              {onManage ? (
+                <button
+                  type="button"
+                  className="hp-manage-secondary"
+                  onClick={onManage}
+                  aria-haspopup="dialog"
+                >
+                  Manage
+                </button>
+              ) : null}
+              <button type="button" className="hp-ev-close" ref={closeRef} aria-label="Close" onClick={onClose}>
+                <span aria-hidden="true">×</span>
+              </button>
+            </span>
           </div>
         ) : (
           <div className="hp-ev-head">

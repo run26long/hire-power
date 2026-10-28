@@ -446,6 +446,11 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
         onOpenItem={fromGrid}
         onBack={overlay?.fromGrid ? backToGrid : null}
         onClose={close}
+        // The same gate the section's own Manage control stands behind, so
+        // the grid can never offer a way into a panel this account does not
+        // get. Absent outside Edit mode, which is how Preview and the public
+        // page end up with no button at all.
+        onManage={canEdit ? openManage : undefined}
         manageTitle={editingItem ? 'Edit work' : 'Manage portfolio'}
         manageCount={editingItem ? undefined : manageItems.length}
         manageBody={editingItem ? (

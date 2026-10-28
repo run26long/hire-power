@@ -3,6 +3,7 @@ import "./globals.css";
 import { PostHogProvider } from "./components/PostHogProvider";
 import GlobalWidgets from "./components/GlobalWidgets";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { SITES, shareCardFor } from "@/lib/siteMetadata";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,9 +15,29 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// ---------------------------------------------------------------------------
+// THE DEFAULT CARD, AND WHO GETS IT
+//
+// Hire Power's, statically, for everything that does not answer for itself.
+// Almost all of that is behind a login - the dashboard, the builder, the
+// coaches - and a signed-in page is not a link anybody posts, so there is
+// nothing to be gained by making the whole app read a header to find out
+// which domain it is on.
+//
+// The pages that ARE posted do answer for themselves: /landing, /privacy,
+// /terms and /brb-landing each read the request's Host and return the card for
+// that domain. See lib/siteMetadata for why that is a per-page decision and
+// what it costs.
+//
+// The Career Profile pages under /p/[slug] inherit this and are meant to: they
+// had no image at all before, and a shared profile link previewed as a line of
+// text. Nothing here is specific to a person, which is the right default for a
+// page about one until there is a card made for them.
+// ---------------------------------------------------------------------------
 export const metadata = {
-  title: "Hire Power — Your Lifelong Career Coach",
-  description: "AI-powered career coaching for people who want more than their next job.",
+  title: SITES.hirePower.title,
+  description: SITES.hirePower.description,
+  ...shareCardFor(SITES.hirePower)
 };
 
 export default function RootLayout({ children }) {

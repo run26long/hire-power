@@ -514,6 +514,11 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
         onOpenItem={fromGallery}
         onBack={overlay?.fromGallery ? backToGallery : null}
         onClose={close}
+        // The same gate the section's own Manage control stands behind, so
+        // the gallery can never offer a way into a panel this account does
+        // not get. Absent outside Edit mode, which is how Preview and the
+        // public page end up with no button at all.
+        onManage={canEdit ? openManage : undefined}
         manageTitle={editingItem ? 'Edit evidence' : 'Manage evidence'}
         manageCount={editingItem ? undefined : manageItems.length}
         manageBody={editingItem ? (

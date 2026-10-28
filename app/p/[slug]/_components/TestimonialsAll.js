@@ -27,7 +27,13 @@ const FOCUSABLE = [
   'a[href]', 'button:not([disabled])', '[tabindex]:not([tabindex="-1"])'
 ].join(',')
 
-export default function TestimonialsAll({ items, onClose }) {
+// `onManage` is the owner's way from this list into the one they can change,
+// in Edit mode only: the section passes it or does not, so Preview and the
+// public page have no control to hide. Unlike the evidence and portfolio
+// galleries, this one and its Manage panel are two components rather than two
+// modes of one, so it closes this and opens that - which is the same thing
+// from the reader's side and still never two dialogs at once.
+export default function TestimonialsAll({ items, onClose, onManage }) {
   const surfaceRef = useRef(null)
   const closeRef = useRef(null)
   const returnTo = useRef(null)
@@ -110,15 +116,30 @@ export default function TestimonialsAll({ items, onClose }) {
             </h2>
           </div>
 
-          <button
-            type="button"
-            className="hp-pf-box-close"
-            ref={closeRef}
-            onClick={() => onClose?.()}
-            aria-label="Close"
-          >
-            <span aria-hidden="true">×</span>
-          </button>
+          {/* Beside the close rather than in a row of its own, because it is
+              the other way out of this view. */}
+          <span className="hp-pf-box-acts">
+            {onManage ? (
+              <button
+                type="button"
+                className="hp-manage-secondary"
+                onClick={onManage}
+                aria-haspopup="dialog"
+              >
+                Manage
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              className="hp-pf-box-close"
+              ref={closeRef}
+              onClick={() => onClose?.()}
+              aria-label="Close"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          </span>
         </div>
 
         <div className="hp-pf-box-gallery">

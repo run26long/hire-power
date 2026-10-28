@@ -68,6 +68,13 @@ export default function PortfolioLightbox({
   // The same surface the full gallery uses, with the owner's controls in it
   // instead of the mats. The section passes the whole body: see the note on
   // EvidenceOverlay.
+  // The owner's way from the grid into the list, in Edit mode only. The
+  // section passes it or does not, so Preview and the public page have no
+  // control to hide: there is nothing rendered to hide.
+  //
+  // It changes this overlay's mode rather than opening anything, which is
+  // what makes it "in place" instead of a dialog on a dialog.
+  onManage,
   manageTitle,
   manageCount,
   manageBody
@@ -284,15 +291,32 @@ export default function PortfolioLightbox({
             )}
           </div>
 
-          <button
-            type="button"
-            className="hp-pf-box-close"
-            ref={closeRef}
-            onClick={() => onClose?.()}
-            aria-label="Close"
-          >
-            <span aria-hidden="true">×</span>
-          </button>
+          {/* Beside the close rather than in a row of its own, because it is
+              the other way out of this view. Grid only: the item view has a
+              Back to the portfolio already, and the manage view is where this
+              would be going. */}
+          <span className="hp-pf-box-acts">
+            {mode === 'grid' && onManage ? (
+              <button
+                type="button"
+                className="hp-manage-secondary"
+                onClick={onManage}
+                aria-haspopup="dialog"
+              >
+                Manage
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              className="hp-pf-box-close"
+              ref={closeRef}
+              onClick={() => onClose?.()}
+              aria-label="Close"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          </span>
         </div>
 
         {mode === 'manage' ? (

@@ -2533,28 +2533,33 @@
     var(--profile-shade-2);
 }
 
-/* A supporting tile keeps its square where the badge was, so the row of them
-   stays as compact as it is. On a phone it is the badge's own size - the tile
-   has one column and a picture that grows takes the words' room. From tablet
-   up there is width to spare, so it takes more of it. */
+/* ONE TREATMENT, THREE HEIGHTS
+
+   A band across the top of the lead, a shorter band across the top of a
+   supporting card, and a compact square at the head of a tile being read as
+   a row. The wash, the radius and `contain` are the same in all three - what
+   changes is how much room the tile has to give the picture.
+
+   The square is the narrow case, so it is the base: it is what a tile gets
+   unless a rule below gives it something else. */
 .hp-ev-tile[data-role='rest'] .hp-ev-tile-mark[data-thumb='true'] {
   width: 38px;
   height: 38px;
   border-radius: 11px;
 }
 
-@media (min-width: 768px) {
-  .hp-ev-tile[data-role='rest'] .hp-ev-tile-mark[data-thumb='true'] {
-    width: 64px;
-    height: 64px;
-    border-radius: 12px;
-  }
-}
+/* The lead is the card with the most room, so its picture is a band across
+   the top rather than a square in the corner of it. 4:3 because that is the
+   shape a page's own preview image is published in and roughly the shape a
+   portrait document reduces to.
 
-/* The lead is the card with room, so its picture is a band across the top
-   rather than a square in the corner of it. 4:3 because that is the shape a
-   page's own preview image is published in and roughly the shape a portrait
-   document reduces to; anything taller would push the title off a phone.
+   AND A CEILING ON IT
+   4:3 of half a twelve-column grid is around 360px of picture before a word
+   is read, and the lead spans both rows of the showcase - so that height is
+   the section's height. The cap keeps the shape wherever there is room for it
+   and letterboxes it where there is not. Nothing is lost to the clamp:
+   `contain` means the picture still arrives whole, with more mat around it
+   rather than less of it.
 
    Specificity matched to the `[data-count='5']` rule in the showcase block
    above, which makes the lead's mark a full-height panel, and placed after it
@@ -2565,11 +2570,193 @@
   aspect-ratio: 4 / 3;
   flex: 0 0 auto;
   min-height: 0;
+  max-height: 280px;
   margin-bottom: 18px;
   border-radius: 14px;
 }
 
-/* The gallery card gets the same band, at the measure its own grid gives it. */
+/* ---- A SUPPORTING CARD IS A SHORTER BAND ----
+
+   The same shape as the lead's and the same treatment, at a height chosen so
+   that two rows of them come to what the lead comes to. The lead spans both
+   rows of the showcase, so those two numbers are the only two the section's
+   height is ever made of: match them and the section is as tall as the lead
+   and no taller.
+
+   WHY 100px, ARITHMETIC RATHER THAN TASTE
+   A supporting card is everything but its band: 40px of padding, 18px under
+   the band, about 15px of label, about 50px of a two-line title, about 55px
+   of a two-line description and about 31px of date. That is roughly 209px.
+   A full lead card - its 280px band, 26px padding, a three-line title and a
+   six-line description - comes to about 656px.
+
+       (656 - 14px of grid gap) / 2  =  321px per supporting row
+       321 - 209                     =  112px of band to fill it
+
+   100 rather than 112, deliberately. It leaves each row about twelve pixels
+   short of the lead's half instead of over it, so the lead goes on being what
+   sets the section's height and the section can never grow past what it is
+   today. Twelve pixels of slack lands above the date line, where
+   `margin-top: auto` already puts whatever a row has spare.
+
+   A lead with less in it than that - a one-line title, no description - will
+   be the shorter of the two, and then the supporting rows set the height.
+   That is the right way round: the section is sized by whichever side
+   actually has something in it.
+
+   The radius and the wash are the band's and are not restated: they come from
+   the [data-thumb='true'] rule above, so the two are one treatment at two
+   heights. `contain` means a tall page letterboxes into 100px rather than
+   being cropped to it. */
+@media (min-width: 768px) {
+  /* Only where a picture actually resolved. `data-thumb` is set by the
+     component when it has a URL in hand, so a thumbnail that failed to sign
+     falls back to its badge, and to the compact square that badge belongs in.
+     A card that never had a thumbnail is untouched by every rule here. */
+  .hp-ev-grid .hp-ev-tile[data-role='rest'] .hp-ev-tile-mark[data-thumb='true'] {
+    width: 100%;
+    height: 100px;
+    flex: 0 0 auto;
+    min-height: 0;
+    margin-bottom: 18px;
+    border-radius: 14px;
+  }
+
+  /* ---- AND NOTHING BEHIND THE PICTURE ----
+
+     The band is full card width; a PDF's first page is a narrow portrait. So
+     the mat was a wide empty box with a small page sitting in the middle of
+     it, and the box read as the thing rather than the page did.
+
+     The empty frame is the point of the mark when it holds an icon - it is
+     what makes the icon look placed rather than dropped - and it is nothing
+     but width around a picture that has its own edges. So on these cards the
+     slot becomes a space the picture stands in: no wash, no hairline, no
+     shadow.
+
+     WHERE THE PANEL ACTUALLY COMES FROM
+     Not from the [data-thumb='true'] rule further up. The sheet restyle below
+     gives `.hp-ev-tile[data-role='rest'] .hp-ev-tile-mark` a border, a flat
+     wash and a hover that moves both, and that rule is later in the file than
+     anything in this block. It is out-specified rather than edited, because
+     it is the right rule for a mark holding an icon and this is only the case
+     where the mark holds a picture instead. Six classes beats its three and
+     beats the four of its hover, so neither needs touching.
+
+     Nothing sets an outline on this element and none is cleared here: it is
+     an aria-hidden span that cannot take focus, and a blanket `outline: none`
+     in a stylesheet is how focus rings go missing somewhere else later. */
+  .hp-profile .hp-ev-grid .hp-ev-tile[data-role='rest'] .hp-ev-tile-mark[data-thumb='true'] {
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  /* The picture keeps the size and the centring `contain` was giving it, and
+     now carries the corner radius itself - the box it is painted in used to
+     be the full width of the card, so rounding that box rounded empty space
+     either side of the page rather than the page.
+
+     `width: auto` with `height: 100%` is what makes the element hug what it
+     is showing: a portrait page is drawn at exactly the height it was drawn
+     at before, and the element is now only as wide as the page rather than as
+     wide as the card. `margin-inline: auto` then centres it in the band.
+
+     `max-width: 100%` is the guard for a picture wide enough that a 100px
+     height would push it past the card. `object-fit: contain` stays in force
+     from .hp-ev-thumb-img, so that case letterboxes instead of stretching. */
+  .hp-profile .hp-ev-grid .hp-ev-tile[data-role='rest']
+    .hp-ev-tile-mark[data-thumb='true'] > .hp-ev-thumb-img {
+    width: auto;
+    max-width: 100%;
+    height: 100%;
+    margin-inline: auto;
+    /* Square. A page has square corners, and with no frame behind it any
+       rounding here is rounding the artifact itself rather than the mat it
+       sits on - which is an edit to somebody's document, not a treatment of
+       it. The lead keeps the 3px its frame gives it; this has no frame. */
+    border-radius: 0;
+  }
+}
+
+/* ---- AND THE GRIP STAYS OFF THE PICTURE ----
+
+   The drag handle is absolutely positioned at 8px from the top of the tile
+   and is 26px tall, so it ends at 34px - and a band begins at the tile's
+   padding, which is 20px on a supporting card and 26px on the lead. It was
+   sitting on the top-left corner of every thumbnail.
+
+   The band moves down rather than the grip moving sideways, because the band
+   is full width: there is no corner of the card that is not over it. 20px
+   clears the grip by six on the tighter of the two.
+
+   `:has(> .hp-ed-grip)` is what keeps this to Edit mode. EditGrip renders
+   nothing at all unless the owner is editing, so on the public page and in
+   Preview there is no grip, no rule, and the band sits where it always did.
+
+   The compact square is deliberately not included - see the narrow block
+   below, which puts its margin back. */
+.hp-ev-tile:has(> .hp-ed-grip) > .hp-ev-tile-mark[data-thumb='true'] {
+  margin-top: 20px;
+}
+
+/* ---- WHERE useNarrow() SAYS THIS IS THE MOBILE LAYOUT ----
+
+   The exact string _lib/useNarrow.js exports, because that module decides how
+   many tiles this section renders and this stylesheet decides what each one
+   looks like, and the two have to change at the same point. The head of that
+   file says so, and three other blocks in here repeat the string for the same
+   reason.
+
+   What it catches that a width alone does not: a phone in landscape is 956px
+   wide and 440px tall. The grid gives it columns at 768px, which is right -
+   but a 100px band in each of them and a 280px band above are more than that
+   viewport has to spare, so it takes the compact square and a shorter band.
+
+   `margin-top` goes back to nothing here. The compact square is 38px in the
+   corner of a card, not a band across it, and the grip has always sat where
+   it sits on one - moving it would be changing the narrow layout, which is
+   the one thing this block exists to leave alone.
+
+   Placed after the blocks above and matched to them in specificity, so where
+   both apply this one is the answer. */
+@media (max-width: 767px), (pointer: coarse) and (max-height: 500px) {
+  .hp-ev-grid .hp-ev-tile[data-role='rest'] .hp-ev-tile-mark[data-thumb='true'] {
+    width: 38px;
+    height: 38px;
+    margin-top: 0;
+    margin-bottom: 16px;
+    border-radius: 11px;
+  }
+
+  /* The panel and the picture, both back the way the compact square has them.
+     A phone in landscape is 956px wide, so the block above applies there and
+     would otherwise strip the frame off a 38px square and leave a picture
+     floating with nothing under it.
+
+     Matched to that block's six classes and placed after it, so where the two
+     overlap this is the answer - the same arrangement the sizes above use. */
+  .hp-profile .hp-ev-grid .hp-ev-tile[data-role='rest'] .hp-ev-tile-mark[data-thumb='true'] {
+    border: 1px solid rgb(var(--ev-tone) / 0.18);
+    background: rgb(var(--ev-tone) / 0.05);
+  }
+
+  .hp-profile .hp-ev-grid .hp-ev-tile[data-role='rest']
+    .hp-ev-tile-mark[data-thumb='true'] > .hp-ev-thumb-img {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+    border-radius: 0;
+  }
+
+  .hp-ev-grid .hp-ev-tile[data-role='lead'] .hp-ev-tile-mark[data-thumb='true'] {
+    max-height: 200px;
+  }
+}
+
+/* The gallery card gets the same band, at the measure its own grid gives it.
+   That grid is `auto-fill, minmax(228px, 1fr)` at every width, so these are
+   cards on a phone too and there is no narrow case to answer. */
 .hp-ev-backdrop .hp-ev-card .hp-ev-card-mark[data-thumb='true'] {
   width: 100%;
   height: auto;
@@ -2821,6 +3008,12 @@
   border-top-color: rgb(var(--profile-accent-rgb) / 0.5);
 }
 
+/* The frame a mark gets on a supporting card. It is what makes an icon look
+   placed rather than dropped, and it is the empty box a thumbnail does not
+   want - so the thumbnail block above turns the border and the wash off for
+   `[data-thumb='true']` at desktop widths, and the narrow query there turns
+   them back on. These two values are repeated in that second place. If
+   either changes here, change it there. */
 .hp-ev-tile[data-role='rest'] .hp-ev-tile-mark {
   width: 100%;
   height: 84px;
@@ -4904,8 +5097,19 @@
   flex-shrink: 0;
 }
 
-:is(.hp-manage, .hp-manage-pane) .hp-manage-add,
-:is(.hp-manage, .hp-manage-pane) .hp-manage-secondary,
+/* ---- The same secondary control, in a gallery's header ----
+   The galleries now carry a Manage beside their close, for an owner in Edit
+   mode. It is the control the Manage panels' footer already has, so it is
+   that control - the two header groups are named here rather than given a
+   button of their own, because a second outlined button with its own values
+   is a second thing to keep level with the first.
+
+   Named through :is(...) at (0,2,0) for the reason half this file is: the
+   Profile's reset is `.hp-profile button, .hp-ev-backdrop button,
+   .hp-rt-backdrop button` at (0,1,1), which out-ranks a bare class and would
+   flatten the border, the padding and the colour straight off it. */
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts) .hp-manage-add,
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts) .hp-manage-secondary,
 :is(.hp-manage, .hp-manage-pane) .hp-manage-done {
   appearance: none;
   font: inherit;
@@ -4929,15 +5133,15 @@
 
 :is(.hp-manage, .hp-manage-pane) .hp-manage-done:hover { opacity: 0.9; }
 
-:is(.hp-manage, .hp-manage-pane) .hp-manage-secondary,
-:is(.hp-manage, .hp-manage-pane) .hp-manage-add {
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts) .hp-manage-secondary,
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts) .hp-manage-add {
   border: 1px solid var(--profile-line-strong);
   background: transparent;
   color: var(--profile-body);
 }
 
-:is(.hp-manage, .hp-manage-pane) .hp-manage-secondary:hover,
-:is(.hp-manage, .hp-manage-pane) .hp-manage-add:hover { color: var(--profile-text); border-color: var(--profile-accent-edge); }
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts) .hp-manage-secondary:hover,
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts) .hp-manage-add:hover { color: var(--profile-text); border-color: var(--profile-accent-edge); }
 
 /* The reference sheet stands on its own, at the other end. It is the only
    control here that neither adds to the collection nor closes the panel - it
@@ -4946,11 +5150,29 @@
    reference sheet to place, the footer is the same right-aligned pair it was. */
 .hp-manage-foot .hp-manage-secondary { margin-right: auto; }
 
-:is(.hp-manage, .hp-manage-pane) .hp-manage-add:focus-visible,
-:is(.hp-manage, .hp-manage-pane) .hp-manage-secondary:focus-visible,
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts) .hp-manage-add:focus-visible,
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts) .hp-manage-secondary:focus-visible,
 :is(.hp-manage, .hp-manage-pane) .hp-manage-done:focus-visible {
   outline: 2px solid var(--profile-accent);
   outline-offset: 2px;
+}
+
+/* ---- The pair at the end of a gallery's header ----
+   The close used to be the head's own last child and took its place with
+   `margin-left: auto`. It now shares a group with Manage, so the group takes
+   that place instead and the two sit together at the end of the bar.
+
+   `.hp-pf-box-bar` is `justify-content: space-between` over two children -
+   the heading and this - so naming the group is also what keeps that bar a
+   two-part bar rather than a three-part one that would space its controls
+   apart from each other. */
+.hp-ev-head-acts,
+.hp-pf-box-acts {
+  flex: none;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 @media (max-width: 520px) {

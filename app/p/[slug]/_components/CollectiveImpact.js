@@ -764,7 +764,20 @@ export default function CollectiveImpact({
           {/* Every account, when the column is showing three of more. Readers
               get this one, so it is not gated on being the owner. */}
           {allOpen ? (
-            <TestimonialsAll items={quotes} onClose={() => setAllOpen(false)} />
+            <TestimonialsAll
+              items={quotes}
+              onClose={() => setAllOpen(false)}
+              // The same gate the section's own Manage control stands behind,
+              // so this list can never offer a way into a panel this account
+              // does not get. Absent outside Edit mode, which is how Preview
+              // and the public page end up with no button at all.
+              //
+              // One closes as the other opens, in that order, so there is
+              // never a moment with two of these on screen.
+              onManage={canShowEmpty
+                ? () => { setAllOpen(false); setPane(null); setManageOpen(true) }
+                : undefined}
+            />
           ) : null}
 
           {/* The decision nobody has taken yet, in its own panel. It portals

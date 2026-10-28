@@ -1,95 +1,60 @@
-'use client'
+import { SITES, shareCardFor } from '@/lib/siteMetadata'
 
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import { createClient } from '@/utils/supabase/client'
-import { useProfileColorMode } from '@/lib/profileColorMode'
-import { useProfileAccent } from '@/lib/profileAccent'
-
-import ProfileDocument, { ProfileState } from './_components/ProfileDocument'
+import CareerProfileView from './_components/CareerProfileView'
+import { profileCardFor } from './profileMetadata'
 
 // ============================================================================
 // /p/[slug]: the public Career Profile.
 //
-// TEMPLATE: Signature   MODE: dark   PALETTE: Signature default
+// A server component with nothing in it but the card a shared link shows. The
+// page itself is CareerProfileView, which is the client component this file
+// used to be - it fetches the profile, holds the load states and renders the
+// document, and none of that changed in moving.
 //
-// No auth to view, and deliberately no MainNav: nothing on this page belongs to
-// the logged-in product.
+// WHY IT HAD TO SPLIT
+// `generateMetadata` cannot live in a client component, and a layout does not
+// receive searchParams - and the direction a link opens on is a search
+// parameter, `?d=<slug>`. So the metadata belongs to a server page, and the
+// page it describes is its child.
 //
-// This file owns the fetch and the load states, and nothing else. The document
-// itself - every mark on the page, the direction mechanics and the derivations
-// off the record - lives in ProfileDocument, because the owner's management
-// page renders the same composition and the two must never drift.
+// THE CARD IS THE SITE'S, WITH TWO LINES REPLACED
+// The image, the type, the site name and twitter's card shape all come from
+// lib/siteMetadata, the same Hire Power card every other page carries. What a
+// profile changes is the title and the description, and it changes them in
+// all three places at once - the document title, og, and twitter - so a
+// reader, a scraper and a timeline are never told three different things.
 //
-// THE PUBLIC CONTENT RULE
-// A section with no content is not rendered, to anybody, owner included. There
-// are no empty states, no owner prompts, and no invented backends. Download
-// Resume and Contact are shown because they have always been part of this page,
-// and they keep exactly the disabled state and explanation they already had.
-// The owner's only extra is the generate action, which is the one working write
-// the Profile has ever had.
+// A profile that is not published, or has no display name, returns nothing
+// here and inherits the root layout's card untouched. See ./profileMetadata
+// for why a draft must not describe itself.
 // ============================================================================
-export default function CareerProfilePage() {
-  const params = useParams()
-  const slug = params?.slug
 
-  const [data, setData] = useState(null)
-  const [loadState, setLoadState] = useState('loading')
+export async function generateMetadata({ params, searchParams }) {
+  const { slug } = await params
+  const query = await searchParams
 
-  // The mode the owner chose, applied to the document and to everything it
-  // portals onto the body. Keyed by slug, because a reader who opens two
-  // profiles should get each one's own answer on its first paint rather than
-  // whichever they looked at last.
-  useProfileColorMode(data ? (data?.profile?.color_mode ?? null) : undefined, slug || 'p')
-  useProfileAccent(data ? (data?.profile?.accent ?? null) : undefined)
+  // 'd' is the direction parameter, spelled the way ProfileDocument spells
+  // it. Repeated rather than imported because that constant lives inside a
+  // client component, and the array form a repeated parameter produces is not
+  // a direction either way.
+  const asked = query?.d
+  const card = await profileCardFor(slug, typeof asked === 'string' ? asked : null)
 
-  useEffect(() => {
-    if (!slug) return
-    let cancelled = false
+  const site = SITES.hirePower
+  const base = shareCardFor(site)
+  if (!card) return base
 
-    async function load() {
-      try {
-        // The token is optional and only ever used to decide whether to show
-        // owner controls. A viewer without one gets the identical page.
-        let headers = {}
-        try {
-          const supabase = createClient()
-          const { data: { session } } = await supabase.auth.getSession()
-          if (session?.access_token) headers = { Authorization: `Bearer ${session.access_token}` }
-        } catch {
-          // Not signed in, or no client available. Neither is a problem here.
-        }
+  const description = card.description || site.description
 
-        const res = await fetch(`/api/career-profile/${encodeURIComponent(slug)}`, { headers })
-        if (cancelled) return
-        if (res.status === 404) { setLoadState('notfound'); return }
-        if (!res.ok) { setLoadState('error'); return }
-
-        const json = await res.json()
-        if (cancelled) return
-        setData(json)
-        setLoadState('ready')
-      } catch (err) {
-        console.error('Career profile load failed:', err)
-        if (!cancelled) setLoadState('error')
-      }
-    }
-
-    load()
-    return () => { cancelled = true }
-  }, [slug])
-
-  // A direction the owner just generated, folded back into the record the
-  // document is reading. The document reports it rather than writing it,
-  // because the record is this route's to hold.
-  function handleLensUpdated(lens) {
-    setData(prev => prev ? {
-      ...prev,
-      lenses: prev.lenses.map(l => (l.id === lens.id ? { ...l, ...lens } : l))
-    } : prev)
+  return {
+    ...base,
+    title: card.title,
+    description,
+    openGraph: { ...base.openGraph, title: card.title, description },
+    twitter: { ...base.twitter, title: card.title, description }
   }
+}
 
-  if (loadState !== 'ready') return <ProfileState state={loadState} />
-
-  return <ProfileDocument data={data} slug={slug} onLensUpdated={handleLensUpdated} deepLinkLens />
+export default function CareerProfilePage() {
+  return <CareerProfileView />
 }
