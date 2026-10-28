@@ -55,6 +55,20 @@ import useNarrow from '../_lib/useNarrow'
 // The grip. A pair of arrows beside it was a second control saying the same
 // thing, and two controls for one job is what made the row look like a form.
 //
+// WHAT A ROW SHOWS OF THE THING ITSELF
+// A small square, where the collection has one to give. `thumb` is a render
+// function rather than a picture, because the two collections that pass one
+// are the two that already know how to sign a thumbnail and this list does
+// not - it draws the column and nothing else. Testimonials pass none and get
+// no column, which is right: a testimonial is somebody's words and has
+// nothing to look at.
+//
+// A square that resolves to nothing is still a square. The thumb component
+// falls back to the item's mark, so the column is the same width down the
+// whole list whether every row has a picture or none does - a list whose
+// titles start at a different place on every row is harder to read than one
+// with a few grey marks in it.
+//
 // HOW THE DRAG IS BUILT, AND WHY NOT WITH HTML5 DRAG AND DROP
 // Pointer events, from the grip only. The row used to carry `draggable` with
 // dragstart/dragover/drop on it, which has two problems.
@@ -117,6 +131,9 @@ export default function ManageList({
   busyId,           // the row with a write in flight
   onDrop,           // (fromId, toId)
   onEdit,           // (id) -> takes the modal over with that item's fields
+  // optional; (row) -> the square at the head of the row. Omitted, there is
+  // no square and no column, which is what Testimonials wants.
+  thumb,
   onDelete,         // optional; (row) -> asks to delete the item for good
   deletingId,       // the row whose delete is in flight, if any
   // ---- where each item appears ----
@@ -330,6 +347,8 @@ export default function ManageList({
                       would start its title left of every row above it. */}
                   <GripIcon />
                 </span>
+
+                {thumb ? thumb(row) : null}
 
                 <span className="hp-manage-label">
                   <span className="hp-manage-title">{row.title}</span>

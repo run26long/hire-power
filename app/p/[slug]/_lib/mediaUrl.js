@@ -51,8 +51,44 @@ const DEFAULT_TTL_MS = 600_000
 const cache = new Map()
 const inflight = new Map()
 
-const keyFor = ({ slug, id, variant, lensId }) =>
-  `${slug || ''}|${id || ''}|${variant || 'file'}|${lensId || ''}`
+// ---------------------------------------------------------------------------
+// WHICH ROUTE IS BEING ASKED
+//
+// Two of them, and the difference is the question rather than the answer.
+//
+// The reader's route is scoped to a profile and a direction, because what it
+// decides is whether a stranger holding this link, looking through this
+// direction, may be served this file. The owner's route is scoped to neither,
+// because what it decides is only whether this row belongs to the caller.
+//
+// So an owner entry is keyed on the id and the variant alone. Putting a slug
+// and a direction in that key would be caching one answer under four names
+// and re-signing the same thumbnail every time the owner changed direction,
+// for a route that never reads either value.
+//
+// One cache holds both. A key says which kind it is, so a reader's link and
+// an owner's link for the same file never stand in for one another - they
+// have different lifetimes, different signatures and different reasons to
+// exist.
+// ---------------------------------------------------------------------------
+const keyFor = ({ slug, id, variant, lensId, owner }) => (
+  owner
+    ? `owner|${id || ''}|${variant || 'file'}`
+    : `${slug || ''}|${id || ''}|${variant || 'file'}|${lensId || ''}`
+)
+
+const endpointFor = ({ slug, id, variant, lensId, owner }) => {
+  if (owner) {
+    // Thumbnails only, which is all the owner's management surface draws.
+    return `/api/career-profile/evidence/${encodeURIComponent(id)}/thumbnail`
+  }
+  const query = new URLSearchParams()
+  if (variant) query.set('variant', variant)
+  if (lensId) query.set('lens', lensId)
+  const tail = query.toString()
+  return `/api/career-profile/${encodeURIComponent(slug)}/evidence/${encodeURIComponent(id)}`
+    + (tail ? `?${tail}` : '')
+}
 
 /**
  * The answer for one file, from memory where it is still good and from the
@@ -61,11 +97,18 @@ const keyFor = ({ slug, id, variant, lensId }) =>
  * round trips.
  *
  * `headers` is the async function from useViewerAuthHeaders.
+ *
+ * `owner` asks the owner's thumbnail route instead of the reader's media
+ * route. Everything else here - the cache, the shared in-flight request, the
+ * early expiry, forgetMediaUrl - is the same for both.
+ *
  * Resolves to { url, mime, mediaClass }, or throws the way fetch does.
  */
-export async function mediaUrl({ slug, id, variant = null, lensId = null, headers }) {
-  if (!slug || !id) throw new Error('mediaUrl needs a slug and an id')
-  const key = keyFor({ slug, id, variant, lensId })
+export async function mediaUrl({ slug, id, variant = null, lensId = null, headers, owner = false }) {
+  if (!id) throw new Error('mediaUrl needs an id')
+  // The reader's route is addressed by slug; the owner's is not.
+  if (!owner && !slug) throw new Error('mediaUrl needs a slug')
+  const key = keyFor({ slug, id, variant, lensId, owner })
 
   const held = cache.get(key)
   if (held && held.expiresAt > Date.now()) return held.body
@@ -74,14 +117,8 @@ export async function mediaUrl({ slug, id, variant = null, lensId = null, header
   if (running) return running
 
   const run = (async () => {
-    const query = new URLSearchParams()
-    if (variant) query.set('variant', variant)
-    if (lensId) query.set('lens', lensId)
-    const tail = query.toString()
-
     const res = await fetch(
-      `/api/career-profile/${encodeURIComponent(slug)}/evidence/${encodeURIComponent(id)}`
-      + (tail ? `?${tail}` : ''),
+      endpointFor({ slug, id, variant, lensId, owner }),
       { headers: (headers ? await headers() : {}) || {} }
     )
     if (!res.ok) throw new Error(String(res.status))

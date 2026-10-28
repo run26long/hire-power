@@ -3,6 +3,17 @@ import { bumpVaultCount } from '@/lib/vaultCount'
 import { createClient } from '@supabase/supabase-js'
 import { noEmDash } from '../_lib/recruiterContext'
 import { canonicalType, familyForType, providerForUrl } from '@/lib/evidenceTypes'
+import { thumbnailFromImageUrl } from '../_lib/evidenceThumbnail'
+import { chargeOutbound, outboundExhausted } from '../_lib/outboundLimit'
+
+// The row is written in milliseconds; the picture that follows it is one
+// fetch to a site this server does not control, bounded by safeFetch at five
+// seconds, plus a sharp re-encode and two storage round trips. Sixty is well
+// clear of all of that and is the ceiling on Vercel's Hobby plan, so it is a
+// value every plan accepts - Pro and Enterprise allow more and do not need it
+// here. The route returns as soon as the work is done; this is the cap, not a
+// budget it spends.
+export const maxDuration = 60
 
 // ============================================================================
 // POST /api/career-profile/evidence
@@ -39,6 +50,26 @@ import { canonicalType, familyForType, providerForUrl } from '@/lib/evidenceType
 // default would mean every item needed a second action nobody was told about,
 // and the first symptom would be a profile that looks like it lost the thing
 // that was just added.
+//
+// THE PICTURE, AND WHY IT IS THE LAST THING THAT HAPPENS
+// The owner saw the page's own image in the form and left the switch on, so
+// `thumbnail_url` is the address they were shown. It is fetched here through
+// _lib/safeFetch, decoded to prove it is a picture, re-encoded and stored in
+// our bucket - the address itself is never kept and nothing on a profile ever
+// points at somebody else's server.
+//
+// It happens after the row exists, and the row is never rolled back for it.
+// A page with no image, an image that will not decode, a server that will not
+// answer, an account that has spent its outbound allowance for the minute -
+// none of those is a reason to refuse somebody's work. The item saves with no
+// thumbnail and draws its icon, which is what every link did before this
+// existed, and the switch in the edit pane can try again later.
+//
+// THE OUTBOUND ALLOWANCE IS THE PREVIEW ROUTE'S
+// Literally: the same counters, in _lib/outboundLimit, so twenty fetches a
+// minute is twenty across every route that opens a socket rather than twenty
+// per route. Saving a link is a second door onto the same thing the preview
+// route does, and a second door with its own budget is not a budget.
 // ============================================================================
 
 const LIMITS = {
@@ -296,7 +327,57 @@ export async function POST(request) {
     // reached a career direction.
     await bumpVaultCount(supabase, user.id, 1)
 
-    return Response.json({ evidence: created, placements })
+    // ---- THE PICTURE ----
+    //
+    // Asked for by the switch under the preview, and only then: an owner who
+    // turned it off, or a page that advertised no image, sends nothing and
+    // nothing is fetched. The column is written in a second statement rather
+    // than in the insert because the fetch can take a second and must not sit
+    // between the owner pressing Save and the item existing.
+    let thumbnailPath = null
+    let thumbnailWarning = null
+    if (body.use_thumbnail === true && typeof body.thumbnail_url === 'string') {
+      // Asked before anything opens a socket. Over the allowance, the picture
+      // is simply not fetched: the item is already saved and the switch in
+      // its edit pane will make one later, which is a better answer than
+      // refusing to save work over a thumbnail.
+      if (outboundExhausted(user.id)) {
+        thumbnailWarning =
+          "Saved, but we didn't fetch the page's image just yet - too many link lookups in the "
+          + 'last minute. Turn the thumbnail on from this item to try again.'
+      } else {
+        thumbnailPath = await thumbnailFromImageUrl(
+          supabase,
+          body.thumbnail_url,
+          null,
+          { onOutbound: () => chargeOutbound(user.id) }
+        )
+      }
+      if (thumbnailPath) {
+        const { error: thumbError } = await supabase
+          .from('profile_evidence')
+          .update({ thumbnail_path: thumbnailPath, updated_at: new Date().toISOString() })
+          .eq('id', created.id)
+          .eq('user_id', user.id)
+        if (thumbError) {
+          // The object has nothing pointing at it, so it is not this item's
+          // picture and never will be. Taken back out rather than left for
+          // nobody to find.
+          console.error('[career-profile] Thumbnail column write failed (non-fatal):', thumbError)
+          await supabase.storage.from('profile-media').remove([thumbnailPath]).catch(() => {})
+          thumbnailPath = null
+        }
+      }
+    }
+
+    return Response.json({
+      evidence: { ...created, has_thumbnail: Boolean(thumbnailPath) },
+      placements,
+      // The add dialog already shows a warning on its "Added." step, which is
+      // where the placement failure above reports. A thumbnail that was not
+      // fetched reports in the same place rather than inventing a second one.
+      ...(thumbnailWarning ? { warning: thumbnailWarning } : {})
+    })
   } catch (error) {
     console.error('[career-profile] Evidence route failed:', error)
     return Response.json({ error: "We couldn't save that. Please try again." }, { status: 500 })

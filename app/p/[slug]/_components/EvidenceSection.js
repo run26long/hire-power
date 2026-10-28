@@ -3,9 +3,9 @@
 import { useCallback, useMemo, useState } from 'react'
 
 import Reveal from './Reveal'
-import StrokeIcon from './StrokeIcon'
 import EvidenceOverlay from './EvidenceOverlay'
-import { glyphFor } from './EvidenceViewer'
+import EvidenceThumb from './EvidenceThumb'
+import { useViewerAuthHeaders } from '../_lib/viewerAuth'
 import { EditGrip, SlotGuide, SlotGhost, UpgradeNote, useEditSlot } from './EditAffordance'
 import AddEvidence from './AddEvidence'
 import { isEvidenceItem } from '@/lib/portfolio'
@@ -48,6 +48,11 @@ const metaOf = (item) => [item.organization, item.date_label].filter(Boolean).jo
 export default function EvidenceSection({ items, slug, lensId, animate, directionKey }) {
   // null | { mode: 'gallery' } | { mode: 'detail', item, fromGallery }
   const [overlay, setOverlay] = useState(null)
+
+  // Passed down to every thumbnail rather than asked for inside each one, so
+  // a grid of tiles shares one stable identity and nothing re-signs because
+  // something unrelated rendered.
+  const viewerHeaders = useViewerAuthHeaders()
 
   // Counts openings, not renders. It keys the overlay, so each fresh opening
   // is a new component with no memory of the last one, while moving between
@@ -169,6 +174,10 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
       id: item.id,
       title: item.title || typeLabel(item),
       meta: metaOf(item) || typeLabel(item),
+      // The record itself, for the square at the head of the row. The list
+      // draws the column; what goes in it is this collection's business, and
+      // only the record knows whether there is a picture to sign.
+      item,
       on: on.get(item.id) || [],
       // On the open direction, so it has a position in it to drag. Asked
       // rather than asserted: the same question the route asks before it
@@ -316,9 +325,18 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
     >
       <EditGrip {...drag.gripProps(item.id)} />
 
-      <span className="hp-ev-tile-mark" aria-hidden="true">
-        <StrokeIcon paths={glyphFor(item.media_class)} size={role === 'lead' ? 22 : 18} />
-      </span>
+      {/* The same slot whether it holds a picture or a mark. What changes is
+          the shape the stylesheet gives it: a band across the top of the lead,
+          a larger square on a supporting tile, and the badge it always was for
+          an item with no picture of its own. */}
+      <EvidenceThumb
+        item={item}
+        slug={slug}
+        lensId={lensId}
+        headers={viewerHeaders}
+        className="hp-ev-tile-mark"
+        markSize={role === 'lead' ? 22 : 18}
+      />
 
       <span className="hp-ev-tile-type">{typeLabel(item)}</span>
       <span className="hp-ev-tile-title">{item.title}</span>
@@ -510,6 +528,19 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
             busyId={busyId}
             onDrop={dropItem}
             onEdit={setEditingId}
+            // As the owner, not as a reader. This list carries the private
+            // items and the ones no direction is showing, and both are rows
+            // the public media route exists to refuse.
+            thumb={row => (
+              <EvidenceThumb
+                key={row.id}
+                item={row.item}
+                owner
+                headers={viewerHeaders}
+                className="hp-manage-thumb"
+                markSize={16}
+              />
+            )}
             onDelete={del.available ? del.ask : undefined}
             deletingId={del.deletingId}
             directions={columns}

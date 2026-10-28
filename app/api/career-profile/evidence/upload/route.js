@@ -7,6 +7,15 @@ import { canUseProTools } from '@/lib/tiers'
 import { canonicalType, familyForType } from '@/lib/evidenceTypes'
 import { MAX_UPLOAD_BYTES, uploadTypeFor } from '@/lib/evidenceUploads'
 import { FREE_VISUAL_UPLOADS } from '@/lib/portfolio'
+import { thumbnailFromPdf } from '../../_lib/evidenceThumbnail'
+
+// The bytes never pass through here - the browser uploads straight to storage
+// - so what the finalise step actually spends is storage round trips plus, on
+// a PDF, loading a native renderer cold and drawing its first page, and on an
+// image two sharp encodes of a file that may be fifty megabytes. Sixty is
+// clear of that and is the ceiling on Vercel's Hobby plan, so it is a value
+// every plan accepts - Pro and Enterprise allow more and do not need it here.
+export const maxDuration = 60
 
 // ============================================================================
 // POST /api/career-profile/evidence/upload   - ask for somewhere to put a file
@@ -57,8 +66,15 @@ import { FREE_VISUAL_UPLOADS } from '@/lib/portfolio'
 // uploaded photograph goes through, then thrown away. What lands in
 // thumbnail_path is a webp this server made, whatever the browser sent.
 //
-// Everything else keeps its icon. A PDF is not missing a picture; it has the
-// picture it is supposed to have.
+// A PDF makes its own too, now, out of its first page. It used to be said here
+// that a PDF is not missing a picture because it has the picture it is
+// supposed to have - which is true of the viewer, where pdfjs draws the pages
+// onto canvases, and was never true of the tile, where the thing that has a
+// cover was drawn as a grey icon. Page one is rendered server-side by the same
+// pdfjs through _lib/evidenceThumbnail and re-encoded by the same sharp.
+//
+// Everything else keeps its icon. A Word document has no page anything here
+// can read, and an audio file has nothing to look at.
 // ============================================================================
 
 const service = () =>
@@ -781,7 +797,8 @@ export async function PUT(request) {
     // ---- THE PREVIEW ----
     // A photograph is its own preview. A video's preview is the frame the
     // owner picked, which arrived as a second object and is re-encoded through
-    // the same pipeline before anything points at it.
+    // the same pipeline before anything points at it. A PDF's is its first
+    // page, drawn here.
     let thumbnailPath = null
     let displayPath = null
     if (kind.media_class === 'image') {
@@ -794,6 +811,11 @@ export async function PUT(request) {
       ])
     } else if (kind.media_class === 'video') {
       thumbnailPath = await posterThumbnail(supabase, body, user.id, path)
+    } else if (kind.mime === 'application/pdf') {
+      // Never fatal, for the reason every other preview here is not: a
+      // document whose first page will not render is still the document the
+      // owner uploaded, and it opens in the viewer either way.
+      thumbnailPath = await thumbnailFromPdf(supabase, path)
     }
 
     // Everything this request put in the bucket. Named once, because two

@@ -2171,7 +2171,9 @@ html:has(.hp-ed) {
 }
 
 /* The page's own image, shown so the owner can tell they pasted the right
-   link. Deliberately small, and it is never stored. */
+   link - and the switch that decides whether we take a copy of it. The
+   address is never stored either way; what the switch buys is an object of
+   our own in the bucket. */
 .hp-ed-add-preview {
   display: flex;
   align-items: center;
@@ -2191,7 +2193,17 @@ html:has(.hp-ed) {
   background: var(--profile-shade-4);
 }
 
+/* The switch and its sentence, stacked beside the picture. `min-width: 0` so
+   the note wraps inside the row rather than widening the dialog. */
+.hp-ed-add-preview-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
 .hp-ed-add-preview-note {
+  display: block;
   font-size: 11.5px;
   line-height: 1.45;
   color: var(--profile-ink-5);

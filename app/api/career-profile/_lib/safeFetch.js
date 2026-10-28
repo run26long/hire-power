@@ -51,10 +51,29 @@ import net from 'node:net'
 // open by being interesting, and a page larger than the cap still yields the
 // head that was read before it was cut off.
 //
+// TWO KINDS OF THING ARE FETCHED, ON ONE SET OF RULES
+// A page, for its meta tags, and the image that page advertises as its own.
+// Everything above applies to both without exception - the scheme list, the
+// port list, the address checks, the pinned lookup, the redirect handling and
+// the timeout are the module's, not the caller's, and the caller cannot widen
+// any of them. What a caller chooses is only what it will accept back: which
+// content types, how many bytes, and whether the body arrives as text or as
+// bytes.
+//
+// AND AN IMAGE IS NOT ALLOWED TO BE TRUNCATED
+// A page cut off at the cap is still useful - the head was read before the
+// cut, and the head is all this wanted. Half an image is not half useful, it
+// is a file that decodes to nothing or, worse, to something. So the image
+// profile treats passing the cap as a refusal rather than as a short answer.
+//
 // WHAT IT STILL DOES NOT DO
 // It does not make the response trustworthy. Everything read out of the body
 // is text chosen by a stranger, and it reaches the owner as a form field they
-// can see and change before anything is stored.
+// can see and change before anything is stored. Bytes that claim to be an
+// image are not an image either: the content type is a header a stranger
+// wrote, and the only thing that settles it is a decoder. That check belongs
+// to the caller that is about to store the result, and _lib/evidenceThumbnail
+// is where it happens.
 // ============================================================================
 
 const ALLOWED_PROTOCOLS = new Set(['http:', 'https:'])
@@ -63,6 +82,39 @@ const ALLOWED_PORTS = new Set([80, 443])
 export const MAX_BYTES = 1024 * 1024
 export const TIMEOUT_MS = 5000
 export const MAX_REDIRECTS = 3
+
+// What an og:image may turn out to be. Narrower than what a browser will
+// render on purpose: these four are what sharp re-encodes without argument and
+// what a page actually serves as its preview. An svg is deliberately absent -
+// it is a document that can carry script and remote references, and handing
+// one to a decoder is a different decision from decoding a photograph.
+const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+
+// Generous for a preview image and far under what the bucket would take. The
+// point is only that a URL cannot be used to pull an arbitrarily large file
+// through this server.
+export const MAX_IMAGE_BYTES = 8 * 1024 * 1024
+
+// The two profiles. Everything that makes a fetch safe is above and outside
+// these; what is in them is only what comes back.
+const PAGE = {
+  accept: 'text/html,application/xhtml+xml',
+  allows: (type) => /^\s*(text\/html|application\/xhtml\+xml)/i.test(type),
+  wrongType: 'That link is not a web page.',
+  maxBytes: MAX_BYTES,
+  // A page past the cap still yields the head that was read before the cut.
+  truncateOk: true,
+  binary: false
+}
+
+const IMAGE = {
+  accept: 'image/jpeg,image/png,image/webp,image/gif',
+  allows: (type) => IMAGE_TYPES.has(type.split(';')[0].trim().toLowerCase()),
+  wrongType: 'That page’s image is not a kind we can store.',
+  maxBytes: MAX_IMAGE_BYTES,
+  truncateOk: false,
+  binary: true
+}
 
 // ---------------------------------------------------------------------------
 // Is this address one the public internet can reach?
@@ -164,7 +216,7 @@ async function resolveAndCheck(rawUrl) {
 // ---------------------------------------------------------------------------
 // One hop, to an address already approved.
 // ---------------------------------------------------------------------------
-function requestOnce({ url, port, addresses }) {
+function requestOnce({ url, port, addresses }, want) {
   return new Promise((resolve) => {
     const client = url.protocol === 'https:' ? https : http
 
@@ -189,7 +241,7 @@ function requestOnce({ url, port, addresses }) {
           // preview fetcher that cannot be blocked by a site that would rather
           // not be read.
           'User-Agent': 'HirePower-LinkPreview/1.0 (+https://HirePowerAI.com)',
-          Accept: 'text/html,application/xhtml+xml',
+          Accept: want.accept,
           'Accept-Encoding': 'identity'
         }
       },
@@ -209,9 +261,13 @@ function requestOnce({ url, port, addresses }) {
         }
 
         const type = String(response.headers['content-type'] || '')
-        if (type && !/^\s*(text\/html|application\/xhtml\+xml)/i.test(type)) {
+        // A page may stay silent about its type and still be a page. An image
+        // may not: the type is the first of the two things that have to agree
+        // before bytes from a stranger are handed to a decoder, and a server
+        // that will not say what it sent has not said anything.
+        if (want.binary ? !want.allows(type) : (type && !want.allows(type))) {
           response.destroy()
-          resolve({ error: 'That link is not a web page.' })
+          resolve({ error: want.wrongType })
           return
         }
 
@@ -225,18 +281,27 @@ function requestOnce({ url, port, addresses }) {
 
         const chunks = []
         let size = 0
+        const done = (extra) => {
+          const body = Buffer.concat(chunks)
+          resolve(want.binary
+            ? { bytes: body, contentType: type.split(';')[0].trim().toLowerCase(), ...extra }
+            : { html: body.toString('utf8'), ...extra })
+        }
         response.on('data', (chunk) => {
           size += chunk.length
-          if (size > MAX_BYTES) {
+          if (size > want.maxBytes) {
             // Abandoned mid-stream. Reading to the end first would make the
             // cap a suggestion.
             response.destroy()
-            resolve({ html: Buffer.concat(chunks).toString('utf8'), truncated: true })
+            // Half a page is still a head. Half an image is a corrupt file,
+            // so the image profile refuses rather than returning what it got.
+            if (want.truncateOk) done({ truncated: true })
+            else resolve({ error: 'That image is too large to use.' })
             return
           }
           chunks.push(chunk)
         })
-        response.on('end', () => resolve({ html: Buffer.concat(chunks).toString('utf8') }))
+        response.on('end', () => done({}))
         response.on('error', () => resolve({ error: "We couldn't read that page." }))
       }
     )
@@ -252,8 +317,12 @@ function requestOnce({ url, port, addresses }) {
 
 // ---------------------------------------------------------------------------
 // The whole thing: validate, fetch, follow, validate again.
+//
+// `want` says only what the caller will accept back. Every rule that makes
+// this safe to point at a URL somebody else chose is in here and cannot be
+// passed in.
 // ---------------------------------------------------------------------------
-export async function fetchPageSafely(rawUrl) {
+async function fetchSafely(rawUrl, want) {
   let target = rawUrl
   const seen = []
   // Whether a socket was ever opened. A URL refused for its scheme, its port
@@ -272,7 +341,7 @@ export async function fetchPageSafely(rawUrl) {
     seen.push(key)
 
     attempted = true
-    const result = await requestOnce(checked)
+    const result = await requestOnce(checked, want)
 
     if (result.redirect) {
       if (hop === MAX_REDIRECTS) return { error: 'That link redirects too many times.', attempted }
@@ -288,8 +357,21 @@ export async function fetchPageSafely(rawUrl) {
     }
 
     if (result.error) return { error: result.error, attempted }
-    return { html: result.html, finalUrl: checked.url.toString(), attempted }
+    return { ...result, finalUrl: checked.url.toString(), attempted }
   }
 
   return { error: 'That link redirects too many times.', attempted }
 }
+
+/** A page, for the meta tags in its head. Resolves to { html, finalUrl } or { error }. */
+export const fetchPageSafely = (rawUrl) => fetchSafely(rawUrl, PAGE)
+
+/**
+ * An image a page advertised as its own, for storing in our bucket.
+ *
+ * Resolves to { bytes, contentType, finalUrl } or { error }. The content type
+ * is the one the server actually sent and is on the allowlist - which is a
+ * claim, not a fact. Nothing may be stored on the strength of it alone; the
+ * decode is what settles what these bytes are.
+ */
+export const fetchImageSafely = (rawUrl) => fetchSafely(rawUrl, IMAGE)

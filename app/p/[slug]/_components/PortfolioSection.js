@@ -5,7 +5,9 @@ import { useCallback, useMemo, useState } from 'react'
 import Reveal from './Reveal'
 import PortfolioLightbox from './PortfolioLightbox'
 import PortfolioMat from './PortfolioMat'
+import EvidenceThumb from './EvidenceThumb'
 import AddEvidence from './AddEvidence'
+import { useViewerAuthHeaders } from '../_lib/viewerAuth'
 import { SlotGuide, SlotGhost, UpgradeNote, useEditSlot } from './EditAffordance'
 import { useCanShowEmpty, useCanEdit, useProfileEdit } from '../_lib/editContext'
 import { directionsByItem, rowsForDirection, selectForDirection } from '../_lib/profileData'
@@ -46,6 +48,11 @@ import { useGridDrag } from '../_lib/gridDrag'
 export default function PortfolioSection({ items, slug, lensId, animate, directionKey }) {
   // null | { mode: 'grid' } | { mode: 'item', index, fromGrid }
   const [overlay, setOverlay] = useState(null)
+
+  // One identity for the squares in the Manage panel, so a long list shares
+  // the signing work the mats above already share.
+  const viewerHeaders = useViewerAuthHeaders()
+
   const [visit, setVisit] = useState(0)
   // Bumped by the guidance mat to open the add panel that lives below.
   const [openAdd, setOpenAdd] = useState(0)
@@ -162,6 +169,9 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
       id: item.id,
       title: item.title || 'Untitled',
       meta: [item.organization, item.date_label].filter(Boolean).join(' · '),
+      // The record itself, for the square at the head of the row. The same
+      // picture the mat above is showing, asked for the same way.
+      item,
       on: on.get(item.id) || [],
       // On the open direction, so it has a position in it to drag. The same
       // question the route asks before it materialises, so the list this
@@ -450,6 +460,19 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
             busyId={busyId}
             onDrop={dropItem}
             onEdit={setEditingId}
+            // As the owner, for the reason the evidence panel does it: this
+            // list carries the private items and the ones no direction is
+            // showing, which the public media route refuses by design.
+            thumb={row => (
+              <EvidenceThumb
+                key={row.id}
+                item={row.item}
+                owner
+                headers={viewerHeaders}
+                className="hp-manage-thumb"
+                markSize={16}
+              />
+            )}
             onDelete={del.available ? del.ask : undefined}
             deletingId={del.deletingId}
             directions={columns}

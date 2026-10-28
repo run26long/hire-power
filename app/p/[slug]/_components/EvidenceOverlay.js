@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 
-import StrokeIcon from './StrokeIcon'
-import { EvidenceStage, EvidenceFoot, glyphFor, metaLine } from './EvidenceViewer'
+import EvidenceThumb from './EvidenceThumb'
+import { EvidenceStage, EvidenceFoot, metaLine } from './EvidenceViewer'
+import { useViewerAuthHeaders } from '../_lib/viewerAuth'
 
 // ============================================================================
 // THE EVIDENCE OVERLAY
@@ -50,6 +51,10 @@ export default function EvidenceOverlay({
   manageBody
 }) {
   const [family, setFamily] = useState('all')
+
+  // One identity for every card in the grid, so a gallery of twenty does not
+  // re-sign its pictures each time the filter changes.
+  const viewerHeaders = useViewerAuthHeaders()
 
   const surfaceRef = useRef(null)
   const closeRef = useRef(null)
@@ -302,9 +307,16 @@ export default function EvidenceOverlay({
                     onClick={() => openFromGallery(one)}
                     aria-haspopup="dialog"
                   >
-                    <span className="hp-ev-card-mark" aria-hidden="true">
-                      <StrokeIcon paths={glyphFor(one.media_class)} size={16} />
-                    </span>
+                    {/* A band across the top where there is a picture, the
+                        badge it always was where there is not. */}
+                    <EvidenceThumb
+                      item={one}
+                      slug={slug}
+                      lensId={lensId}
+                      headers={viewerHeaders}
+                      className="hp-ev-card-mark"
+                      markSize={16}
+                    />
                     <span className="hp-ev-card-type">
                       {one.evidence_type || FAMILY_LABEL[one.family]}
                     </span>

@@ -2498,6 +2498,86 @@
   .hp-ev-grid[data-count='4'] .hp-ev-tile[data-role='rest']:nth-of-type(4) { grid-column: span 12; }
 }
 
+/* ---- THE PICTURE ON A PIECE OF EVIDENCE ----
+
+   A link and a PDF both used to draw the same grey mark. Both can now carry a
+   real picture - the page's own image, the document's first page - and where
+   one exists the mark's slot holds it instead.
+
+   The slot is the same element either way, which is the point: nothing moves
+   when a thumbnail is added or removed except what is inside the square, and
+   an item with no picture draws exactly the badge it always drew.
+
+   THE PICTURE ITSELF IS PORTFOLIO'S, UNDER ANOTHER NAME
+   `object-fit: contain` over a washed ground, so a tall certificate and a
+   wide screenshot both arrive whole. Cropping somebody's work to fit a shape
+   this page chose is an edit nobody asked for, and it is the one thing the
+   portfolio mats were careful about from the start. These are those rules
+   with --pf-tone read as --ev-tone. */
+.hp-ev-thumb-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* What the slot becomes when it holds a picture: a frame rather than a badge.
+   The wash underneath is the mat's, so a contained picture sits on something
+   rather than floating on the card. */
+.hp-ev-tile-mark[data-thumb='true'],
+.hp-ev-card-mark[data-thumb='true'] {
+  display: block;
+  overflow: hidden;
+  background:
+    linear-gradient(150deg, rgb(var(--ev-tone) / 0.10) 0%, rgb(var(--ev-tone) / 0) 62%),
+    var(--profile-shade-2);
+}
+
+/* A supporting tile keeps its square where the badge was, so the row of them
+   stays as compact as it is. On a phone it is the badge's own size - the tile
+   has one column and a picture that grows takes the words' room. From tablet
+   up there is width to spare, so it takes more of it. */
+.hp-ev-tile[data-role='rest'] .hp-ev-tile-mark[data-thumb='true'] {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+}
+
+@media (min-width: 768px) {
+  .hp-ev-tile[data-role='rest'] .hp-ev-tile-mark[data-thumb='true'] {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+  }
+}
+
+/* The lead is the card with room, so its picture is a band across the top
+   rather than a square in the corner of it. 4:3 because that is the shape a
+   page's own preview image is published in and roughly the shape a portrait
+   document reduces to; anything taller would push the title off a phone.
+
+   Specificity matched to the `[data-count='5']` rule in the showcase block
+   above, which makes the lead's mark a full-height panel, and placed after it
+   so this wins where both apply. */
+.hp-ev-grid .hp-ev-tile[data-role='lead'] .hp-ev-tile-mark[data-thumb='true'] {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  flex: 0 0 auto;
+  min-height: 0;
+  margin-bottom: 18px;
+  border-radius: 14px;
+}
+
+/* The gallery card gets the same band, at the measure its own grid gives it. */
+.hp-ev-backdrop .hp-ev-card .hp-ev-card-mark[data-thumb='true'] {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  margin-bottom: 12px;
+  border-radius: 12px;
+}
+
 /* ---- The way into the rest of it ----
    Attached to the featured card, at its lower-right corner. The slot is the
    grid cell: the card and the action are siblings inside it, never nested,
@@ -4445,6 +4525,30 @@
   border-bottom: 1px solid var(--profile-line);
 }
 
+/* ---- The square at the head of a row ----
+   What the item looks like, where there is anything to look at: a portfolio
+   picture, a link's page image, a document's first page. Everything else
+   draws its mark in the same square, so the titles down the list start in one
+   place whether a row has a picture or not.
+
+   Small on purpose. This is a list of controls, not a gallery - the gallery
+   is one press away behind Done - and the square is here to tell two rows
+   apart at a glance rather than to be looked at.
+
+   Testimonials pass no `thumb`, so no element is rendered there and the
+   column does not exist. */
+.hp-manage-thumb {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--profile-fill-5);
+  color: var(--profile-meta);
+}
+
 /* Held to one width, so the names in the header stand over the switches
    rather than over whatever the longest Edit label happened to make. */
 .hp-manage-acts {
@@ -4929,6 +5033,12 @@
   border-bottom: 1px solid var(--profile-line);
   margin-bottom: 4px;
 }
+
+/* The thumbnail row is the one of these whose control is a switch rather than
+   a word, and a switch reads as a setting only when it stands at the end of
+   the row it answers for. The rows whose control is a button are unaffected:
+   they keep sitting beside their summary, which is where Change belongs. */
+.hp-manage-pane-row .hp-ed-switch { margin-left: auto; }
 
 @media (max-width: 520px) {
   /* The row is already carrying a grip and a toggle at this width. */

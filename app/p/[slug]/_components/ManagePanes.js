@@ -400,6 +400,21 @@ export function EvidenceEditPane({ item, lensId, onBack }) {
 
   const isPrivate = item.privacy === 'private'
   const family = familyForType(draft.evidence_type)
+
+  // ---- WHETHER IT CARRIES A PICTURE ----
+  //
+  // Offered for the two kinds that have somewhere to get one from and nowhere
+  // else: a link, whose page may advertise its own image, and a PDF, whose
+  // first page can be drawn. An image is already its own preview and a video
+  // already has the frame the owner chose, so for those the switch would be a
+  // control over something it does not decide.
+  //
+  // The same question the route asks before it does anything, so the pane
+  // cannot offer a switch the route would refuse.
+  const isPdf = item.source_type === 'upload'
+    && String(item.mime_type || '').split(';')[0].trim().toLowerCase() === 'application/pdf'
+  const canThumbnail = isPdf || (item.source_type === 'link' && Boolean(item.url))
+  const hasThumbnail = item.has_thumbnail === true
   // A link item has no file to swap, so the picker is not drawn and Delete
   // stands alone on the left of the footer.
   const canReplace = item.source_type === 'upload' && Boolean(edit?.onReplaceEvidenceFile)
@@ -453,6 +468,51 @@ export function EvidenceEditPane({ item, lensId, onBack }) {
             {isPrivate ? 'Make public' : 'Make private'}
           </button>
         </div>
+      ) : null}
+
+      {/* A third state and the control that changes it, in the row the other
+          two already stand in. Written the moment it is changed rather than
+          behind Save: it is a state, like where this appears and who can see
+          it, and the two acts behind it - fetching a page's picture, drawing
+          a document's first page - are not things to queue up behind a title
+          edit.
+
+          Turning it off always works. Turning it on can fail for every reason
+          the internet fails, and then the route writes nothing and the pane
+          says so in the toast every other write here uses. */}
+      {canThumbnail ? (
+        <div className="hp-manage-pane-row">
+          <span className="hp-ed-dirpick-summary">
+            {hasThumbnail
+              ? 'Showing a thumbnail'
+              : isPdf
+                ? 'No thumbnail. The tile shows a document icon.'
+                : 'No thumbnail. The tile shows a link icon.'}
+          </span>
+          <button
+            type="button"
+            className="hp-ed-switch"
+            role="switch"
+            aria-checked={hasThumbnail}
+            aria-label="Use a thumbnail for this item"
+            data-on={hasThumbnail ? 'true' : 'false'}
+            disabled={Boolean(busy)}
+            onClick={() => run('thumbnail',
+              () => edit?.onEditEvidence?.(item.id, { use_thumbnail: !hasThumbnail }))}
+          >
+            <span className="hp-ed-switch-knob" aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
+
+      {busy === 'thumbnail' ? (
+        <p className="hp-ed-proof-note" role="status">
+          {hasThumbnail
+            ? 'Removing the thumbnail…'
+            : isPdf
+              ? 'Drawing the first page…'
+              : 'Reading the page for its image…'}
+        </p>
       ) : null}
 
       <label className="hp-ed-field-label" htmlFor={`t-${item.id}`}>Title</label>

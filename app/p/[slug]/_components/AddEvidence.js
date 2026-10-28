@@ -42,11 +42,22 @@ import ProfileModal from './ProfileModal'
 // career, and a preview that wrote itself in would let somebody else's server
 // author a line on somebody's profile.
 //
-// THE IMAGE IS SHOWN AND NOT KEPT
+// THE IMAGE IS SHOWN, AND KEPT ONLY IF IT IS ASKED FOR
 // og:image is rendered as a small preview so the owner can tell they pasted
-// the right link. It is not stored and not referenced after saving: a remote
-// image on a public profile is a hotlink to a server that can swap it for
-// anything later. Stored images come with the upload path.
+// the right link. The address itself is never stored and a profile never
+// points at it: a remote image on a public page is a hotlink to a server that
+// can swap it for anything later.
+//
+// What the switch under it decides is whether we take our own copy. On - which
+// is the default, because a link that shows what it is beats a link that shows
+// a grey icon - the route fetches that image once through the same guard the
+// preview went through, decodes it to prove it is a picture, re-encodes it and
+// stores it in our bucket. What a reader is served is an object this server
+// made, and it cannot change afterwards.
+//
+// Off, or no image, or a fetch that fails, all end the same way: the item
+// saves and draws its icon. None of them stops the save, and the switch in the
+// item's edit pane can try again later.
 // ============================================================================
 
 const EMPTY = {
@@ -97,6 +108,11 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
   const [lensIds, setLensIds] = useState([])
   const [scope, setScope] = useState('all')
   const [preview, setPreview] = useState(null)
+  // Whether the page's own image becomes this item's thumbnail. On by default:
+  // the owner is looking at the picture while they decide, and a tile that
+  // shows the thing beats a tile that shows a grey mark. Only ever consulted
+  // where there is an image to use.
+  const [useThumb, setUseThumb] = useState(true)
   const [looking, setLooking] = useState(false)
   const [note, setNote] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -130,6 +146,7 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
     setForm(EMPTY)
     setLensIds([])
     setPreview(null)
+    setUseThumb(true)
     setNote(null)    setFile(null)
     setProgress(0)
     poster.current = null
@@ -224,7 +241,15 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
             poster: poster.current,
             durationSeconds: duration.current
           })
-        : await edit.onCreateEvidence({ ...details, url: form.url.trim() })
+        // The address the preview showed, and whether to keep a copy of it.
+        // Both are absent on a page that advertised no image, so the route
+        // has nothing to fetch and the question never arises.
+        : await edit.onCreateEvidence({
+            ...details,
+            url: form.url.trim(),
+            thumbnail_url: preview?.image || null,
+            use_thumbnail: Boolean(preview?.image) && useThumb
+          })
       // Not closed on success. A new item goes to the end of the collection,
       // and the section shows the first few - so on a profile with a dozen
       // pieces the tile is real, placed, and off the bottom of the preview.
@@ -241,6 +266,7 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
       setScope('all')
       setLensIds([])
       setPreview(null)
+      setUseThumb(true)
       setNote(null)
       setFile(null)
       setProgress(0)
@@ -439,8 +465,33 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
               <div className="hp-ed-add-preview">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={preview.image} alt="" className="hp-ed-add-preview-img" />
-                <span className="hp-ed-add-preview-note">
-                  The page&apos;s own image, shown so you can check the link. It is not saved.
+
+                {/* The switch stands beside the picture it decides about,
+                    with the sentence saying what each position means under
+                    it. On by default. */}
+                <span className="hp-ed-add-preview-body">
+                  <span className="hp-ed-switch-row">
+                    <button
+                      type="button"
+                      className="hp-ed-switch"
+                      role="switch"
+                      aria-checked={useThumb}
+                      aria-label="Use the page's image as this item's thumbnail"
+                      data-on={useThumb ? 'true' : 'false'}
+                      disabled={saving}
+                      onClick={() => setUseThumb(on => !on)}
+                    >
+                      <span className="hp-ed-switch-knob" aria-hidden="true" />
+                    </button>
+                    <span className="hp-ed-switch-label">Use as thumbnail</span>
+                  </span>
+
+                  <span className="hp-ed-add-preview-note">
+                    {useThumb
+                      ? 'We’ll keep our own copy of this picture and show it on the tile. '
+                        + 'If it can’t be saved, the item still saves and shows its icon.'
+                      : 'Shown so you can check the link. It won’t be saved.'}
+                  </span>
                 </span>
               </div>
             ) : null}
