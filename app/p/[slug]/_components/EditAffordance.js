@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { useProfileEdit, useFieldEditor, useCanEdit, useShowUpgrade } from '../_lib/editContext'
 import { UPGRADE_HREF, UPGRADE_LABEL, upgradeCopyFor } from '@/lib/profileTier'
 
@@ -152,6 +153,55 @@ export function EditGrip(props) {
       <GripIcon />
     </span>
   )
+}
+
+// ---------------------------------------------------------------------------
+// WHERE "EDIT IN RESUME WRITER" LANDS
+//
+// The direction's own core resume, open in the editor: the same page the hub
+// opens when you click into a core there. Sending somebody to a list to find
+// the resume they were already looking at is a step they should not have to
+// take, and on a profile with several directions it is also a question they
+// have to answer again - which of these is the one behind the section I just
+// pressed.
+//
+// A direction can genuinely have no core resume bound to it: a custom
+// direction added before any resume existed, or a suggestion that was never
+// built out. That is not a reason to show somebody a list, though - the work
+// history and the skills on screen came from a resume, and if it is not this
+// direction's own then it is the account's main one. So the order is: this
+// direction's resume, the primary direction's resume, the account's priority
+// core. The hub only when there is no core resume anywhere, which is an
+// account that has not written one yet, and then a list is the honest answer.
+//
+// Read off `allLenses` rather than the document's `lenses`: this only runs in
+// edit mode, and the manage payload is the one that carries core_resume_id
+// for every direction the owner has, not just the ones on show.
+// ---------------------------------------------------------------------------
+const RESUME_HUB = '/resume-coach'
+
+// source 'user' with sort_order 0 is the pair ensurePrimaryLens writes as the
+// primary direction's identity, so this asks what that writer answers - the
+// same test the lens visibility route makes.
+const isPrimaryLens = (lens) => lens?.source === 'user' && lens?.sort_order === 0
+
+export function useResumeEditorHref() {
+  const edit = useProfileEdit()
+  const lensId = edit?.lensId || null
+  const lenses = edit?.allLenses
+  // The account's priority core, resolved server side rather than guessed
+  // here: it is what the document route already read, and it covers the
+  // account whose one and only resume is bound to no direction at all.
+  const priorityCoreId = edit?.primaryCoreResumeId || null
+
+  return useMemo(() => {
+    const all = Array.isArray(lenses) ? lenses : []
+    const own = lensId ? all.find(one => one?.id === lensId)?.core_resume_id : null
+    const primary = all.find(isPrimaryLens)?.core_resume_id || null
+
+    const resumeId = own || primary || priorityCoreId
+    return resumeId ? `/resume/${resumeId}` : RESUME_HUB
+  }, [lensId, lenses, priorityCoreId])
 }
 
 // For content that is real but is not this page's to change: the resume behind

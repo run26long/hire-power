@@ -2,7 +2,7 @@
 
 import Reveal from './Reveal'
 import ExperienceStory from './ExperienceStory'
-import { EditElsewhere, useEditSlot } from './EditAffordance'
+import { EditElsewhere, useEditSlot, useResumeEditorHref } from './EditAffordance'
 
 // ============================================================================
 // SELECTED EXPERIENCE
@@ -19,6 +19,8 @@ import { EditElsewhere, useEditSlot } from './EditAffordance'
 // ============================================================================
 export default function SelectedExperience({ experience, expandedRole, onToggleRole, animate }) {
   const slot = useEditSlot()
+  // Above the early return: both of these are hooks.
+  const resumeHref = useResumeEditorHref()
   if (experience.length === 0) return null
 
   return (
@@ -28,7 +30,7 @@ export default function SelectedExperience({ experience, expandedRole, onToggleR
             resume, so the place to change them is the resume. A control that
             let somebody type over them here would be writing into a copy. */}
         <Reveal enabled={animate} className={`hp-exp-intro${slot}`}>
-          <EditElsewhere href="/resume-coach">Edit in Resume Writer</EditElsewhere>
+          <EditElsewhere href={resumeHref}>Edit in Resume Writer</EditElsewhere>
           <span className="hp-label">Selected experience</span>
           <h2 className="hp-exp-headline">Proof, not just claims.</h2>
         </Reveal>
