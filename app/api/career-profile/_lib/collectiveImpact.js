@@ -50,7 +50,7 @@ const SUMMARY_MIN_WORDS = 18
 const SUMMARY_MAX_WORDS = 34
 const SUMMARY_MAX_SENTENCES = 2
 const STATEMENT_MIN_WORDS = 6
-const STATEMENT_MAX_WORDS = 12
+const STATEMENT_MAX_WORDS = 14
 // Up to three themes, and as few as one. Three is what a well-covered
 // profile carries, but what decides it is how many points two referees
 // actually both make. A theme that only one passage supports is not written
@@ -75,6 +75,10 @@ const MAX_ATTEMPTS = 5
 
 // Quoting the testimonials is the one thing this section is not allowed to do.
 const QUOTE_MARKS = /["“”]/
+
+// Barred in the prompt for as long as there has been a prompt, and now
+// checked, because asking was not enough.
+const EM_DASH = /—/
 
 // Every string this stores is rendered as profile copy, and profile copy does
 // not narrate the person: not in the first person, not in the third, and not
@@ -105,33 +109,122 @@ const QUOTE_MARKS = /["“”]/
 // The testimonials are exempt and untouched; they are someone else speaking,
 // and a referee saying "he" is the whole point of Firsthand.
 const PRONOUNS = /\b(he|him|his|she|her|hers|i|me|my|mine|we|us|our|ours)\b/i
-const STAND_INS = /\b(this (executive|professional|leader|candidate|individual)|the (candidate|individual))\b/i
 
-// Present tense, checked rather than asked for. The voice drops the subject,
-// so the first word of every sentence is the verb, and a third person present
-// verb ends in s: "Rebuilds", "Opens", "Develops". A lead ending in "ed", or
-// any lead that is not a present verb, is the section narrating a career
-// instead of naming a capability.
-const leadWords = (text) => text
-  .split(/(?<=[.!?])\s+/)
-  .map(part => (part.trim().match(/^[A-Za-z']+/) || [''])[0])
-  .filter(Boolean)
+// The person's own first name, which the summary may use once and a theme
+// statement may not use at all. Escaped, because a display name is whatever
+// somebody typed and a bracket in it would otherwise throw here.
+const firstNameOf = (ownerName) => String(ownerName || '').trim().split(/\s+/)[0] || ''
 
+function nameUses(text, firstName) {
+  if (!firstName) return 0
+  const escaped = firstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return (text.match(new RegExp(`\\b${escaped}\\b`, 'gi')) || []).length
+}
+
+// Tense and sentence openings are asked for in the prompt and no longer
+// checked here. The checks were rejecting ordinary English - a summary
+// sentence that opens on a noun, a verb that is irregular - and every
+// rejection spends an attempt. What is left below is the set of limits that
+// are true whatever register the writing arrives in.
 const wordCount = (text) => text.split(/\s+/).filter(Boolean).length
 const sentenceCount = (text) => (text.match(/[.!?](?:\s|$)/g) || []).length
 
-// The fingerprint of what a synthesis was made from: the eligible ids in a
-// stable order, each with its exact stored text. What makes a second run
-// cheap and a half-finished one safe to pick up.
+// ---- THE SAME WORDS IN THE SAME ORDER ----
+//
+// Two of the checks below ask whether one piece of writing is carrying
+// another one's words: a statement restating the summary, and either of them
+// lifting a run of words out of a passage. Both questions are the same
+// question at different lengths, so both are asked of the same reduction of
+// the text - lower case, apostrophes closed up, everything else that is not a
+// letter or a digit treated as a space. Comparing anything richer than that
+// would let a comma or a capital hide a copy.
+const wordsOf = (text) => String(text || '')
+  .toLowerCase()
+  .replace(/['’]/g, '')
+  .replace(/[^a-z0-9]+/g, ' ')
+  .split(' ')
+  .filter(Boolean)
+
+// Every run of n consecutive words in a text.
+function gramsOf(text, n) {
+  const words = wordsOf(text)
+  const grams = new Set()
+  for (let at = 0; at + n <= words.length; at += 1) {
+    grams.add(words.slice(at, at + n).join(' '))
+  }
+  return grams
+}
+
+// Every run of n consecutive words across several texts. A run is only ever
+// built inside one text, so a match means that whole run appears in a single
+// passage rather than being assembled out of two.
+function gramsAcross(texts, n) {
+  const grams = new Set()
+  for (const text of texts) {
+    for (const gram of gramsOf(text, n)) grams.add(gram)
+  }
+  return grams
+}
+
+// The first run of n words this text shares with a set of runs, or null.
+function sharedRun(text, grams, n) {
+  const words = wordsOf(text)
+  for (let at = 0; at + n <= words.length; at += 1) {
+    const run = words.slice(at, at + n).join(' ')
+    if (grams.has(run)) return run
+  }
+  return null
+}
+
+// A statement exists to add something. Four words of the summary in the same
+// order is not a new point, it is the summary again in a shorter box.
+const ECHO_WORDS = 4
+
+// Five words of a passage in the same order is the referee's sentence, not a
+// reading of it. Short enough to catch a lifted phrase, long enough that an
+// ordinary run of plain English - "the way the team works" - is not treated
+// as a copy.
+const LIFT_WORDS = 5
+
+// What the synthesis was made from, counting the instructions as part of it.
+//
+// The hash used to be the testimonials alone, which made every prompt change
+// invisible: the set had not moved, so the stored row was declared current
+// and the new instructions were never run. The prompt is half of what
+// produced the writing, so it belongs in the fingerprint of it.
+//
+// Bump this whenever the prompt or the contract changes in a way that should
+// rewrite what is already stored. Every row goes stale at once, and the next
+// refresh or backfill regenerates it. 1 was every prompt before this file
+// carried a version.
+const PROMPT_VERSION = 6
+
+// The fingerprint of what a synthesis was made from: the prompt version,
+// then the eligible ids in a stable order, each with its exact stored text.
+// What makes a second run cheap and a half-finished one safe to pick up.
 export function sourceHashFor(testimonials) {
   const canonical = testimonials
     .map(t => `${t.id} ${t.polished_text}`)
     .sort()
     .join('\n')
-  return createHash('sha256').update(canonical).digest('hex')
+  return createHash('sha256').update(`prompt ${PROMPT_VERSION}\n${canonical}`).digest('hex')
 }
 
-function buildPrompt(testimonials, ownerName, correction, themeRange) {
+// ============================================================================
+// THE PROMPT
+//
+// Short on purpose. What stood here before was the scar tissue of every bad
+// result it had ever produced: a voice section, a rules section, worked
+// repairs, barred words, an example of the failure each rule existed to
+// prevent. Each line was written for a real fault, and together they taught
+// the model to write like something being marked rather than like somebody
+// talking. The stiffness was the instructions, not the model.
+//
+// So the rules are the few that are load-bearing, and the register is shown
+// rather than described: one example of the voice, from a different person,
+// which is worth more than a paragraph about warmth.
+// ============================================================================
+function buildPrompt(testimonials, firstName, correction) {
   const block = testimonials
     .map((t, i) => {
       const context = [t.recipient_title, t.relationship].filter(Boolean).join(', ')
@@ -143,54 +236,43 @@ function buildPrompt(testimonials, ownerName, correction, themeRange) {
     })
     .join('\n\n')
 
-  return `You are reading what several people wrote about one person's work, and naming what recurs across them.
+  // The prompt is written around a name and reads badly without one, and
+  // nothing upstream promises the profile has a display name on it.
+  const name = firstName || 'this person'
 
-These are the only testimonials, and they are all you have. No resume, no biography, no list of achievements. Everything you write comes from the passages below, and a point only counts if it genuinely appears in more than one of them.
+  return `Below are testimonials people wrote about ${name}. Write a short synthesis of what they say, the way a perceptive colleague would sum it up for someone deciding whether to work with ${name}.
 
 TESTIMONIALS:
 
 ${block}
 
-Return this exact structure:
+Return only valid JSON in this shape:
 {
-  "summary": "${SUMMARY_MIN_WORDS} to ${SUMMARY_MAX_WORDS} words, at most ${SUMMARY_MAX_SENTENCES} sentences.",
-  "themes": [   // ${themeRange.min === themeRange.max ? themeRange.max : `${themeRange.min} to ${themeRange.max}`} of these
-    {
-      "label": "2 to 5 words, used internally and never shown to anyone",
-      "statement": "${STATEMENT_MIN_WORDS} to ${STATEMENT_MAX_WORDS} words, shown on the profile.",
-      "testimonial_ids": ["the ids of the testimonials this came from"]
-    }
+  "summary": "two sentences, ${SUMMARY_MIN_WORDS} to ${SUMMARY_MAX_WORDS} words",
+  "themes": [
+    { "label": "2 to 5 words, internal only", "statement": "${STATEMENT_MIN_WORDS} to ${STATEMENT_MAX_WORDS} words", "testimonial_ids": ["ids this came from"] }
   ]
 }
 
-THE VOICE, which governs every string you return:
-- Write in the register of a strong professional summary, where a subject pronoun is simply not needed: "Rebuilds production systems rather than patching output." That is the voice. What it must never read as is a sentence with the pronoun deleted out of it.
-- No pronoun standing in for the person. Not "he", "him", "his", "she", "her", "hers". Not "I", "me", "my", "mine", "we", "us", "our", "ours".
-- "It", "its", "they", "them" and "their" are fine where they refer to a system, a process, a method, or anything else that is not the person.
-- Never the person's name${ownerName ? ` (${ownerName})` : ''} as a narrator.
-- No stand-ins either: not "this executive", not "this professional", not "the candidate", not "the individual".
-- No quotation marks anywhere.
+How to write it:
+- Name the qualities that come up across several testimonials and would be true in any role ${name} is considered for. Leave out details that belong to one person's project.
+- Summary: two plain, warm sentences. Use ${name}'s first name once, at most. Do not use he, she, him, her, his or hers. The second sentence can describe what people experience working with ${name}.
+- Themes: ${THEME_RANGE.min} to ${THEME_RANGE.max}, strongest first. Each is a short line that opens with a present-tense verb and says one thing. Each must be supported by at least ${MIN_SOURCES_PER_THEME} testimonials; list their ids exactly. Only include as many as the testimonials genuinely support.
+- When you refer to the people who wrote these, you may say people, others, or name the relationships listed above, combined where several apply (for example, clients and colleagues). Only name a relationship that appears in the list. Vary the wording rather than repeating people.
+- Use plain words. Write it in your own words; do not copy phrases from the testimonials.
+- Prefer everyday words. Avoid capabilities, leverage, stakeholders, narratives and similar corporate terms.
+- Never invent a fact, number, outcome or level of agreement.
+- No quotation marks. No em dashes.
 
-RULES:
-- Every string must be a natural English sentence, read back and checked as one. Dropping the subject pronoun is the only liberty taken with ordinary grammar; everything after the verb is written the way a person would actually write it. "Implements systems that surface problems before cascades start" is the failure this rule exists to prevent: a noun pressed into service as a verb phrase because it was shorter. "Implements systems that expose problems before escalation" is the same point in real English. Prefer the plain noun to the strained one, and never compress a phrase past the point where it still parses.
-- One relationship per statement, and it must land on the first reading. Name the thing that is done and what it achieves, then stop. A statement carrying two causal relations at once has no main point and stops meaning anything: where a sentence has both a "before X" clause and a separate "so that Y" or "stops Z" clause competing to be its conclusion, one of them is surplus. Keep the stronger and delete the other, or make them two statements. A worked repair: "Builds forecasting that flags shortages before stockouts halt production lines" carries two endings fighting each other; "Builds forecasting that flags shortages before they reach the line" is the same point with one. Read each statement back once at ordinary speed and ask what it says; if you have to return to the beginning to work that out, rewrite it before returning it.
-- Stay concrete. Use the specific things the referees named (the work, the scale, the tools, the outcome) rather than abstracting them into general capabilities. "Keeps documentation for ten consumer electronics brands clear and on brand" is right; "Builds systems that organize complex information" is the failure this rule prevents.
-- summary: ${SUMMARY_MIN_WORDS} to ${SUMMARY_MAX_WORDS} words, ${SUMMARY_MAX_SENTENCES} sentences at most. Count the words before returning: under ${SUMMARY_MIN_WORDS} is rejected, and two full sentences is usually what it takes to reach the range. Specific to what actually recurs in these passages. No generic praise, and no filler like "lasting improvements that persist".
-- themes: ${themeRange.min === themeRange.max ? `exactly ${themeRange.max}` : `${themeRange.min} to ${themeRange.max}, and only as many as the testimony genuinely carries - one well-supported point is better than three restatements of it`}. Each statement is ${STATEMENT_MIN_WORDS} to ${STATEMENT_MAX_WORDS} words and adds something the summary has not already said. Three restatements of one idea is the failure this rule exists to prevent.
-- Each statement must be supported by at least ${MIN_SOURCES_PER_THEME} of the passages, and testimonial_ids must list the ids it came from, copied exactly from the ids above.
-- There is no requirement to spread the statements across different passages. Cite whichever passages actually support each statement.
-- Present tense, every string. Name the capability the passages demonstrate, do not narrate the career. "Rebuilds production systems", "Opens complex markets", "Develops supervisors into leaders". Never "Rebuilt", "Reduced", "Implemented", "Developed", or any other past-tense lead. This holds for both sentences of the summary and for every statement, and it holds even though the passages themselves are written in the past: a referee recounting what happened is evidence of what this person does.
-- label is internal only. It is stored but never displayed, so do not write it as a heading for the statement beneath it.
-- Never invent a fact, a number, an outcome, a relationship, or a level of agreement. If the passages do not support a claim, it does not go in.
-- Do not quote the testimonials.
-- Do not open with boilerplate. No "Reviewers agree", no "Across these testimonials", no "Colleagues consistently". Start on the substance.
-- Do not use em dashes. Use commas, periods, or semicolons instead.
-${correction ? `
-A previous attempt was rejected because ${correction}. Fix exactly that, leave the rest of the voice and the rules intact, and return the whole structure again.
+Example of the voice (different person, do not reuse its content):
+{"summary": "Marcus turns messy operations into something a team can rely on. People describe calm judgment under pressure, plans people can actually follow, and a habit of fixing causes instead of symptoms.",
+ "themes": [
+  {"label": "root causes", "statement": "Finds the cause of a problem before fixing it.", "testimonial_ids": ["..."]},
+  {"label": "clear plans", "statement": "Writes plans a whole team can follow.", "testimonial_ids": ["..."]},
+  {"label": "steady", "statement": "Stays steady when a launch goes sideways.", "testimonial_ids": ["..."]}
+ ]}${correction ? `
 
-If the fault was a pronoun: the fix is not a synonym, it is a rewrite. Name the noun the pronoun was standing in for, or recast the clause so no subject is needed. "Keeps her style guides current across every brand" becomes "Keeps the style guides current across every brand". Read every string back once, word by word, and check each one against the barred list before returning.
-` : ''}
-Respond with ONLY valid JSON, no markdown, no explanation.`
+A previous attempt was rejected because ${correction}. Fix that and return the whole structure again.` : ''}`
 }
 
 function parseGenerated(rawText) {
@@ -201,37 +283,16 @@ function parseGenerated(rawText) {
   return JSON.parse(json)
 }
 
-// What is wrong with a string's tense, phrased so it can be handed straight
-// back as a correction. Null when nothing is wrong.
-function tenseFault(text) {
-  for (const lead of leadWords(text)) {
-    if (/ed$/i.test(lead)) {
-      return `it opens a sentence with "${lead}", which is past tense`
-    }
-    if (!/s$/i.test(lead)) {
-      return `it opens a sentence with "${lead}" rather than a present-tense verb`
-    }
-  }
-  return null
-}
-
-// What is wrong with a string's voice, phrased so it can be handed straight
-// back to the model as a correction. Null when nothing is wrong.
-function voiceFault(text, ownerName) {
+// What is wrong with a string, phrased so it can be handed straight back to
+// the model as a correction. Null when nothing is wrong. These are the marks
+// and the words that are wrong in any register, which is why they are still
+// checked when the stylistic rules are not.
+function voiceFault(text) {
   if (QUOTE_MARKS.test(text)) return 'it contains quotation marks'
+  if (EM_DASH.test(text)) return 'it contains an em dash'
 
   const pronoun = text.match(PRONOUNS)
   if (pronoun) return `it uses the pronoun "${pronoun[0]}"`
-
-  const standIn = text.match(STAND_INS)
-  if (standIn) return `it uses the stand-in "${standIn[0]}"`
-
-  if (ownerName) {
-    const first = ownerName.split(/\s+/)[0]
-    if (first && first.length > 2 && new RegExp(`\\b${first}\\b`, 'i').test(text)) {
-      return 'it names the person being written about'
-    }
-  }
 
   return null
 }
@@ -242,14 +303,14 @@ function voiceFault(text, ownerName) {
 // worse than none: it would half fill the section and look finished.
 //
 // Returns the validated result, or the reason it was rejected. Never both.
-function validateGenerated(parsed, allowedIds, ownerName, themeRange) {
+function validateGenerated(parsed, allowedIds, firstName, themeRange, sourceGrams) {
   const fail = (reason) => ({ value: null, reason })
 
   const summary = typeof parsed?.summary === 'string' ? parsed.summary.trim() : ''
   if (!summary) return fail('the summary was missing')
 
-  const summaryFault = voiceFault(summary, ownerName)
-  if (summaryFault) return fail(`the summary "${summary}" broke the voice rules: ${summaryFault}`)
+  const summaryFault = voiceFault(summary)
+  if (summaryFault) return fail(`the summary "${summary}" broke the rules: ${summaryFault}`)
 
   const words = wordCount(summary)
   if (words < SUMMARY_MIN_WORDS) {
@@ -258,12 +319,25 @@ function validateGenerated(parsed, allowedIds, ownerName, themeRange) {
   if (words > SUMMARY_MAX_WORDS) {
     return fail(`the summary was ${words} words, over the ${SUMMARY_MAX_WORDS} word maximum`)
   }
-  const summaryTense = tenseFault(summary)
-  if (summaryTense) return fail(`the summary "${summary}" is not in the present tense: ${summaryTense}`)
-
   if (sentenceCount(summary) > SUMMARY_MAX_SENTENCES) {
     return fail(`the summary ran past ${SUMMARY_MAX_SENTENCES} sentences`)
   }
+
+  // The summary may say the name once. A second use is the section talking
+  // about somebody rather than summing them up.
+  if (nameUses(summary, firstName) > 1) {
+    return fail(`the summary uses the name "${firstName}" more than once`)
+  }
+
+  const summaryLift = sharedRun(summary, sourceGrams, LIFT_WORDS)
+  if (summaryLift) {
+    return fail(
+      `the summary lifts the phrase "${summaryLift}" from one of the passages. ` +
+      'Name the quality in your own words'
+    )
+  }
+
+  const summaryGrams = gramsOf(summary, ECHO_WORDS)
 
   const rawThemes = Array.isArray(parsed?.themes) ? parsed.themes : []
   if (rawThemes.length < themeRange.min || rawThemes.length > themeRange.max) {
@@ -282,14 +356,16 @@ function validateGenerated(parsed, allowedIds, ownerName, themeRange) {
     const statement = typeof theme?.statement === 'string' ? theme.statement.trim() : ''
     if (!label || !statement) return fail('a theme was missing its label or its statement')
 
-    const statementFault = voiceFault(statement, ownerName)
+    const statementFault = voiceFault(statement)
     if (statementFault) {
-      return fail(`the statement "${statement}" broke the voice rules: ${statementFault}`)
+      return fail(`the statement "${statement}" broke the rules: ${statementFault}`)
     }
 
-    const statementTense = tenseFault(statement)
-    if (statementTense) {
-      return fail(`the statement "${statement}" is not in the present tense: ${statementTense}`)
+    if (nameUses(statement, firstName) > 0) {
+      return fail(
+        `the statement "${statement}" uses the name "${firstName}", which belongs ` +
+        'only in the summary'
+      )
     }
 
     const statementWords = wordCount(statement)
@@ -297,6 +373,24 @@ function validateGenerated(parsed, allowedIds, ownerName, themeRange) {
       return fail(
         `the statement "${statement}" was ${statementWords} words, outside the ` +
         `${STATEMENT_MIN_WORDS} to ${STATEMENT_MAX_WORDS} word range`
+      )
+    }
+
+    // A theme is owed something the summary has not already said, and this
+    // is the version of that rule a machine can check.
+    const echo = sharedRun(statement, summaryGrams, ECHO_WORDS)
+    if (echo) {
+      return fail(
+        `the statement "${statement}" repeats the summary: both contain ` +
+        `"${echo}". A statement has to add something the summary has not said`
+      )
+    }
+
+    const lift = sharedRun(statement, sourceGrams, LIFT_WORDS)
+    if (lift) {
+      return fail(
+        `the statement "${statement}" lifts the phrase "${lift}" from one of ` +
+        'the passages. Name the quality in your own words'
       )
     }
 
@@ -321,6 +415,10 @@ function validateGenerated(parsed, allowedIds, ownerName, themeRange) {
 }
 
 async function generate(eligible, allowedIds, ownerName) {
+  const firstName = firstNameOf(ownerName)
+  // Built once rather than per attempt: the passages do not change between
+  // tries, only the writing being checked against them.
+  const sourceGrams = gramsAcross(eligible.map(t => t.polished_text), LIFT_WORDS)
   let correction = null
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
@@ -328,7 +426,7 @@ async function generate(eligible, allowedIds, ownerName) {
       model: MODEL,
       max_tokens: 1200,
       temperature: TEMPERATURE,
-      messages: [{ role: 'user', content: buildPrompt(eligible, ownerName, correction, THEME_RANGE) }]
+      messages: [{ role: 'user', content: buildPrompt(eligible, firstName, correction) }]
     })
 
     let parsed
@@ -340,7 +438,7 @@ async function generate(eligible, allowedIds, ownerName) {
       continue
     }
 
-    const { value, reason } = validateGenerated(parsed, allowedIds, ownerName, THEME_RANGE)
+    const { value, reason } = validateGenerated(parsed, allowedIds, firstName, THEME_RANGE, sourceGrams)
     if (value) return value
 
     console.error(`[collective-impact] Attempt ${attempt} rejected: ${reason}`)
