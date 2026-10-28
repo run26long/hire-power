@@ -1514,19 +1514,72 @@
     );
   }
 }
-/* ---- Very narrow phones ----
-   The sticky bar is one row and it stays one row. Below 431 the two actions in
-   it leave the rail 102 to 172px, which is narrower than the direction names
-   themselves, so a name can only ever be half read there. The rail wins: the
-   actions in this bar are duplicates of the masthead pair at the top of the
-   page and the pair in the resolution at the foot of it, and both of those are
-   untouched, so nothing is actually lost by dropping the third copy.
+/* ---- The sticky bar on a phone ----
+   The query is the one in _lib/useNarrow.js, repeated character for
+   character; see the note at the head of the Skills block in sections.css.
 
-   display:none rather than a visual hide, so the duplicates leave the tab
-   order and the accessibility tree together with the layout. The bar's own
-   height is fixed at 68px and does not depend on them. */
-@media (max-width: 430px) {
+   The bar is one row and it stays one row, and on a phone the row is the
+   Career Directions and nothing else.
+
+   The two actions went first. They were already dropped below 431, where they
+   left the rail 102 to 172px - narrower than the names it has to show - and
+   the same arithmetic holds at every phone width: a 390 or 430 point screen
+   has one row to spend and the names are what it is for. Nothing is lost by
+   dropping them. They are the third copy of a pair that is in the masthead at
+   the top of the page and in the resolution at the foot of it, and both of
+   those are untouched. display:none rather than a visual hide, so the
+   duplicates leave the tab order and the accessibility tree along with the
+   layout; the bar's 68px does not depend on them.
+
+   The chevrons went with them. They are a desktop-shaped answer to a rail
+   that overflows - a target either side, costing 46px of padding each - and
+   on a phone the answer is the swipe the reader is already making. The names
+   get all of it.
+
+   Everything the row needs to behave is declared here rather than inherited
+   from the width-only block above, because a phone in landscape clears 767
+   and would otherwise get a one-line row with none of the scrolling. */
+@media (max-width: 767px), (pointer: coarse) and (max-height: 500px) {
   .hp-bar-actions { display: none; }
+
+  .hp-bar .hp-rail .hp-rail-step { display: none; }
+  .hp-bar .hp-rail[data-steps="true"] { padding-inline: 0; }
+
+  .hp-bar-track {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    /* 8px, matching the track's own ring padding: the page gutter here would
+       stop a tab short of the edge it is snapping to. */
+    scroll-padding-inline: 8px;
+  }
+
+  /* Tabs, so the one being read sits at the leading edge with the next one
+     showing past it, rather than centred with both neighbours half shown.
+     The last snaps to its own end, which is what lets it be reached at all. */
+  .hp-bar-item {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .hp-bar-item:last-child { scroll-snap-align: end; }
+
+  /* The edge fade went with the chevrons it was drawn for: it exists to stop
+     a name rendering under a control in the gutter, and with the gutters
+     gone the only thing left under it is the tab being read, sitting at the
+     leading edge where the start fade is. */
+  .hp-bar-track[data-fade-start="true"],
+  .hp-bar-track[data-fade-end="true"] {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  /* One direction is a statement, not a choice. It was already rendered as a
+     plain label rather than a tab; this only says it may use the width the
+     actions were holding. */
+  .hp-bar-single { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 }
 
 /* ================================================== REDUCED MOTION ====== */

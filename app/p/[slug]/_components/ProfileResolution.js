@@ -55,9 +55,16 @@ export default function ProfileResolution({ readyTags, location, actions, animat
                     it always did. */}
                 <EditPencil field="ready_tags" label="the Open To tags" persists />
                 <strong className="hp-foot-open-label">Open to</strong>
-                {readyTags.map((tag, index) => (
-                  <span className="hp-open-tag" key={`${tag}-${index}`}>{tag}</span>
-                ))}
+                {/* `display: contents` above the phone breakpoint, so the
+                    pills stay direct children of the line and the row reads
+                    exactly as it did. On a phone it becomes the box they
+                    scroll inside, which is a thing a run of loose spans
+                    cannot be. */}
+                <span className="hp-open-tags">
+                  {readyTags.map((tag, index) => (
+                    <span className="hp-open-tag" key={`${tag}-${index}`}>{tag}</span>
+                  ))}
+                </span>
               </p>
             )}
 

@@ -468,7 +468,11 @@ export default function SkillsSection({
     const ceiling = (bar ? bar.getBoundingClientRect().bottom : 0) + PROOF_GUTTER
     const floor = viewH - PROOF_GUTTER
 
-    const roomX = Math.max(PROOF_IDEAL_WIDTH / 2, viewW - PROOF_GUTTER * 2)
+    // The room, and never more than the room. This used to floor at half the
+    // ideal width, which on a viewport narrower than the floor asked for a
+    // surface wider than the screen - and a surface wider than the screen has
+    // no position that keeps it on the screen.
+    const roomX = Math.max(0, viewW - PROOF_GUTTER * 2)
     const width = Math.min(roomX, Math.max(PROOF_IDEAL_WIDTH, box.width + PROOF_CONTAIN_PAD * 2))
 
     // What the content actually comes to at that width.
@@ -482,21 +486,49 @@ export default function SkillsSection({
     }
 
     // The room between the bar and the foot of the viewport is the real
-    // ceiling; the constants only say what is comfortable within it.
-    const roomY = Math.max(box.height + PROOF_CONTAIN_PAD * 2, floor - ceiling)
+    // ceiling; the constants only say what is comfortable within it. Same
+    // correction as the width above: it used to floor at the tile's own
+    // height plus the padding, which on a short window asked for a surface
+    // taller than the space it had to stand in.
+    const roomY = Math.max(0, floor - ceiling)
     const ceilingH = Math.min(PROOF_MAX_HEIGHT, roomY)
     const floorH = Math.min(PROOF_MIN_HEIGHT, ceilingH)
     const height = Math.max(floorH, Math.min(natural, ceilingH))
 
-    let left = box.left + box.width / 2 - width / 2
-    left = Math.max(PROOF_GUTTER, Math.min(left, viewW - width - PROOF_GUTTER))
-    if (left > box.left) left = box.left
-    if (left + width < box.right) left = box.right - width
+    // ---- WHERE IT SITS ----
+    //
+    // Centred on the tile, pulled back far enough to contain the tile, and
+    // then clamped into the viewport - in that order, because whichever runs
+    // last is the one that holds, and the viewport is the constraint that
+    // cannot be given up.
+    //
+    // It used to clamp first and contain second, so a tile hanging over an
+    // edge dragged the whole surface out after it. On this track that is not
+    // an edge case: the cards scroll sideways, so a tile half past the edge
+    // of the screen is the ordinary state of the ones at either end.
+    //
+    // A tile fully on screen is placed exactly where it was. The page's own
+    // gutter is 22px and this one is 16, so such a tile's edges already sit
+    // inside the clamp, which leaves the clamp with nothing to say about an
+    // answer that contains them.
+    const settle = (start, size, near, far, min, max) => {
+      let value = start
+      if (value > near) value = near
+      if (value + size < far) value = far - size
+      return Math.max(min, Math.min(value, max - size))
+    }
 
-    let top = box.top + box.height / 2 - height / 2
-    top = Math.max(ceiling, Math.min(top, floor - height))
-    if (top > box.top) top = box.top
-    if (top + height < box.bottom) top = box.bottom - height
+    const left = settle(
+      box.left + box.width / 2 - width / 2, width,
+      box.left, box.right,
+      PROOF_GUTTER, viewW - PROOF_GUTTER
+    )
+
+    const top = settle(
+      box.top + box.height / 2 - height / 2, height,
+      box.top, box.bottom,
+      ceiling, floor
+    )
 
     return {
       left: Math.round(left),

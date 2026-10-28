@@ -1682,6 +1682,17 @@
 }
 
 /* ---- A phone ----
+   The query is the one in _lib/useNarrow.js, repeated here character for
+   character, and repeated again at every mobile-only block in these
+   stylesheets. CSS has no way to name a media query without a build step
+   this project does not run, so the hook is the source of truth and a change
+   there is a change to every copy of this line.
+
+   The second clause is what catches a phone in landscape, which is wider
+   than 767 and still a phone: a coarse pointer and a viewport too short to
+   lay a page out down. A tablet in landscape is coarse and tall, so it keeps
+   the desktop layout.
+
    The mosaic is a desktop idea. It sizes a card to its widest row, and a row
    of skills is wider than a phone is: planned here, a card either ran past the
    screen or squeezed every tile in it until the labels wrapped mid-word.
@@ -1692,7 +1703,7 @@
    being written. The track still shows the edge of the next card to say that
    it moves, and now it snaps, one card to a swipe, with dots underneath
    saying which one this is. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-height: 500px) {
   .hp-field {
     gap: 12px;
     scroll-snap-type: x mandatory;
@@ -2084,6 +2095,11 @@
   white-space: nowrap;
 }
 
+/* No box of its own: the pills are children of the line and wrap with it,
+   which is the arrangement this section was designed around. The element
+   exists for the phone rule below, where they need something to scroll in. */
+.hp-open-tags { display: contents; }
+
 .hp-open-tag {
   font-size: 14px;
   color: var(--profile-body);
@@ -2091,6 +2107,45 @@
   border: 1px solid var(--profile-line);
   border-radius: var(--profile-radius-pill);
   padding: 7px 16px;
+}
+
+/* ---- Open to, on a phone ----
+   The query is the one in _lib/useNarrow.js, repeated character for
+   character; see the note at the head of the Skills block below.
+
+   Wrapped, this line is a label and then two or three ragged rows of pills,
+   and the label stops reading as a label at all. So the label takes its own
+   line and the pills take one row under it that scrolls, with the last one
+   cut by the edge to say there is more. Same pills: only the box around them
+   is new. */
+@media (max-width: 767px), (pointer: coarse) and (max-height: 500px) {
+  /* The label is small type set as a label, and `width: 100%` in the
+     wrapping line above is what puts the pills on the next line rather than
+     beside it. In Edit mode the pencil stays on the label's line, where it
+     already sits. */
+  .hp-foot-open-label {
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .hp-open-tags {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .hp-open-tags::-webkit-scrollbar { display: none; }
+
+  /* A pill keeps its own width in a row that scrolls. Left to shrink it would
+     divide the line between however many there are and wrap its own words. */
+  .hp-open-tags > .hp-open-tag { flex: 0 0 auto; }
 }
 
 .hp-foot-actions {
@@ -2513,7 +2568,7 @@
    the rest of the collection does not belong above the part of it that is
    already on screen. The section renders it there rather than in the slot at
    this width, so this only has to size it. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-height: 500px) {
   .hp-profile .hp-ev-all {
     display: flex;
     width: 100%;
@@ -3438,15 +3493,35 @@
 
 /* The same two marks on an evidence tile. The line is inset rather than in
    the gutter because the tile clips its own overflow, and an edge drawn
-   outside it would simply not be painted. */
+   outside it would simply not be painted.
+
+   `opacity` is named here and nowhere in the portfolio rule above, and it is
+   the whole difference between the two. The portfolio mark is drawn on the
+   grid cell, which is a wrapper; this one is drawn on the tile, and in Edit
+   mode the tile is also the `.hp-ed-slot` whose own ::after is the hover
+   wash - the same pseudo-element on the same element, sitting at opacity 0
+   until the tile is hovered. During a drag the grip holds the pointer, so
+   the tile being dragged towards is never the hovered one and the line was
+   painted at zero. */
 .hp-profile .hp-ev-tile[data-drop]::after {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
+  /* And the same reason for these two: the wash is inset -12px on both sides,
+     so "after" would arrive with a left, a right and a width all set at once,
+     which in a left-to-right box means the right is dropped and the line is
+     drawn down the wrong edge. Each side rule below sets its own and leaves
+     the other alone. */
+  left: auto;
+  right: auto;
   width: 3px;
   border-radius: 2px;
   background: var(--profile-accent);
+  opacity: 1;
+  /* The wash fades; a drop mark does not. It has to be where the card will
+     land at the moment the pointer crosses, not a sixth of a second later. */
+  transition: none;
   z-index: 4;
   pointer-events: none;
 }
