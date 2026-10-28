@@ -830,16 +830,13 @@
    arrow keys all already do this. A thin thumb says there is more without
    becoming something to look at. */
 
+/* No longer a scroll region. The column shows three accounts and the rest
+   are in a panel, so there is nothing here to scroll, nothing for a keyboard
+   to be trapped in, and no gutter to hold open for a bar that never comes. */
 .hp-voices-scroll {
   flex: 1 1 auto;
   min-height: 0;
   margin-top: 16px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  /* The gutter is held whether or not the bar is showing, so the text does not
-     shift by a few pixels the moment the list becomes scrollable. */
-  scrollbar-gutter: stable;
 }
 
 /* Styling the pseudo-elements is what gets a bar that is actually always there:
@@ -951,6 +948,33 @@
    reads as a control at that weight and that strength. The padding is touch
    target only; the negative margin keeps that target from pushing the line
    the attribution sits on. */
+/* The way into the rest of them, under the three. The same quiet treatment
+   the per-quote control beside it already has, so the column has one voice
+   for "there is more of this" rather than two. */
+.hp-voices-all {
+  display: block;
+  margin: 14px 0 0;
+  padding: 6px 0;
+  background: none;
+  border: 0;
+  font-family: var(--profile-font-ui, inherit);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--profile-meta);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.hp-voices-all:hover { color: var(--profile-text); }
+
+.hp-voices-all:focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
 .hp-voice-item .hp-voice-more {
   flex: 0 0 auto;
   margin: 0 0 -5px auto;
@@ -1035,33 +1059,22 @@
 
   .hp-impact-synthesis { grid-column: 1 / 6; padding: 30px 28px; }
 
-  /* The row is the card and only the card. A grid track grows to fit the
-     max-content of every item in it, so the accounts would otherwise push the
-     row taller the moment a reader opened one - the list would never scroll,
-     it would just make the section longer. Contributing no height and then
-     filling whatever the card settled on is what hands the overflow back to
-     the list. */
-  .hp-impact-voices { grid-column: 6 / 13; height: 0; min-height: 100%; }
+  /* The column sizes itself. It used to contribute no height and then fill
+     whatever the synthesis card beside it settled on, which is what handed
+     the overflow back to the list it scrolled. There is no list to scroll
+     now - three accounts, and the rest in a panel - so the row is simply as
+     tall as the taller of the two, and a direction with accounts and no
+     synthesis cannot collapse to nothing. */
+  .hp-impact-voices { grid-column: 6 / 13; }
 
   /* Either side alone takes a readable share of the frame rather than the whole
      of it, and never leaves a column standing empty beside it. */
   .hp-impact-flow[data-voices="false"] .hp-impact-synthesis { grid-column: 1 / 9; }
 
-  /* And alone, the accounts column has to size itself. The rule above hands
-     its height to the card beside it - no height of its own, then 100% of
-     whatever the row settled on - which only works while there is a card in
-     the row to settle it. With no synthesis there is nothing: 100% of a row
-     holding one zero-height item is zero, the scroller inside it is clipped
-     to nothing, and the heading above the scroller overflows and stays
-     visible. A direction with accounts and no synthesis therefore printed
-     "Firsthand Accounts" over an empty space in Preview and on the public
-     page, while the editor looked right - the editor always draws a ghost
-     synthesis card, and that card was giving the row its height. */
-  .hp-impact-flow[data-synthesis="false"] .hp-impact-voices {
-    grid-column: 1 / 8;
-    height: auto;
-    min-height: 0;
-  }
+  /* Alone in the row, it takes a readable share of the frame rather than
+     the whole of it. The height overrides this used to carry went with the
+     borrowed height above: the column sizes itself in both cases now. */
+  .hp-impact-flow[data-synthesis="false"] .hp-impact-voices { grid-column: 1 / 8; }
 
   .hp-impact-summary { font-size: 20px; line-height: 1.42; }
 

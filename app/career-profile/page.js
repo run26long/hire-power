@@ -538,6 +538,42 @@ export default function CareerProfileEditorPage() {
     return payload
   }, [getAuthHeaders, afterEvidenceChange])
 
+  // ---- THE SYNTHESIS, AFTER THE SET IT READS HAS MOVED ----
+  //
+  // Collective Impact is one reading of every published testimonial on the
+  // profile, so it goes stale when that set changes: an approval, a delete,
+  // a decline, or a publish. Moving a testimonial between Career Directions
+  // is not on that list, because every direction shows the same synthesis
+  // and the profile's set of published testimonials has not moved.
+  //
+  // Fired and not awaited, and from here rather than from inside those
+  // routes. Nothing the owner pressed is left waiting on a model call that
+  // takes seconds, and a serverless handler that has already returned its
+  // response is not a safe place to leave a promise running.
+  //
+  // One request, and a cheap one where nothing needs doing: the route
+  // compares the set's hash against the stored one and returns without
+  // calling the model when they match.
+  //
+  // Failures are swallowed on purpose. This is housekeeping behind a write
+  // that has already succeeded, and a toast about a summary nobody asked for
+  // would report the wrong thing as broken.
+  const refreshImpacts = useCallback(async () => {
+    let headers
+    try {
+      headers = await getAuthHeaders()
+    } catch {
+      return
+    }
+    const body = await fetch('/api/career-profile/collective-impact', { method: 'POST', headers })
+      .then(res => res.ok ? res.json().catch(() => ({})) : null)
+      .catch(() => null)
+    // Only where something was actually written. A pass that found the
+    // stored reading current, or found too few testimonials for one, has
+    // nothing for the page to re-read.
+    if (body && body.unchanged !== true) await reloadDocument()
+  }, [getAuthHeaders, reloadDocument])
+
   // Which directions one item appears on: the scope and the rows in one
   // request, because they are one decision. Sending them separately has an
   // intermediate state where the item is on nothing, and a failure between
@@ -569,6 +605,9 @@ export default function CareerProfileEditorPage() {
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(payload?.error || "We couldn't save where that appears.")
     await afterEvidenceChange()
+    // No synthesis refresh here. Moving a testimonial between directions
+    // changes which of them show it, and nothing about the one reading made
+    // from every published testimonial on the profile.
     return payload
   }, [getAuthHeaders, afterEvidenceChange])
 
@@ -725,8 +764,11 @@ export default function CareerProfileEditorPage() {
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
     await Promise.all([reloadDocument(), reloadManage()])
+    // The profile's set of published testimonials has moved, so the
+    // reading made from it is stale. Not awaited: see refreshImpacts above.
+    void refreshImpacts()
     return payload
-  }, [getAuthHeaders, reloadDocument, reloadManage])
+  }, [getAuthHeaders, reloadDocument, reloadManage, refreshImpacts])
 
   // The category the 360 count reads. Both records are re-read because the
   // badge is derived in the manage route, so the number on screen comes from
@@ -751,8 +793,11 @@ export default function CareerProfileEditorPage() {
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(payload?.error || "We couldn't remove that.")
     await Promise.all([reloadDocument(), reloadManage()])
+    // The profile's set of published testimonials has moved, so the
+    // reading made from it is stale. Not awaited: see refreshImpacts above.
+    void refreshImpacts()
     return payload
-  }, [getAuthHeaders, reloadDocument, reloadManage])
+  }, [getAuthHeaders, reloadDocument, reloadManage, refreshImpacts])
 
   // A page of other people's phone numbers, so it is fetched with the session
   // rather than linked, and the blob is released straight after.

@@ -7,6 +7,7 @@ import ProfileModal from './ProfileModal'
 import ManageList from './ManageList'
 import { TestimonialEditPane, TestimonialRequestPane, useTestimonialDelete } from './ManagePanes'
 import TestimonialReview from './TestimonialReview'
+import TestimonialsAll from './TestimonialsAll'
 import { useCanShowEmpty, useProfileEdit } from '../_lib/editContext'
 import { directionsByItem, rowsForDirection, selectForDirection } from '../_lib/profileData'
 import { PICKABLE } from './DirectionPicker'
@@ -35,6 +36,12 @@ import { PICKABLE } from './DirectionPicker'
 
 const pad = (n) => String(n).padStart(2, '0')
 
+// What the column has room to say well. Three accounts beside a synthesis is
+// a column somebody reads; every account a profile has ever collected, in a
+// box that scrolls, is a filing cabinet standing where a section should be.
+// The rest are one press away and all of them are there.
+const VOICES_PREVIEW = 3
+
 export default function CollectiveImpact({
   impact,
   testimonials,
@@ -45,6 +52,9 @@ export default function CollectiveImpact({
   const canShowEmpty = useCanShowEmpty()
   const slot = useEditSlot()
   const [expanded, setExpanded] = useState(() => new Set())
+  // Every account, on request. Its own state rather than a pane of the
+  // manage modal: this one is for readers, and the public page has it too.
+  const [allOpen, setAllOpen] = useState(false)
   const [overflowing, setOverflowing] = useState(() => new Set())
   const [shownFor, setShownFor] = useState(directionKey)
   // The management list opens on request, from the heading control or from the
@@ -371,7 +381,6 @@ export default function CollectiveImpact({
   }, [manageItems, run, edit, lensId, draftOrder])
 
   const bodyRefs = useRef(new Map())
-  const scrollRef = useRef(null)
 
   const quotes = (Array.isArray(testimonials) ? testimonials : []).filter(
     (t) => String(t?.polished_text || '').trim()
@@ -381,6 +390,7 @@ export default function CollectiveImpact({
 
   const hasImpact = Boolean(summary)
   const hasQuotes = quotes.length > 0
+  const shownQuotes = quotes.slice(0, VOICES_PREVIEW)
 
   // A new direction starts the act again. Adjusted during render rather than
   // from an effect, which is the supported way to reset state when a prop
@@ -390,15 +400,11 @@ export default function CollectiveImpact({
     setExpanded(new Set())
   }
 
-  // The scroll position belongs to the browser rather than to React, so it is
-  // put back by hand. Each direction ranks these accounts for itself, and the
-  // reader has to arrive at the top of that ranking rather than wherever the
-  // previous direction happened to be left.
-  useEffect(() => {
-    const node = scrollRef.current
-    if (node) node.scrollTop = 0
-  }, [directionKey])
-
+  // The scroll position used to be put back by hand here, because the column
+  // was a scroll region and each direction ranks these accounts for itself:
+  // the reader had to arrive at the top of that ranking rather than wherever
+  // the previous direction was left. The column shows three now and does not
+  // scroll, so there is no position to put back.
   // Which quotes are actually taller than the cap. Measured rather than
   // guessed from a character count, so the control never appears on a quote
   // that already fits.
@@ -425,7 +431,7 @@ export default function CollectiveImpact({
     return () => observer.disconnect()
     // `overflowing` is deliberately not a dependency: it is what this writes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quotes.length, expanded, directionKey])
+  }, [shownQuotes.length, expanded, directionKey])
 
   const toggle = (id) => {
     setExpanded((current) => {
@@ -436,16 +442,19 @@ export default function CollectiveImpact({
     })
   }
 
-  // Collective Impact is drawn from these accounts and from nothing else, so
-  // a stored synthesis must not outlive them: if every account has been
-  // withdrawn, unpublished or emptied, the whole act goes rather than a
-  // conclusion standing on evidence a reader can no longer see. Nothing is
-  // deleted by this - the row is still there for the day new testimony
-  // arrives. `quotes` is the collection the page was handed, already filtered
-  // to what may be served publicly.
+  // Collective Impact is drawn from every published testimonial on the
+  // profile, not from the ones this direction happens to show, so the
+  // synthesis stands on this direction even where the column beside it is
+  // empty: the evidence is on the profile, one direction along. The act
+  // goes only when there is neither a synthesis nor an account to show -
+  // which is a profile whose testimony has all been withdrawn, unpublished
+  // or emptied, and then there is nothing left for a conclusion to rest on.
+  // Nothing is deleted by this; the row is still there for the day new
+  // testimony arrives. `quotes` is the collection the page was handed,
+  // already filtered to what may be served publicly.
   // Empty on the public page means gone. For the owner it means a section
   // with a way to ask somebody for the first one.
-  if (!hasQuotes && !canShowEmpty) return null
+  if (!hasQuotes && !hasImpact && !canShowEmpty) return null
 
   return (
     <section className="hp-impact">
@@ -547,9 +556,8 @@ export default function CollectiveImpact({
               <span className="hp-label hp-impact-eyebrow">Collective Impact</span>
 
               <p className="hp-impact-summary hp-ed-guide-prose">
-                Once you publish enough testimonials, Hire Power will find the
-                patterns across them and turn those patterns into a clear view of
-                your impact.
+                Publish 2 testimonials and Hire Power will find the patterns
+                across them.
               </p>
 
               <ol className="hp-themes" aria-hidden="true">
@@ -618,18 +626,14 @@ export default function CollectiveImpact({
                 <p className="hp-voices-note">In the words of people who saw the work up close.</p>
               </div>
 
-              {/* The scroll region. Focusable so the keyboard can reach it and
-                  move it, and labelled so what is being scrolled is announced.
-                  A single account fits inside it and simply never scrolls. */}
-              <div
-                className="hp-voices-scroll"
-                ref={scrollRef}
-                tabIndex={0}
-                role="region"
-                aria-label="Firsthand accounts"
-              >
+              {/* Three, and no scroller. This was a scroll region holding
+                  every account the direction carried, which is a filing
+                  cabinet standing where a section should be - and a box the
+                  keyboard had to be given a way into and out of. The rest are
+                  one press away, all of them, in the panel below. */}
+              <div className="hp-voices-scroll">
                 <ul className="hp-voices">
-                  {quotes.map((quote, i) => {
+                  {shownQuotes.map((quote, i) => {
                     const id = quote.id || `quote-${i}`
                     const isOpen = expanded.has(id)
                     const canExpand = overflowing.has(id)
@@ -678,6 +682,20 @@ export default function CollectiveImpact({
                     )
                   })}
                 </ul>
+
+                {/* Only where there is more than the column is showing. The
+                    count is the whole of it, not the remainder: it is what
+                    the reader will find on the other side of the press. */}
+                {quotes.length > VOICES_PREVIEW && (
+                  <button
+                    type="button"
+                    className="hp-voices-all"
+                    onClick={() => setAllOpen(true)}
+                    aria-haspopup="dialog"
+                  >
+                    See all ({quotes.length})
+                  </button>
+                )}
               </div>
             </Reveal>
           )}
@@ -741,6 +759,12 @@ export default function CollectiveImpact({
                 />
               )}
             </ProfileModal>
+          ) : null}
+
+          {/* Every account, when the column is showing three of more. Readers
+              get this one, so it is not gated on being the owner. */}
+          {allOpen ? (
+            <TestimonialsAll items={quotes} onClose={() => setAllOpen(false)} />
           ) : null}
 
           {/* The decision nobody has taken yet, in its own panel. It portals

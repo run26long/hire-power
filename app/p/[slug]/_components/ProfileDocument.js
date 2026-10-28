@@ -386,14 +386,13 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     [directionEvidence]
   )
 
-  // Collective Impact is written per direction. A direction that has not been
-  // regenerated yet falls back to the shared synthesis, and a profile that
-  // never had one falls back to the priority direction's - so the section is
-  // never blank merely because this profile predates the direction scope.
-  const impact = useMemo(() => {
-    const byLens = data?.collectiveImpacts || {}
-    return byLens[selectedLens?.id] || data?.collectiveImpact || byLens[lenses[0]?.id] || null
-  }, [data?.collectiveImpacts, data?.collectiveImpact, selectedLens?.id, lenses])
+  // One synthesis, read from every published testimonial on the profile and
+  // shown on every direction. It was briefly written per direction, and rows
+  // from that period may still be in the table; they are deliberately not
+  // read. A direction's reading of the same testimony is not something the
+  // profile offers any more, and preferring a leftover row would show one
+  // direction something older than what every other direction shows.
+  const impact = data?.collectiveImpact || null
 
   // One shared, privacy-filtered collection, read in this direction's order.
   // The canonical list is what proof resolves against, so reordering here

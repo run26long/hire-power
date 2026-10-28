@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { noEmDash } from '@/app/api/career-profile/_lib/recruiterContext'
+import { stripWrappingQuotes } from '@/lib/stripQuotes'
 import { sendTransactional, TRANSACTIONAL } from '@/lib/loops/sendTransactional'
 import { firstNameOf, firstWordOf } from '@/lib/firstName'
 
@@ -355,12 +356,17 @@ function verifyLightTouch(polished, raw) {
 }
 
 function validatePolished(text, candidateName, refereeName, raw) {
+  // The quote stripping used to be `^["'\s]+|["'\s]+$`, which took every
+  // mark off both ends whatever it was doing there. That is right for a model
+  // wrapping its answer in quotes and wrong for a sentence that ends on a
+  // possessive. stripWrappingQuotes knows the difference.
   const cleaned = noEmDash(
-    String(text || '')
-      .replace(/^["'\s]+|["'\s]+$/g, '')
-      .replace(/[ \t]+/g, ' ')
-      .replace(/\n{2,}/g, ' ')
-      .trim()
+    stripWrappingQuotes(
+      String(text || '')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n{2,}/g, ' ')
+        .trim()
+    )
   )
   if (cleaned.length < POLISHED_MIN) return { reason: `too short (${cleaned.length})` }
   if (cleaned.length > POLISHED_MAX) return { reason: `too long (${cleaned.length})` }
@@ -600,7 +606,12 @@ export async function POST(request, { params }) {
     const { error: saveError } = await supabase
       .from('profile_testimonials')
       .update({
-        raw_text: raw,
+        // Without the marks that held it somewhere else. People paste, and
+        // what arrives is often the sentence wrapped in quotes, or trailing a
+        // closing one whose opener stayed behind in the other document. The
+        // profile prints a testimonial inside its own quotation marks, so
+        // either reads as a mistake somebody else made.
+        raw_text: stripWrappingQuotes(raw),
         reference_consent: consent,
         reference_phone: consent ? phone : null,
         daily_submissions: usedToday + 1,
