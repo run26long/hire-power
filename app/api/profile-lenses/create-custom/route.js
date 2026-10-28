@@ -179,7 +179,7 @@ export async function POST(request) {
     const body = await request.json().catch(() => ({}))
     const name = normaliseName(body?.name)
     if (!name || name.length < NAME_MIN) {
-      return Response.json({ error: 'Give your career direction a name.', code: 'NAME_REQUIRED' }, { status: 400 })
+      return Response.json({ error: 'Give your Career Direction a name.', code: 'NAME_REQUIRED' }, { status: 400 })
     }
     const slug = slugify(name)
     if (!slug) {
@@ -207,7 +207,7 @@ export async function POST(request) {
     if (!canCreateResumes(account?.subscription_tier)) {
       return Response.json(
         {
-          error: 'Creating a career direction is part of Pro. The directions already on your profile stay yours.',
+          error: 'Creating a Career Direction is part of Pro. The Career Directions already on your profile stay yours.',
           code: 'PRO_REQUIRED'
         },
         { status: 403 }
@@ -222,7 +222,7 @@ export async function POST(request) {
 
     if (existingError) {
       console.error('[create-custom] Lens lookup failed:', existingError)
-      return Response.json({ error: "We couldn't check your directions just now." }, { status: 500 })
+      return Response.json({ error: "We couldn't check your Career Directions just now." }, { status: 500 })
     }
 
     // ---- ALREADY HAVE IT, BY THE LETTER ----
@@ -248,7 +248,7 @@ export async function POST(request) {
     if (activeCount >= MAX_LENSES) {
       return Response.json(
         {
-          error: `Your Career Profile shows ${MAX_LENSES} career directions at a time. Turn one off to add this one.`,
+          error: `Your Career Profile shows ${MAX_LENSES} Career Directions at a time. Turn one off to add this one.`,
           code: 'LENS_LIMIT'
         },
         { status: 400 }
@@ -285,7 +285,7 @@ export async function POST(request) {
       })
     } catch (e) {
       console.error('[create-custom] Support check failed:', e)
-      return Response.json({ error: "We couldn't check that direction just now. Please try again." }, { status: 500 })
+      return Response.json({ error: "We couldn't check that Career Direction just now. Please try again." }, { status: 500 })
     }
 
     // ---- ALREADY HAVE IT, BY THE CAREER ----
@@ -375,7 +375,7 @@ export async function POST(request) {
         })
       }
       console.error('[create-custom] Lens insert failed:', insertError)
-      return Response.json({ error: "We couldn't create that direction. Please try again." }, { status: 500 })
+      return Response.json({ error: "We couldn't create that Career Direction. Please try again." }, { status: 500 })
     }
 
     // ---- WRITE IT ----
@@ -399,7 +399,7 @@ export async function POST(request) {
       const { error: cleanupError } = await supabase.from('profile_lenses').delete().eq('id', lens.id)
       if (cleanupError) console.error('[create-custom] Cleanup after failed generation failed:', cleanupError)
       return Response.json(
-        { error: "We created the direction but couldn't write it. Nothing was saved - please try again." },
+        { error: "We created the Career Direction but couldn't write it. Nothing was saved - please try again." },
         { status: 500 }
       )
     }
@@ -408,6 +408,6 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('[create-custom] Failed:', error)
-    return Response.json({ error: "We couldn't create that direction. Please try again." }, { status: 500 })
+    return Response.json({ error: "We couldn't create that Career Direction. Please try again." }, { status: 500 })
   }
 }

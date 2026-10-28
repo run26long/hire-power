@@ -602,7 +602,7 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
             <p className="hp-ed-add-saved">
               <strong>{saved.title}</strong>
               {saved.where === null
-                ? ' is now showing on all directions.'
+                ? ' is now showing on all Career Directions.'
                 : saved.where.length > 0
                   ? ` is now in ${saved.where.join(' and ')}.`
                   : ' is saved.'}

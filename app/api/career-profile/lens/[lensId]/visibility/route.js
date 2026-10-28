@@ -126,7 +126,7 @@ export async function PATCH(request, { params }) {
     if (!visible && isPrimary(lens)) {
       return Response.json(
         {
-          error: 'Your primary career direction stays on your profile. Choose a different one first.',
+          error: 'Your primary Career Direction stays on your profile. Choose a different one first.',
           code: 'PRIMARY_LENS'
         },
         { status: 400 }
@@ -139,7 +139,7 @@ export async function PATCH(request, { params }) {
     // deliberately got rid of.
     if (lens.status === 'dismissed') {
       return Response.json(
-        { error: 'That career direction was dismissed. Restore it from your suggestions first.', code: 'DISMISSED' },
+        { error: 'That Career Direction was dismissed. Restore it from your suggestions first.', code: 'DISMISSED' },
         { status: 400 }
       )
     }
@@ -162,7 +162,7 @@ export async function PATCH(request, { params }) {
       if ((count ?? 0) >= MAX_ACTIVE) {
         return Response.json(
           {
-            error: `Your Career Profile shows three career directions at a time. Turn one off to add this one.`,
+            error: `Your Career Profile shows three Career Directions at a time. Turn one off to add this one.`,
             code: 'LENS_LIMIT'
           },
           { status: 400 }
@@ -199,7 +199,7 @@ export async function PATCH(request, { params }) {
         if (!canCreateResumes(account?.subscription_tier)) {
           return Response.json(
             {
-              error: 'Adding a new career direction is part of Pro. The directions already on your profile stay yours.',
+              error: 'Adding a new Career Direction is part of Pro. The Career Directions already on your profile stay yours.',
               code: 'PRO_REQUIRED'
             },
             { status: 403 }

@@ -174,21 +174,6 @@
   --profile-chrome-top: calc(var(--ed-nav-h) + var(--ed-bar-real, var(--ed-bar-h)));
 }
 
-/* The Career Directions bar is the Profile's own, and on the public page it
-   is a veil over a blur by design - one sticky layer over a page a reader is
-   moving through slowly. Under this page's chrome it is the third such layer,
-   and the same argument the toolbar above makes applies to it: a reader of
-   the editor is scrolling a dense document past two strips, and 82% of the
-   void is not enough to stop the page being read through the direction names.
-   Opaque in here, and in here only - the public page and the document this
-   file never touches keep the veil they were designed with. Preview is this
-   same shell, so it follows the editor rather than the public page. */
-.hp-ed .hp-bar {
-  background: rgb(var(--profile-void-rgb));
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
 /* Three sticky layers stand above the document here where the public page has
    one: the app nav, this toolbar, and the Profile's own lens bar. Anything
    that scrolls itself into view has to clear all three or it arrives

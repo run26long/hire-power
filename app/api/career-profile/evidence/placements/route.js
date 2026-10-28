@@ -7,13 +7,14 @@ import { requireCustomise } from '../../_lib/requireCustomise'
 //
 // Where a piece of evidence appears, in what order, and which one leads.
 //
-// Two operations on one route because they are two edits to one table and
-// they constrain each other: hiding has to leave a position the next move can
-// still read, and moving has to carry the hidden rows with it rather than
-// renumbering around them.
-//
-//   hide     - stop a direction showing an item, without moving or losing it
 //   move     - put an item where another one sits, within a direction
+//
+// One operation. There was a second, `hide`, which stopped a direction
+// rendering an item without moving or losing it. Nothing offered it: the
+// control it was built for was never drawn, and the client plumbing that
+// could have called it has been taken out. The `hidden` column stays, and
+// move still carries hidden rows along rather than renumbering around them,
+// so a row written by an older build keeps its place and its state.
 //
 // WHAT LEADS A DIRECTION IS NOT ONE OF THESE EITHER
 // It used to be: a `feature` op set a per-direction flag and the section
@@ -33,17 +34,10 @@ import { requireCustomise } from '../../_lib/requireCustomise'
 // "all directions" at all, so it is gone rather than left as a second way to
 // say a thing that now has one.
 //
-// HIDE IS STILL NOT THAT EITHER
-// hide leaves the row where it is and stops this one direction rendering it,
-// so restoring puts the item back in its old place rather than at the end.
-// For an item scoped to all directions it is also the only way off a single
-// one without narrowing it to a list.
-//
 // EDITING A DIRECTION THAT HAS NO ROWS OF ITS OWN
 // An unarranged direction has no rows, because the items on it are there by
-// scope. There is nothing for a per-direction edit to change, so hide and
-// move write rows for everything then on it first - see the note in
-// _lib/placements.
+// scope. There is nothing for a per-direction edit to change, so move writes
+// rows for everything then on it first - see the note in _lib/placements.
 //
 // WHY MOVE TAKES TWO IDS AND NOT A DIRECTION AND A DISTANCE
 // It used to be `reorder`, taking `by: 1 | -1`, and a drag sent one call per
@@ -172,8 +166,8 @@ export async function POST(request) {
     }
 
     const op = body?.op
-    // Every one of these edits is about one direction. There is no layer left
-    // for a missing lens_id to mean.
+    // This edit is about one direction. There is no layer left for a missing
+    // lens_id to mean.
     const lensId = body?.lens_id
     if (!isUuid(lensId)) {
       return Response.json({ error: 'Invalid request.', code: 'INVALID' }, { status: 400 })
@@ -182,41 +176,6 @@ export async function POST(request) {
 
     const wrong = await belongsHere(supabase, profile, evidenceId, lensId)
     if (wrong) return Response.json({ error: wrong }, { status: 404 })
-
-    // ---- HIDE ----
-    //
-    // The row stays. Its sort_order stays, the evidence record and its file
-    // and its placements in every other direction stay. All that changes is
-    // whether this direction renders it.
-    if (op === 'hide') {
-      if (!evidenceId) return Response.json({ error: 'Not found.' }, { status: 404 })
-      if (typeof body?.hidden !== 'boolean') {
-        return Response.json({ error: 'Invalid request.', code: 'INVALID' }, { status: 400 })
-      }
-
-      const rows = await evidencePlacements.materialise(supabase, profile.id, lensId)
-      const existing = rows.find(r => r.evidence_id === evidenceId)
-      // Still no row after materialising means the item is genuinely not on
-      // this direction - scoped to particular ones, and not to this one. There
-      // is nothing here to hide, and that is worth saying rather than
-      // swallowing: this used to answer 200 with the list unchanged, which
-      // reported a write that never happened and left the switch flipping
-      // itself back on the next load with nothing to explain why.
-      if (!existing) {
-        return Response.json({ error: 'Not found.' }, { status: 404 })
-      }
-      if (existing.hidden === body.hidden) {
-        return Response.json({ placements: rows, unchanged: true })
-      }
-
-      const { error } = await supabase
-        .from('profile_evidence_placements')
-        .update({ hidden: body.hidden, updated_at: new Date().toISOString() })
-        .eq('id', existing.id)
-      if (error) throw error
-
-      return Response.json({ placements: await placementsFor(supabase, profile.id, lensId) })
-    }
 
     // ---- MOVE ----
     if (op === 'move') {

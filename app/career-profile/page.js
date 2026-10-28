@@ -72,7 +72,7 @@ const PROFILE_TOUR_STEPS = [
     targets: ['profile-directions'],
     placement: 'bottom',
     title: 'One career can tell more than one story.',
-    body: 'Career directions reshape your profile around the opportunities you want. Choose one to show employers the experience that matters most for that path.'
+    body: 'Career Directions reshape your profile around the opportunities you want. Choose one to show employers the experience that matters most for that path.'
   },
   {
     id: 'profile-mode',
@@ -377,7 +377,7 @@ export default function CareerProfileEditorPage() {
     if (!res.ok) {
       throw new Error(
         payload?.error === 'PRO_REQUIRED'
-          ? 'Regenerating a career direction is a Pro feature.'
+          ? 'Regenerating a Career Direction is a Pro feature.'
           : "We couldn't rewrite that just now. Please try again."
       )
     }
@@ -621,20 +621,12 @@ export default function CareerProfileEditorPage() {
     [placementOp]
   )
 
-  // Off this direction, without being taken out of it. The placement keeps
-  // its position and its lead status, so putting it back is the same control
-  // again rather than a guess at where it used to sit.
-  const hideEvidence = useCallback(
-    (evidenceId, lensId, hidden) => placementOp({ op: 'hide', evidence_id: evidenceId, lens_id: lensId, hidden }),
-    [placementOp]
-  )
-
   // ---- TESTIMONIAL PLACEMENTS ----
   //
-  // The same two operations over the other collection. Its own route because
-  // it is its own table, and there is no assign and no delete on it: a
-  // testimonial is somebody else's words, given once on request, and nothing
-  // in this product removes one.
+  // The same operation over the other collection. Its own route because it is
+  // its own table, and there is no assign and no delete on it: a testimonial
+  // is somebody else's words, given once on request, and nothing in this
+  // product removes one.
   const testimonialPlacementOp = useCallback(async (body) => {
     const res = await fetch('/api/career-profile/testimonials/placements', {
       method: 'POST',
@@ -647,11 +639,6 @@ export default function CareerProfileEditorPage() {
     return payload
   }, [getAuthHeaders, reloadDocument, reloadManage])
 
-  const hideTestimonial = useCallback(
-    (testimonialId, lensId, hidden) =>
-      testimonialPlacementOp({ op: 'hide', testimonial_id: testimonialId, lens_id: lensId, hidden }),
-    [testimonialPlacementOp]
-  )
   const moveTestimonial = useCallback(
     (testimonialId, lensId, targetId) =>
       testimonialPlacementOp({
@@ -919,8 +906,8 @@ export default function CareerProfileEditorPage() {
         // written; this branch is the free account's refusal, which comes
         // from requireCustomise and needs naming the same plan.
         payload?.code === 'UPGRADE_REQUIRED'
-          ? 'Adding another career direction is part of Pro.'
-          : payload?.error || "We couldn't change that career direction. Please try again."
+          ? 'Adding another Career Direction is part of Pro.'
+          : payload?.error || "We couldn't change that Career Direction. Please try again."
       )
     }
     await Promise.all([reloadDocument(), reloadManage()])
@@ -961,8 +948,8 @@ export default function CareerProfileEditorPage() {
     if (!res.ok) {
       throw new Error(
         payload?.code === 'LENS_IN_USE'
-          ? 'That career direction has a resume behind it. Delete the resume first.'
-          : payload?.error || "We couldn't delete that career direction. Please try again."
+          ? 'That Career Direction has a resume behind it. Delete the resume first.'
+          : payload?.error || "We couldn't delete that Career Direction. Please try again."
       )
     }
     await Promise.all([reloadDocument(), reloadManage()])
@@ -983,7 +970,7 @@ export default function CareerProfileEditorPage() {
       body: JSON.stringify({ lensId, newName, intent: 'resolve-duplicate' })
     })
     const payload = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(payload?.error || "We couldn't rename that career direction. Please try again.")
+    if (!res.ok) throw new Error(payload?.error || "We couldn't rename that Career Direction. Please try again.")
     if (payload?.ok === false) return payload
     // Both halves: the rail is drawn from the document and the list from the
     // management record, and the name is on both.
@@ -1008,8 +995,8 @@ export default function CareerProfileEditorPage() {
     if (!res.ok) {
       throw new Error(
         payload?.error === 'PRO_REQUIRED'
-          ? 'Rewriting a career direction is a Pro feature.'
-          : "We couldn't rewrite that direction just now. Please try again."
+          ? 'Rewriting a Career Direction is a Pro feature.'
+          : "We couldn't rewrite that Career Direction just now. Please try again."
       )
     }
     await Promise.all([reloadDocument(), reloadManage()])
@@ -1024,7 +1011,7 @@ export default function CareerProfileEditorPage() {
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) {
-      throw new Error(payload?.error || "We couldn't create that direction. Please try again.")
+      throw new Error(payload?.error || "We couldn't create that Career Direction. Please try again.")
     }
     if (payload?.ok === false) return payload
     // Both halves, because a new direction is on the document as well as in
@@ -1173,7 +1160,7 @@ export default function CareerProfileEditorPage() {
               and nothing else here would say so. */}
           {published && publicUrl ? (
             <span className="hp-ed-link-note" data-share="true">
-              Select a career direction to share a link that opens directly to it.
+              Select a Career Direction to share a link that opens directly to it.
             </span>
           ) : null}
 
@@ -1257,9 +1244,7 @@ export default function CareerProfileEditorPage() {
           onSetEvidenceDirections: setEvidenceDirections,
           onSetTestimonialDirections: setTestimonialDirections,
           onMoveEvidence: moveEvidence,
-          onHideEvidence: hideEvidence,
           allTestimonialPlacements: manage?.testimonialPlacements || [],
-          onHideTestimonial: hideTestimonial,
           onMoveTestimonial: moveTestimonial,
           onEditEvidence: editEvidence,
           onDeleteEvidence: deleteEvidence,

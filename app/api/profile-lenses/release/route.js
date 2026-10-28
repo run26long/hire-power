@@ -117,6 +117,6 @@ export async function POST(request) {
     return Response.json({ success: true, released: released || [] })
 
   } catch (error) {
-    return apiError(error, "We couldn't update your directions. Please try again.")
+    return apiError(error, "We couldn't update your Career Directions. Please try again.")
   }
 }

@@ -24,7 +24,7 @@ const service = () =>
   createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
 export const UPGRADE_REQUIRED = {
-  error: 'Customising your profile is part of Vault and Pro.',
+  error: 'Customizing your profile is part of Vault and Pro.',
   code: 'UPGRADE_REQUIRED'
 }
 

@@ -431,14 +431,11 @@ export async function GET(request, { params }) {
       console.error('[career-profile] Collective impact lookup failed (non-fatal):', impactRes.error)
     }
 
-    // Grouped by direction, the way skill proof is, so the page can only ever
-    // hand one direction's reading to the section. A row for a direction this
-    // profile does not show is dropped rather than shipped.
-    //
-    // The row with no direction stays separate as `collectiveImpact`: it is
-    // the shared synthesis, it is what every profile that predates the
-    // direction scope already has, and it is the first fallback for a
-    // direction that has not been regenerated yet.
+    // One reading for the profile, which is the row with no direction on it.
+    // There was briefly a row per direction and a map of them shipped
+    // alongside this; the synthesis is written from every published
+    // testimonial now, so the same paragraph is the true one on every
+    // direction and there is nothing to group.
     const impactRows = impactRes.error ? [] : (impactRes.data || [])
     const shape = (row) => row && ({
       summary: row.summary,
@@ -448,14 +445,6 @@ export async function GET(request, { params }) {
     })
 
     const collectiveImpact = shape(impactRows.find(row => !row.lens_id)) || null
-    const collectiveImpacts = {}
-    {
-      const shownLensIds = new Set(visibleLenses.map(lens => lens.id))
-      for (const row of impactRows) {
-        if (!row.lens_id || !shownLensIds.has(row.lens_id)) continue
-        collectiveImpacts[row.lens_id] = shape(row)
-      }
-    }
 
     // A profile that predates the table renders without proof, which is a
     // normal profile rather than a failure.
@@ -576,7 +565,6 @@ export async function GET(request, { params }) {
       evidencePlacements,
       testimonialPlacements,
       collectiveImpact,
-      collectiveImpacts,
       skillProofs
     })
 

@@ -731,44 +731,29 @@
    stuck gives the same result without the reservation. The flow height is 0
    before and 0 after, so there is still nothing to jump, and once it is fixed
    it is a 68px bar with the page running under it, which is what it looked
-   like anyway. */
+   like anyway.
+
+   Opaque, not a wash. This was 82% of the void over an 18px blur, and that
+   only reads as a surface while the blur is actually there: take it away -
+   iOS before 15, a GPU fallback, Reduce Transparency - and the wash is all
+   that is left, with section headings reading straight through the Career
+   Direction names. Those three cases had their own rules here; the editor
+   and Preview had already gone opaque for the same reason on every device.
+   The void at full strength is the colour the wash was mixed from, so no
+   palette needs a second value and the light modes follow their own void
+   without being named here. The blur goes with it: there is nothing left for
+   it to show through. */
 .hp-bar {
   position: relative;
   top: 0;
   z-index: 20;
   height: 0;
-  background: var(--profile-veil);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: rgb(var(--profile-void-rgb));
   border-bottom: 1px solid transparent;
   transition: border-color var(--profile-move-ms) var(--profile-ease-in);
 }
 
 .hp-bar[data-stuck="true"] { border-bottom-color: var(--profile-edge-1); }
-
-/* ---- When the blur is not there ----
-   The veil is 82% of the void, which is a wash over a blur rather than a
-   surface: it is legible because the 18px blur has already smeared the page
-   running under it into nothing. Take the blur away and the wash is all that
-   is left, and the page reads straight through the direction names.
-
-   It goes away more often than it looks. iOS before 15 never had it, a GPU
-   fallback drops it, and Reduce Transparency turns it off on a device that
-   supports it perfectly well. In each of those the bar needs to carry its own
-   opacity instead, so it is the void at full strength - the same colour the
-   veil is mixed from, so no palette needs a second value and the light modes
-   follow their own void without being named here. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .hp-bar { background: rgb(var(--profile-void-rgb)); }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .hp-bar {
-    background: rgb(var(--profile-void-rgb));
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-}
 
 .hp-bar-inner {
   display: flex;

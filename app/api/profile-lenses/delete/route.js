@@ -159,7 +159,7 @@ export async function GET(request) {
     return Response.json({ name: lens.name, ...orphans })
 
   } catch (error) {
-    return apiError(error, "We couldn't check that career direction. Please try again.")
+    return apiError(error, "We couldn't check that Career Direction. Please try again.")
   }
 }
 
@@ -207,6 +207,6 @@ export async function POST(request) {
     return Response.json({ success: true, lensId: deleted.id, name: deleted.name })
 
   } catch (error) {
-    return apiError(error, "We couldn't delete this career direction. Please try again.")
+    return apiError(error, "We couldn't delete this Career Direction. Please try again.")
   }
 }

@@ -525,23 +525,3 @@ export function nameScaleFor(lines) {
   if (longest <= 14) return 'md'
   return 'sm'
 }
-
-// ---------------------------------------------------------------------------
-// ON NO DIRECTION AT ALL
-//
-// Items pinned to particular directions that now hold none. Deleting the last
-// direction one was on is how this happens: the rows go with the direction,
-// the item stays in the library, and nothing shows it.
-//
-// They are listed in every direction's manage view rather than none, because
-// the only thing to do with one is put it somewhere, and the place that
-// offers to do that is the manage view of wherever the owner happens to be.
-// ---------------------------------------------------------------------------
-export function unplacedItems(items, placements, itemKey) {
-  const held = new Set(
-    (Array.isArray(placements) ? placements : []).map(row => row?.[itemKey]).filter(Boolean)
-  )
-  return (Array.isArray(items) ? items : []).filter(
-    item => item?.placement_scope === 'selected' && !held.has(item?.id)
-  )
-}

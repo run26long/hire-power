@@ -128,7 +128,7 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
               { icon: '🎯', title: 'Tailored for every job', desc: 'Up to 3 core resumes, and unlimited job-specific resumes and cover letters.' },
               { icon: '🎤', title: 'Interview Practice included', desc: 'Unlimited Power Analysis and spoken practice against your resume and target job.' },
               { icon: '📇', title: 'Career Profile with recruiter tools', desc: 'A page recruiters can read, with your evidence, testimonials and portfolio on it.' },
-              { icon: '🧭', title: 'Up to 3 career directions', desc: 'One profile, written three ways, so you are not one job title to everybody.' },
+              { icon: '🧭', title: 'Up to 3 Career Directions', desc: 'One profile, written three ways, so you are not one job title to everybody.' },
               { icon: '🔎', title: 'Hiring Brief and Career Q&A', desc: 'Recruiters can ask your profile questions and get answers drawn only from your own material.' },
             ].map((item) => (
               <div key={item.title} className="flex items-start gap-3">

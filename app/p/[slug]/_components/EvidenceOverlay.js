@@ -34,7 +34,6 @@ export default function EvidenceOverlay({
   mode,          // 'gallery' | 'detail' | 'manage'
   item,          // the item, in detail mode
   items,         // everything this direction carries, in placement order
-  leadId,        // which one leads, so the gallery can mark it quietly
   slug,
   lensId,
   onOpenItem,    // gallery -> detail
@@ -300,7 +299,6 @@ export default function EvidenceOverlay({
                     className="hp-ev-card"
                     data-family={one.family}
                     data-evidence-id={one.id}
-                    data-lead={one.id === leadId ? 'true' : undefined}
                     onClick={() => openFromGallery(one)}
                     aria-haspopup="dialog"
                   >
@@ -309,7 +307,6 @@ export default function EvidenceOverlay({
                     </span>
                     <span className="hp-ev-card-type">
                       {one.evidence_type || FAMILY_LABEL[one.family]}
-                      {one.id === leadId && <span className="hp-ev-card-lead">Featured</span>}
                     </span>
                     <span className="hp-ev-card-title">{one.title}</span>
                     {(one.organization || one.date_label) && (

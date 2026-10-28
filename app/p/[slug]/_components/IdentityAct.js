@@ -128,7 +128,7 @@ export default function IdentityAct({
           <div className="hp-act1-invite" data-tour="profile-directions">{directions}</div>
 
           <div className={`hp-act1-identity${slot}`} data-tour="profile-identity">
-            <EditPencil field="headline" label="the headline for this direction" />
+            <EditPencil field="headline" label="the headline for this Career Direction" />
             <span className="hp-act1-eyebrow">Career Profile</span>
 
             {/* The stop is part of the setting, not part of the name. */}
@@ -231,7 +231,7 @@ export default function IdentityAct({
                     feature="identity"
                     onAction={() => proofEditor?.open()}
                   >
-                    Two or three results that stand behind this direction. They
+                    Two or three results that stand behind this Career Direction. They
                     lead the cover.
                   </SlotGuide>
                 </div>

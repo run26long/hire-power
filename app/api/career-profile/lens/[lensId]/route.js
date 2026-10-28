@@ -104,7 +104,7 @@ function manyLines(value, max, label) {
 function validateProofPoints(value) {
   if (!Array.isArray(value)) return { error: 'Proof points must be a list.' }
   if (value.length !== PROOF_POINT_COUNT) {
-    return { error: `A direction carries exactly ${PROOF_POINT_COUNT} proof points.` }
+    return { error: `A Career Direction carries exactly ${PROOF_POINT_COUNT} proof points.` }
   }
   const points = []
   for (const raw of value) {

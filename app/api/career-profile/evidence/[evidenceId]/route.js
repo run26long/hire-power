@@ -137,7 +137,7 @@ export async function PATCH(request, { params }) {
     }
     for (const [key, label, max] of [
       ['description', 'The description', LIMITS.description],
-      ['organization', 'The organisation', LIMITS.organization],
+      ['organization', 'The organization', LIMITS.organization],
       ['date_label', 'The date', LIMITS.date_label]
     ]) {
       if (!Object.prototype.hasOwnProperty.call(body, key)) continue

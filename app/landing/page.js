@@ -1245,7 +1245,7 @@ const supabase = createClient();
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Interview Practice</li>
                 <li><span className="check">✓</span> 1 Power Analysis, Research and Prep, 3 practice sessions</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Career Profile</li>
-                <li><span className="check">✓</span> Career Profile (auto-generated, single career direction)</li>
+                <li><span className="check">✓</span> Career Profile (auto-generated, single Career Direction)</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Career Vault</li>
                 <li><span className="check">✓</span> Career Vault (view your career data)</li>
               </ul>
@@ -1274,7 +1274,7 @@ const supabase = createClient();
                 <li><span className="check">✓</span> Post-practice performance feedback</li>
                 <li><span className="check">✓</span> Company research integration</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Career Profile</li>
-                <li><span className="check">✓</span> Career Profile with 3 career directions</li>
+                <li><span className="check">✓</span> Career Profile with 3 Career Directions</li>
                 <li><span className="check">✓</span> In My Own Words (text and video)</li>
                 <li><span className="check">✓</span> Testimonials and reference sheet</li>
                 <li><span className="check">✓</span> Evidence and portfolio uploads</li>
@@ -1297,7 +1297,7 @@ const supabase = createClient();
                <ul className="tier-features">
                 <li><span className="check">✓</span> Everything included in Free Tier PLUS:</li>
                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.1)',fontWeight:600,color:'var(--dark)'}}>Vault</li>
-                <li><span className="check">✓</span> Full Career Profile with all career directions you built</li>
+                <li><span className="check">✓</span> Full Career Profile with all Career Directions you built</li>
                 <li><span className="check">✓</span> Recruiter tools (Career Q&amp;A and Hiring Brief)</li>
                 <li><span className="check">✓</span> In My Own Words (text and video)</li>
                 <li><span className="check">✓</span> Request testimonials and build your reference sheet</li>
@@ -1344,7 +1344,7 @@ const supabase = createClient();
                   'Job application tracking',
                   'Interview Practice: 1 Power Analysis, Research and Prep, 3 practice sessions',
                   '## Career Profile',
-                  'Career Profile (auto-generated, single career direction)',
+                  'Career Profile (auto-generated, single Career Direction)',
                   '## Career Vault',
                   'Career Vault (view your career data)',
                 ]
@@ -1371,7 +1371,7 @@ const supabase = createClient();
                   'Post-practice performance feedback',
                   'Company research integration',
                   '## Career Profile',
-                  'Career Profile with 3 career directions',
+                  'Career Profile with 3 Career Directions',
                   'In My Own Words (text and video)',
                   'Testimonials and reference sheet',
                   'Evidence and portfolio uploads',
@@ -1394,7 +1394,7 @@ const supabase = createClient();
                 featured: false,
                 features: [
                   'Everything in Free, plus:',
-                  'Full Career Profile with all career directions you built',
+                  'Full Career Profile with all Career Directions you built',
                   'Recruiter tools (Career Q&A and Hiring Brief)',
                   'In My Own Words (text and video)',
                   'Request testimonials and build your reference sheet',

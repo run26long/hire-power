@@ -11,15 +11,17 @@ import { requireCustomise } from '../../_lib/requireCustomise'
 // quotations has no item that leads it, so there is no feature operation here
 // and no featured column behind one.
 //
-//   hide     - stop a direction showing a testimonial, without moving it
 //   move     - put a testimonial where another one sits, within a direction
+//
+// One operation. There was a second, `hide`, which stopped a direction
+// showing a testimonial without moving it. Nothing offered it and nothing
+// calls it any more. The `hidden` column stays and is still read, so a row
+// written by an older build keeps its state.
 //
 // THERE IS NO DELETE AND NO ASSIGN-OFF
 // A testimonial is somebody else's words about this person, given once, on
 // request. Nothing in this product removes one, and this route is not the
-// exception: the only way a testimonial leaves a direction is `hidden`, which
-// leaves the row, the position, the words, the referee and the consent
-// exactly where they are.
+// exception.
 //
 // WHOSE TESTIMONIALS THESE ARE
 // The token's. Every id in the body is checked against the profile the token
@@ -89,33 +91,32 @@ async function belongsHere(supabase, profile, testimonialId, lensId) {
   return null
 }
 
-// What the page has been showing this direction, so materialising it does not
-// reshuffle the section.
+// What the page has been showing, so materialising a direction's list does
+// not reshuffle the section.
 //
 // Until a direction has a list of its own, the reader sees every testimonial
-// in the order the collective-impact synthesis ranked them for that
-// direction. The shared layer's own order is newest-first and nobody has ever
-// read it. Copying that in would reorder the page the first time somebody hid
-// one thing, which is the opposite of what hiding one thing should do.
+// in the order the collective-impact synthesis ranked them. There is one
+// synthesis - the profile-wide row, with no direction on it - and it is what
+// every direction renders, so it is the only order worth copying in. Rows per
+// direction were written for a while and are no longer; asking for one would
+// be reading a leftover.
 //
-// A direction with no synthesis of its own falls back to the profile's shared
-// one, the same way the page does. No synthesis at all returns null, and the
-// shared layer's order stands - there is nothing better to know.
-async function synthesisOrder(supabase, profileId, lensId) {
+// No synthesis at all returns null, and the shared layer's own newest-first
+// order stands - there is nothing better to know.
+async function synthesisOrder(supabase, profileId) {
   const { data, error } = await supabase
     .from('profile_collective_impacts')
-    .select('lens_id, testimonial_order')
+    .select('testimonial_order')
     .eq('profile_id', profileId)
+    .is('lens_id', null)
+    .maybeSingle()
 
   if (error) {
     console.error('[career-profile] Synthesis order lookup failed (non-fatal):', error)
     return null
   }
 
-  const rows = data || []
-  const own = lensId === null ? null : rows.find(r => r.lens_id === lensId)
-  const shared = rows.find(r => r.lens_id === null)
-  const order = (own || shared)?.testimonial_order
+  const order = data?.testimonial_order
   return Array.isArray(order) && order.length ? order : null
 }
 
@@ -138,8 +139,8 @@ export async function POST(request) {
     }
 
     const op = body?.op
-    // Both of these edits are about one direction. There is no shared layer
-    // left for a missing lens_id to mean.
+    // This edit is about one direction. There is no shared layer left for a
+    // missing lens_id to mean.
     const lensId = body?.lens_id
     if (!isUuid(lensId)) {
       return Response.json({ error: 'Invalid request.', code: 'INVALID' }, { status: 400 })
@@ -148,37 +149,6 @@ export async function POST(request) {
 
     const wrong = await belongsHere(supabase, profile, testimonialId, lensId)
     if (wrong) return Response.json({ error: wrong }, { status: 404 })
-
-    // ---- HIDE ----
-    if (op === 'hide') {
-      if (!testimonialId) return Response.json({ error: 'Not found.' }, { status: 404 })
-      if (typeof body?.hidden !== 'boolean') {
-        return Response.json({ error: 'Invalid request.', code: 'INVALID' }, { status: 400 })
-      }
-
-      const rows = await testimonialPlacements.materialise(
-        supabase, profile.id, lensId, await synthesisOrder(supabase, profile.id, lensId)
-      )
-      const existing = rows.find(r => r.testimonial_id === testimonialId)
-      // Still no row after materialising means it is genuinely not on this
-      // direction - scoped to particular ones, and not to this one. There is
-      // nothing here to hide, and answering 200 would report a write that
-      // never happened.
-      if (!existing) return Response.json({ error: 'Not found.' }, { status: 404 })
-      if (existing.hidden === body.hidden) {
-        return Response.json({ placements: rows, unchanged: true })
-      }
-
-      const { error } = await supabase
-        .from('profile_testimonial_placements')
-        .update({ hidden: body.hidden, updated_at: new Date().toISOString() })
-        .eq('id', existing.id)
-      if (error) throw error
-
-      return Response.json({
-        placements: await testimonialPlacements.listFor(supabase, profile.id, lensId)
-      })
-    }
 
     // ---- MOVE ----
     if (op === 'move') {
@@ -192,7 +162,7 @@ export async function POST(request) {
       if (wrongTarget) return Response.json({ error: wrongTarget }, { status: 404 })
 
       const rows = await testimonialPlacements.materialise(
-        supabase, profile.id, lensId, await synthesisOrder(supabase, profile.id, lensId)
+        supabase, profile.id, lensId, await synthesisOrder(supabase, profile.id)
       )
       const from = rows.findIndex(r => r.testimonial_id === testimonialId)
       const to = rows.findIndex(r => r.testimonial_id === targetId)

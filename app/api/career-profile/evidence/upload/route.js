@@ -649,7 +649,7 @@ export async function PUT(request) {
     const fields = {
       title: text(body?.title, LIMITS.title, 'A title', { required: true }),
       description: text(body?.description, LIMITS.description, 'The description'),
-      organization: text(body?.organization, LIMITS.organization, 'The organisation'),
+      organization: text(body?.organization, LIMITS.organization, 'The organization'),
       date_label: text(body?.date_label, LIMITS.date_label, 'The date')
     }
 
@@ -688,7 +688,7 @@ export async function PUT(request) {
 
     if (body?.lens_ids !== undefined && !Array.isArray(body.lens_ids)) {
       return Response.json(
-        { error: 'Choose which directions to show it in.', code: 'INVALID', field: 'lens_ids' },
+        { error: 'Choose which Career Directions to show it in.', code: 'INVALID', field: 'lens_ids' },
         { status: 400 }
       )
     }
@@ -708,7 +708,7 @@ export async function PUT(request) {
       lensIds = (owned || []).map(l => l.id)
       if (lensIds.length !== requested.length) {
         return Response.json(
-          { error: 'One of those directions is not on your profile.', code: 'BAD_LENS' },
+          { error: 'One of those Career Directions is not on your profile.', code: 'BAD_LENS' },
           { status: 400 }
         )
       }
@@ -935,7 +935,7 @@ export async function PUT(request) {
         return Response.json({
           evidence: created,
           placements: [],
-          warning: "Saved, but we couldn't place it in those directions. You can assign it below."
+          warning: "Saved, but we couldn't place it in those Career Directions. You can assign it below."
         })
       }
       placements = madePlacements || []

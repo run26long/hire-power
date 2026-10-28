@@ -20,7 +20,7 @@
 // ============================================================================
 
 const STEPS = [
-  ['01', 'See what’s already here', 'Your story, experience, results, and career direction.'],
+  ['01', 'See what’s already here', 'Your story, experience, results, and Career Direction.'],
   ['02', 'Add the proof', 'Your words, visual work, evidence, and testimonials.'],
   ['03', 'Share it when ready', 'Preview everything first. Nothing is public until you publish.']
 ]

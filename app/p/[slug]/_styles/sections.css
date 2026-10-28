@@ -1625,6 +1625,13 @@
   }
 }
 
+/* ---- The dots ----
+   The phone's navigation, and nothing above it: one per category rather than
+   a position in a continuous track, because what the track does there is step
+   between cards. Drawn at every width and shown at one, so the controls never
+   change shape under a thumb after the first paint. */
+.hp-field-dots { display: none; }
+
 
 /* Hidden copies of each resolvable proof, laid out at the real width so the
    surface's height is known before it is shown. Identical to the real thing in
@@ -1674,15 +1681,143 @@
   .hp-field-nav { margin-top: 24px; padding-right: 24px; }
 }
 
-/* On a phone the track still shows the edge of the next card to say that it
-   moves. What a phone no longer does is let a category answer "too wide" by
-   growing downwards: four rows is four rows here too, and a wide category is
-   reached by scrolling the track, which is what the track is for. */
+/* ---- A phone ----
+   The mosaic is a desktop idea. It sizes a card to its widest row, and a row
+   of skills is wider than a phone is: planned here, a card either ran past the
+   screen or squeezed every tile in it until the labels wrapped mid-word.
+
+   So the card takes the screen's measure instead and the skills wrap inside
+   it, which is the arrangement the unplanned state already describes - the
+   component withholds the plan at this width rather than a second layout
+   being written. The track still shows the edge of the next card to say that
+   it moves, and now it snaps, one card to a swipe, with dots underneath
+   saying which one this is. */
 @media (max-width: 767px) {
+  .hp-field {
+    gap: 12px;
+    scroll-snap-type: x mandatory;
+    /* A sideways flick that has run out of track is not a page gesture. */
+    overscroll-behavior-x: contain;
+  }
+
   .hp-card {
     --card-max: min(84vw, 380px);
     --card-min: 200px;
+
+    /* Narrower than the field, so the next card's edge is in view and the
+       strip reads as something that moves. The basis is what sizes it: the
+       plan writes no width at this breakpoint. */
+    flex: 0 0 86%;
+    min-width: 0;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
   }
+
+  /* One category and nothing to swipe to. An edge showing there would be an
+     invitation to a card that does not exist. */
+  .hp-field > .hp-card:only-of-type { flex-basis: 100%; }
+
+  /* Wrapped rows, read from the top. `space-between` is the planned card's
+     rule for spending spare height down the column; turned sideways by the
+     wrap it would spread the skills across the card and stretch the rows to
+     fill it. */
+  .hp-card[data-planned="false"] .hp-mosaic {
+    justify-content: flex-start;
+    align-content: flex-start;
+  }
+
+  /* Nothing leaves the card: a pill is at most as wide as the space it is in,
+     and a label longer than that breaks rather than running past the edge. */
+  .hp-card .hp-tile { max-width: 100%; }
+  .hp-card .hp-tile-label { overflow-wrap: anywhere; }
+
+  /* The dots are the navigation here, so the arrows and the scrub go. */
+  .hp-field-nav { display: none; }
+
+  .hp-field-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-top: 14px;
+  }
+
+  /* One category, one dot, nothing to move between: a position indicator for
+     a track with one position on it is a control that says nothing. */
+  .hp-field-dots:has(.hp-field-dot:only-child) { display: none; }
+
+  /* A 22px target around a 7px mark: the dot is what is read, the button is
+     what is hit. */
+  .hp-field-dot {
+    appearance: none;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+
+  .hp-field-dot::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--profile-line-strong);
+    transition: background-color 180ms ease, transform 180ms ease;
+  }
+
+  .hp-field-dot[data-on="true"]::before {
+    background: var(--profile-accent);
+    transform: scale(1.35);
+  }
+
+  .hp-field-dot:focus-visible {
+    outline: 2px solid var(--profile-accent);
+    outline-offset: 1px;
+    border-radius: 999px;
+  }
+
+  /* ---- Proof, as a sheet ----
+     Attached to the foot of the viewport and given no geometry by the
+     component, so there is no measurement of a half-visible tile for it to
+     be placed wrongly by. It cannot be off screen: it is the screen's own
+     bottom edge, full width, and as tall as its content up to a ceiling. */
+  .hp-proof-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 59;
+    background: rgb(var(--profile-scrim-rgb) / 0.52);
+  }
+
+  .hp-proof[data-sheet="true"] {
+    right: 0;
+    bottom: 0;
+    left: 0;
+    top: auto;
+    width: auto;
+    height: auto;
+    max-height: 78vh;
+    padding: 10px 18px 22px;
+    border-bottom: 0;
+    border-radius: 22px 22px 0 0;
+  }
+
+  /* The handle, and the one part of the sheet that is certainly a drag rather
+     than a scroll - so it is the part that refuses to be read as one. */
+  .hp-proof-grip {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 4px;
+    margin: 2px auto 12px;
+    border-radius: 999px;
+    background: rgb(var(--profile-accent-rgb) / 0.4);
+  }
+
+  .hp-proof[data-sheet="true"] .hp-proof-grip,
+  .hp-proof[data-sheet="true"] .hp-proof-head { touch-action: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1690,6 +1825,7 @@
   .hp-field .hp-tile { opacity: 1; transition: none; transition-delay: 0ms; }
   .hp-skills .hp-field-step { transition: none; }
   .hp-card .hp-tile[data-has-proof="true"] { transition: none; }
+  .hp-field-dot::before { transition: none; }
 }
 
 /* ------------------------------------------------------------ CREDENTIALS -- */
@@ -2372,15 +2508,17 @@
   outline-offset: 4px;
 }
 
-/* On a phone it sits straight under the featured card and above the rest of
-   the preview, full width: the slot is the first thing in the column, so
-   "after the lead card" and "before the others" are the same position. */
+/* On a phone it is the last thing in the grid, under the last item, full
+   width: stacked, the lead slot is the top of the column, and the way into
+   the rest of the collection does not belong above the part of it that is
+   already on screen. The section renders it there rather than in the slot at
+   this width, so this only has to size it. */
 @media (max-width: 767px) {
   .hp-profile .hp-ev-all {
     display: flex;
     width: 100%;
     justify-content: center;
-    margin-top: 12px;
+    margin-top: 4px;
   }
 }
 
@@ -2972,10 +3110,6 @@
   transform: translateY(-2px);
 }
 
-/* The lead is marked, not enlarged. A gallery is a list; the one the owner
-   put first should be recognisable without breaking the grid. */
-.hp-ev-card[data-lead='true'] { border-color: rgb(var(--ev-tone) / 0.42); }
-
 .hp-ev-card-mark {
   display: grid;
   place-items: center;
@@ -2996,15 +3130,6 @@
   letter-spacing: 0.13em;
   text-transform: uppercase;
   color: rgb(var(--ev-tone-ink) / 0.92);
-}
-
-.hp-ev-card-lead {
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: rgb(var(--ev-tone) / 0.16);
-  font-size: 9.5px;
-  letter-spacing: 0.1em;
-  color: var(--profile-text);
 }
 
 .hp-ev-card-title {
@@ -4727,21 +4852,6 @@
   border-bottom: 1px solid var(--profile-line);
   margin-bottom: 4px;
 }
-
-:is(.hp-manage, .hp-manage-pane) .hp-manage-linkish {
-  appearance: none;
-  font: inherit;
-  font-size: 12.5px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--profile-accent);
-  cursor: pointer;
-}
-
-:is(.hp-manage, .hp-manage-pane) .hp-manage-linkish:hover { text-decoration: underline; }
-:is(.hp-manage, .hp-manage-pane) .hp-manage-linkish:disabled { opacity: 0.5; cursor: default; }
-:is(.hp-manage, .hp-manage-pane) .hp-manage-linkish:focus-visible { outline: 2px solid var(--profile-accent); outline-offset: 2px; }
 
 @media (max-width: 520px) {
   /* The row is already carrying a grip and a toggle at this width. */

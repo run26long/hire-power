@@ -291,7 +291,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     } catch (err) {
       edit.notify?.({
         type: 'error',
-        message: err?.message || "We couldn't add that direction. Please try again."
+        message: err?.message || "We couldn't add that Career Direction. Please try again."
       })
     } finally {
       setActivating(null)
@@ -610,9 +610,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       onSetEvidenceDirections: edit.onSetEvidenceDirections,
       onSetTestimonialDirections: edit.onSetTestimonialDirections,
       onMoveEvidence: edit.onMoveEvidence,
-      onHideEvidence: edit.onHideEvidence,
       allTestimonialPlacements: edit.allTestimonialPlacements,
-      onHideTestimonial: edit.onHideTestimonial,
       onMoveTestimonial: edit.onMoveTestimonial,
       onEditEvidence: edit.onEditEvidence,
       onDeleteEvidence: edit.onDeleteEvidence,
@@ -659,8 +657,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     edit?.allEvidence, edit?.allPlacements, edit?.onSetEvidenceDirections,
     edit?.onSetTestimonialDirections,
     edit?.onMoveEvidence, edit?.onEditEvidence, edit?.onDeleteEvidence,
-    edit?.onHideEvidence, edit?.allTestimonialPlacements,
-    edit?.onHideTestimonial, edit?.onMoveTestimonial,
+    edit?.allTestimonialPlacements, edit?.onMoveTestimonial,
     lenses, editLensId, openField, busy, busyKind, writeError, errorField,
     runWrite, runDraft, editSave, editSaveImow, editRegenerate,
     edit?.onGenerateImow, edit?.onStrengthenImow,

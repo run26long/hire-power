@@ -332,6 +332,15 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
     </button>
   )
 
+  // One control, written once and placed by the breakpoint: on the lead
+  // card's corner from tablet up, at the foot of the grid on a phone.
+  const viewAll = (
+    <button type="button" className="hp-ev-all" onClick={openGallery} aria-haspopup="dialog">
+      View all evidence ({ordered.length})
+      <span className="hp-ev-all-arrow" aria-hidden="true">→</span>
+    </button>
+  )
+
   // Same tile, same guidance, same action the empty section's featured slot
   // offers - so there is one way to add evidence from the page and it looks the
   // same whether the section holds nothing or holds nine. `index` is the slot
@@ -440,13 +449,12 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
                 {lead && tile(lead, 'lead')}
 
                 {/* Straight after the card it belongs to, which is where the
-                    keyboard reaches it and where a phone shows it. */}
-                {hasMore && (
-                  <button type="button" className="hp-ev-all" onClick={openGallery} aria-haspopup="dialog">
-                    View all evidence ({ordered.length})
-                    <span className="hp-ev-all-arrow" aria-hidden="true">→</span>
-                  </button>
-                )}
+                    keyboard reaches it and where the corner it hangs off is.
+                    Stacked on a phone the slot is the first thing in the
+                    column, so that position would put the way into the rest
+                    of the collection above most of the collection - it goes
+                    at the foot of the grid there instead. */}
+                {hasMore && !narrow && viewAll}
               </div>
 
               {preview.slice(1).map(item => tile(item, 'rest'))}
@@ -463,6 +471,10 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
                   <SlotGhost index={n} />
                 </span>
               ))}
+
+              {/* Last in the grid rather than after it, so it stays inside
+                  the rule that closes the section. */}
+              {hasMore && narrow && viewAll}
             </div>
           </div>
         </Reveal>
@@ -479,7 +491,6 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
         mode={overlay?.mode || null}
         item={overlay?.item || null}
         items={ordered}
-        leadId={lead?.id}
         slug={slug}
         lensId={lensId}
         onOpenItem={fromGallery}

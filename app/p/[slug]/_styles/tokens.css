@@ -292,9 +292,6 @@
      the deep end), which the accent itself does not. */
   --profile-action-lift: #6e4ce6;
   --profile-action-deep: #5335ab;
-  /* The sticky control sits on the hero ground with the page showing through. */
-  --profile-veil: rgb(var(--profile-void-rgb) / 0.82);
-
   /* The focus glow that resolves down from the direction stage. */
   --profile-glow: radial-gradient(
     ellipse at top center,

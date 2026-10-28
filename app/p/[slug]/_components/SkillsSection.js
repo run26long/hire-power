@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Reveal from './Reveal'
+import useNarrow from '../_lib/useNarrow'
 import { EditPencil, EditElsewhere, useEditSlot, useResumeEditorHref } from './EditAffordance'
 
 // ============================================================================
@@ -25,9 +26,28 @@ import { EditPencil, EditElsewhere, useEditSlot, useResumeEditorHref } from './E
 // resolved sources are laid out once in a hidden copy at the real width, its
 // height is read off that, and the surface opens at that height - clamped to a
 // floor, a ceiling, and the room between the sticky bar and the viewport edge.
+//
+// ON A PHONE, TWO OF THOSE THINGS ARE DIFFERENT
+// A card is a card's width there rather than its content's, because a mosaic
+// planned to its widest row is planned against a width the screen does not
+// have: the skills wrap inside a card sized to the screen instead, and the
+// track snaps one card at a time with dots under it saying where it is.
+//
+// And proof is a bottom sheet rather than a floating surface. The placement
+// below reads a tile's rectangle and then grows the surface to contain it,
+// which is right when the tile is on screen and wrong when it is not - and on
+// a phone the track scrolls sideways under a card nearly as wide as the
+// viewport, so a tile straddling an edge was routine and the surface followed
+// it off the screen. A sheet is anchored to the viewport by the stylesheet and
+// is handed no geometry at all, so there is nothing left to place wrongly.
 // ============================================================================
 
 const ARROW_STEP = 0.8
+
+// How far down the sheet has to be dragged before letting go closes it, and
+// how far a pointer has to travel before the gesture counts as a drag at all.
+const SHEET_CLOSE = 90
+const SHEET_GRAB = 6
 
 // The shape of a card's mosaic. Four rows is the ceiling and the only shape
 // constant left: the column count follows from it and the number of skills, and
@@ -157,6 +177,19 @@ function planMosaic(widths, gap, limits) {
   }
 }
 
+// The cards themselves, in track order. The measuring layer is a sibling of
+// theirs inside the field and holds cards of its own, so this asks for the
+// field's own children rather than for every .hp-card under it.
+const cardsIn = (field) => [...field.querySelectorAll(':scope > .hp-card')]
+
+// Where each card sits in the track's own coordinates, which is what
+// scrollLeft is measured in. Taken from the rectangles rather than offsetLeft,
+// which is relative to whichever ancestor happens to be positioned.
+const offsetsIn = (field) => {
+  const origin = field.getBoundingClientRect().left - field.scrollLeft
+  return cardsIn(field).map(node => Math.round(node.getBoundingClientRect().left - origin))
+}
+
 export default function SkillsSection({
   clusters,
   featuredSkills,
@@ -167,9 +200,11 @@ export default function SkillsSection({
 }) {
   const slot = useEditSlot()
   const resumeHref = useResumeEditorHref()
+  const narrow = useNarrow()
   const canSettle = animate && !reducedMotion && typeof IntersectionObserver !== 'undefined'
 
   const [progress, setProgress] = useState(0)
+  const [card, setCard] = useState(0)
   const [atStart, setAtStart] = useState(true)
   const [atEnd, setAtEnd] = useState(false)
   const [entered, setEntered] = useState(false)
@@ -187,6 +222,8 @@ export default function SkillsSection({
   const proofBodyRef = useRef(null)
   const frame = useRef(0)
   const trigger = useRef(null)
+  const sheetDrag = useRef(null)
+  const lastNarrow = useRef(narrow)
 
   const featured = useMemo(
     () => new Set(
@@ -271,6 +308,7 @@ export default function SkillsSection({
     setShownFor(directionKey)
     setOpen(null)
     setProgress(0)
+    setCard(0)
     setAtStart(true)
     setAtEnd(false)
     setEntered(false)
@@ -358,6 +396,17 @@ export default function SkillsSection({
       setProgress(furthest > 0 ? Math.min(1, Math.max(0, left / furthest)) : 0)
       setAtStart(left <= 1)
       setAtEnd(furthest <= 0 || left >= furthest - 1)
+
+      // Which card the track is on, for the dots. The nearest edge rather
+      // than the one at the left, so a swipe that springs back does not
+      // leave the wrong dot lit.
+      const offsets = offsetsIn(field)
+      if (offsets.length === 0) return
+      let nearest = 0
+      for (let i = 1; i < offsets.length; i += 1) {
+        if (Math.abs(offsets[i] - left) < Math.abs(offsets[nearest] - left)) nearest = i
+      }
+      setCard(nearest)
     })
   }, [])
 
@@ -459,6 +508,9 @@ export default function SkillsSection({
     }
   }
 
+  // A place is what makes this a popover. The sheet is given none: the
+  // stylesheet anchors it to the foot of the viewport, so there is no
+  // geometry here for a tile that is half off screen to corrupt.
   const toggle = (skill, event) => {
     if (open && open.skill === skill) {
       close()
@@ -466,21 +518,57 @@ export default function SkillsSection({
     }
     const tile = event.currentTarget
     trigger.current = tile
-    setOpen({ skill, place: placeFor(tile, skill) })
+    setOpen({ skill, place: narrow ? null : placeFor(tile, skill) })
   }
+
+  // The two presentations are not interchangeable once one is up, so a
+  // crossing of the breakpoint closes what is open rather than reinterpreting
+  // it halfway.
+  useEffect(() => {
+    if (lastNarrow.current === narrow) return
+    lastNarrow.current = narrow
+    close()
+  }, [narrow, close])
 
   useEffect(() => {
     if (!open) return
     syncProofOverflow()
   }, [open, syncProofOverflow])
 
+  // The sheet holds the page still underneath it. Restored to whatever the
+  // page had rather than to a default, so this cannot quietly unlock a page
+  // something else had locked.
+  useEffect(() => {
+    if (!open || open.place) return
+    const { body, documentElement } = document
+    const gap = window.innerWidth - documentElement.clientWidth
+    const overflow = body.style.overflow
+    const padding = body.style.paddingRight
+    body.style.overflow = 'hidden'
+    if (gap > 0) body.style.paddingRight = `${gap}px`
+    return () => {
+      body.style.overflow = overflow
+      body.style.paddingRight = padding
+    }
+  }, [open])
+
   // The unfolding. The surface is laid out where it belongs, then played
   // backwards from the tile's exact bounds, so the growth starts on the thing
-  // that was clicked rather than near it.
+  // that was clicked rather than near it. The sheet comes up from the edge it
+  // is attached to instead: it is not standing on the tile, so growing out of
+  // one would be an animation about nothing.
   useEffect(() => {
     if (!open || reducedMotion) return
     const node = popoverRef.current
     if (!node || typeof node.animate !== 'function') return
+
+    if (!open.place) {
+      node.animate(
+        [{ transform: 'translateY(100%)' }, { transform: 'none' }],
+        { duration: 260, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+      )
+      return
+    }
 
     const surface = node.getBoundingClientRect()
     const { tile } = open.place
@@ -517,9 +605,12 @@ export default function SkillsSection({
   }, [open, close])
 
   // Anchored to a tile it does not own: the moment that tile could have moved,
-  // the anchor is stale and the surface goes.
+  // the anchor is stale and the surface goes. The sheet is anchored to the
+  // viewport and has no stale position to get into, and on a phone a resize
+  // is the address bar sliding away - which is not a reason to take somebody's
+  // reading off the screen.
   useEffect(() => {
-    if (!open) return
+    if (!open || !open.place) return
     const field = fieldRef.current
     const dismiss = () => close()
     field?.addEventListener('scroll', dismiss, { passive: true })
@@ -550,6 +641,65 @@ export default function SkillsSection({
     },
     [scrollTo]
   )
+
+  // One card, named rather than stepped towards: the dots are the whole of
+  // the navigation on a phone, so they have to be able to reach a card that
+  // is three swipes away.
+  const goToCard = useCallback(
+    (index) => {
+      const field = fieldRef.current
+      if (!field) return
+      const offsets = offsetsIn(field)
+      if (offsets[index] === undefined) return
+      scrollTo(offsets[index])
+    },
+    [scrollTo]
+  )
+
+  // ---- Closing the sheet with a swipe ----
+  // The drag starts on the head, which has nothing to scroll, or anywhere in
+  // the body while the body is already at its top - so a flick down never
+  // fights the list inside it. If the browser decides the gesture was a scroll
+  // after all it sends pointercancel, and the drag is abandoned rather than
+  // left half applied.
+  const sheetTravel = (distance) => {
+    const node = popoverRef.current
+    if (node) node.style.transform = distance > 0 ? `translateY(${distance}px)` : ''
+  }
+
+  const onSheetDown = (event) => {
+    const body = proofBodyRef.current
+    if (body && body.contains(event.target) && body.scrollTop > 0) return
+    sheetDrag.current = { id: event.pointerId, from: event.clientY, travelled: 0, held: false }
+  }
+
+  const onSheetMove = (event) => {
+    const drag = sheetDrag.current
+    if (!drag || drag.id !== event.pointerId) return
+    drag.travelled = Math.max(0, event.clientY - drag.from)
+    // Captured once this is certainly a drag and not before: a tap that never
+    // travels leaves the pointer where the browser put it, so the close
+    // button under it still receives its click.
+    if (!drag.held && drag.travelled > SHEET_GRAB) {
+      drag.held = true
+      event.currentTarget.setPointerCapture?.(event.pointerId)
+    }
+    sheetTravel(drag.travelled)
+  }
+
+  const onSheetUp = (event) => {
+    const drag = sheetDrag.current
+    if (!drag || drag.id !== event.pointerId) return
+    sheetDrag.current = null
+    sheetTravel(0)
+    if (drag.travelled > SHEET_CLOSE) close()
+  }
+
+  const onSheetCancel = () => {
+    if (!sheetDrag.current) return
+    sheetDrag.current = null
+    sheetTravel(0)
+  }
 
   const onScrub = (event) => {
     const field = fieldRef.current
@@ -673,6 +823,9 @@ export default function SkillsSection({
   )
 
   const place = open?.place
+  // No place, and therefore no popover: the stylesheet puts this one at the
+  // foot of the viewport instead.
+  const sheet = Boolean(open) && !place
 
   return (
     <section className="hp-section hp-skills">
@@ -682,7 +835,7 @@ export default function SkillsSection({
             and the route out is for the skills themselves. */}
         <Reveal enabled={animate} className={`hp-skills-intro${slot}`}>
           <EditElsewhere href={resumeHref}>Edit in Resume Writer</EditElsewhere>
-          <span className="hp-label">Skills in this direction</span>
+          <span className="hp-label">Skills in this Career Direction</span>
           <h2 className="hp-skills-headline">The capabilities behind the results.</h2>
         </Reveal>
 
@@ -724,7 +877,12 @@ export default function SkillsSection({
             </div>
 
             {groups.map((group, index) => {
-              const plan = layout?.cards[index]
+              // No plan on a phone. The plan's whole job is to size a card to
+              // its widest row, and a screen that narrow has no width to give
+              // it: the card takes the screen's measure instead and the skills
+              // wrap inside it, which is the layout the unplanned state
+              // already describes.
+              const plan = narrow ? null : layout?.cards[index]
               return (
                 <article
                   className="hp-card"
@@ -789,6 +947,29 @@ export default function SkillsSection({
               <span className="hp-field-chevron" aria-hidden="true" />
             </button>
           </div>
+
+          {/* The phone's navigation, and the whole of it: the stylesheet hides
+              the arrows and the scrub above and shows these instead. One per
+              category rather than a position in a continuous track, because
+              what the track does there is step between cards.
+
+              Rendered at every width and hidden above the breakpoint, rather
+              than swapped in by JavaScript: the swap would land after the
+              first paint, and a control that changes shape under somebody's
+              thumb is worse than one that was never drawn. */}
+          <div className="hp-field-dots" role="group" aria-label="Skill categories">
+            {groups.map((group, index) => (
+              <button
+                type="button"
+                className="hp-field-dot"
+                data-on={index === card ? 'true' : undefined}
+                aria-current={index === card ? 'true' : undefined}
+                aria-label={group.name || `Category ${index + 1}`}
+                onClick={() => goToCard(index)}
+                key={`d-${index}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -807,35 +988,54 @@ export default function SkillsSection({
       </div>
 
       {openProof && (
-        <div
-          className="hp-proof"
-          id={panelId}
-          ref={popoverRef}
-          role="group"
-          aria-label={`Proof for ${open.skill}`}
-          style={{
-            left: `${place.left}px`,
-            top: `${place.top}px`,
-            width: `${place.width}px`,
-            height: `${place.height}px`
-          }}
-        >
-          <div className="hp-proof-head">
-            <span className="hp-proof-skill">{open.skill}</span>
-            <button
-              type="button"
-              className="hp-proof-close"
-              aria-label="Close proof"
-              onClick={() => close(true)}
-            >
-              <span aria-hidden="true">×</span>
-            </button>
-          </div>
+        <>
+          {/* Only the sheet has one. The popover is anchored to the tile it
+              came from and the page around it stays live; the sheet covers
+              the foot of the screen, and the scrim is what says the rest of
+              the page is not the thing to touch. A tap on it closes, as the
+              pointer-down above would anyway - said here as well so it does
+              not depend on that. */}
+          {sheet && (
+            <div className="hp-proof-scrim" onClick={() => close()} aria-hidden="true" />
+          )}
 
-          <div className="hp-proof-body" ref={proofBodyRef} onScroll={syncProofOverflow}>
-            {proofBody(openProof)}
+          <div
+            className="hp-proof"
+            data-sheet={sheet ? 'true' : undefined}
+            id={panelId}
+            ref={popoverRef}
+            role="group"
+            aria-label={`Proof for ${open.skill}`}
+            style={place ? {
+              left: `${place.left}px`,
+              top: `${place.top}px`,
+              width: `${place.width}px`,
+              height: `${place.height}px`
+            } : undefined}
+            onPointerDown={sheet ? onSheetDown : undefined}
+            onPointerMove={sheet ? onSheetMove : undefined}
+            onPointerUp={sheet ? onSheetUp : undefined}
+            onPointerCancel={sheet ? onSheetCancel : undefined}
+          >
+            {sheet && <span className="hp-proof-grip" aria-hidden="true" />}
+
+            <div className="hp-proof-head">
+              <span className="hp-proof-skill">{open.skill}</span>
+              <button
+                type="button"
+                className="hp-proof-close"
+                aria-label="Close proof"
+                onClick={() => close(true)}
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
+
+            <div className="hp-proof-body" ref={proofBodyRef} onScroll={syncProofOverflow}>
+              {proofBody(openProof)}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </section>
   )

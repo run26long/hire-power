@@ -182,7 +182,7 @@ export default function SettingsDrawer({
       // stays open so the control that failed is still where they left it.
       notify?.({
         type: 'error',
-        message: err?.message || "We couldn't delete that career direction. Please try again."
+        message: err?.message || "We couldn't delete that Career Direction. Please try again."
       })
     } finally {
       setDeleteBusy(false)
@@ -214,7 +214,7 @@ export default function SettingsDrawer({
       // what failed is the offer, and the offer should still be there.
       notify?.({
         type: 'error',
-        message: err?.message || "We couldn't rewrite that direction. Please try again."
+        message: err?.message || "We couldn't rewrite that Career Direction. Please try again."
       })
     } finally {
       setRewriting(false)
@@ -252,7 +252,7 @@ export default function SettingsDrawer({
     } catch (err) {
       notify?.({
         type: 'error',
-        message: err?.message || "We couldn't rename that career direction. Please try again."
+        message: err?.message || "We couldn't rename that Career Direction. Please try again."
       })
     } finally {
       setRenaming(false)
@@ -281,7 +281,7 @@ export default function SettingsDrawer({
       }
       setCustomName('')
     } catch (err) {
-      setCreateNote({ title: null, body: err?.message || "We couldn't create that direction. Please try again." })
+      setCreateNote({ title: null, body: err?.message || "We couldn't create that Career Direction. Please try again." })
     } finally {
       setCreating(false)
     }
@@ -491,7 +491,7 @@ export default function SettingsDrawer({
       // message says why rather than leaving a switch that did not move.
       notify?.({
         type: 'error',
-        message: err?.message || "We couldn't change that career direction. Please try again."
+        message: err?.message || "We couldn't change that Career Direction. Please try again."
       })
     } finally {
       setLensBusy(null)
@@ -805,7 +805,7 @@ export default function SettingsDrawer({
           </Group>
 
           {/* ---- Appearance: still read-only ---- */}
-          <Group label="Template" note="More profile templates are coming soon.">
+          <Group label="Template">
             {humanize(profile?.template)
               ? <Value>{humanize(profile.template)}</Value>
               : <Value empty="Default." />}
@@ -1023,7 +1023,7 @@ export default function SettingsDrawer({
                         disabled={busy || reordering || !canCustomise || blocked}
                         data-blocked={blocked && !busy ? 'true' : undefined}
                         title={blocked
-                          ? `Your Career Profile shows ${MAX_ACTIVE_WORD} career directions at a time. Turn one off to add this one.`
+                          ? `Your Career Profile shows ${MAX_ACTIVE_WORD} Career Directions at a time. Turn one off to add this one.`
                           : undefined}
                         data-on="false"
                       >
@@ -1036,14 +1036,14 @@ export default function SettingsDrawer({
 
               {canReorder ? (
                 <p className="hp-ed-soon">
-                  Drag to reorder. Your first direction is primary, always stays on, and loads first for visitors. Turn any other direction off anytime. Everything written for it stays ready to restore.
+                  Drag to reorder. Your first Career Direction is primary, always stays on, and loads first for visitors. Turn any other Career Direction off anytime. Everything written for it stays ready to restore.
                 </p>
               ) : null}
 
               {offeredRows.length > 0 && (
                 <>
                   <hr className="hp-ed-lens-split" />
-                  <p className="hp-ed-lens-make-label">Add a career direction identified from career data</p>
+                  <p className="hp-ed-lens-make-label">Add a Career Direction identified from career data</p>
                   <div className="hp-ed-lenses">
                     {offeredRows.map(({ lens }) => {
                       const busy = lensBusy === lens.id
@@ -1067,7 +1067,7 @@ export default function SettingsDrawer({
                               disabled={busy || blocked || reordering}
                               data-blocked={blocked && !busy ? 'true' : undefined}
                               title={blocked
-                                ? `Your Career Profile shows ${MAX_ACTIVE_WORD} career directions at a time. Turn one off to add this one.`
+                                ? `Your Career Profile shows ${MAX_ACTIVE_WORD} Career Directions at a time. Turn one off to add this one.`
                                 : undefined}
                             >
                               {busy ? 'Adding…' : 'Add to Career Profile'}
@@ -1091,14 +1091,14 @@ export default function SettingsDrawer({
               <hr className="hp-ed-lens-split" />
               <div className="hp-ed-lens-make">
                 <label className="hp-ed-lens-make-label" htmlFor="hp-custom-lens">
-                  Add your own career direction
+                  Add your own Career Direction
                 </label>
                 <div className="hp-ed-lens-make-row">
                   <input
                     id="hp-custom-lens"
                     type="text"
                     className="hp-ed-input hp-ed-block"
-                    placeholder="Type a career direction name..."
+                    placeholder="Type a Career Direction name..."
                     value={customName}
                     maxLength={60}
                     disabled={!canCustomise || !isPro || creating || slotsFull}
@@ -1122,7 +1122,7 @@ export default function SettingsDrawer({
                 </div>
                 {creating && (
                   <p className="hp-ed-lens-make-building">
-                    Building this direction from your career data...
+                    Building this Career Direction from your career data...
                   </p>
                 )}
                 {createNote && !creating && (
@@ -1308,7 +1308,7 @@ export default function SettingsDrawer({
               deleting={deleteBusy}
               onCancel={() => { if (!deleteBusy) { setDeleteTarget(null); setDeleteCost(null) } }}
               onConfirm={confirmDelete}
-              title="Delete this direction?"
+              title="Delete this Career Direction?"
               body={`Everything written for ${deleteTarget.name} will be removed from your Career Profile. This can't be undone.`}
               secondary={orphanSentence(deleteCost)}
               confirmLabel="Delete"
@@ -1338,5 +1338,5 @@ function orphanSentence(cost) {
     ? names[0]
     : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
   const verb = names.length === 1 ? 'appears' : 'appear'
-  return `${list} only ${verb} on this direction. They'll stay in your library, but won't show on your profile until you add them to another direction.`
+  return `${list} only ${verb} on this Career Direction. They'll stay in your library, but won't show on your profile until you add them to another Career Direction.`
 }

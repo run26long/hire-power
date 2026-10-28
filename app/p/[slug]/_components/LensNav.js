@@ -240,7 +240,7 @@ function RailSteps({ count, activeIndex, overflows, onSelect }) {
           type="button"
           className="hp-rail-step"
           data-step="prev"
-          aria-label="Previous career direction"
+          aria-label="Previous Career Direction"
           onClick={() => onSelect(activeIndex - 1)}
         >
           <span className="hp-rail-chevron" aria-hidden="true" />
@@ -252,7 +252,7 @@ function RailSteps({ count, activeIndex, overflows, onSelect }) {
           type="button"
           className="hp-rail-step"
           data-step="next"
-          aria-label="Next career direction"
+          aria-label="Next Career Direction"
           onClick={() => onSelect(activeIndex + 1)}
         >
           <span className="hp-rail-chevron" aria-hidden="true" />
@@ -300,7 +300,7 @@ export function LensStage({ lenses, activeIndex, onSelect, reducedMotion, ghosts
       </p>
 
       <div className="hp-rail" data-steps={rail.overflows ? 'true' : 'false'}>
-        <div className="hp-directions" role="group" aria-label="Career directions" ref={trackRef} {...rail.track}>
+        <div className="hp-directions" role="group" aria-label="Career Directions" ref={trackRef} {...rail.track}>
         {lenses.map((lens, index) => {
           const active = index === activeIndex
           return (
@@ -438,7 +438,7 @@ export function LensBar({ lenses, activeIndex, onSelect, reducedMotion, actions,
             <span className="hp-bar-single">{lenses[0].name}</span>
           ) : (
             <div className="hp-rail" data-steps={rail.overflows ? 'true' : 'false'}>
-              <div className="hp-bar-track" ref={trackRef} role="group" aria-label="Career directions" {...rail.track}>
+              <div className="hp-bar-track" ref={trackRef} role="group" aria-label="Career Directions" {...rail.track}>
               {lenses.map((lens, index) => {
                 const active = index === activeIndex
                 return (

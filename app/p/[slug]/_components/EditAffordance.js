@@ -15,10 +15,10 @@ import { UPGRADE_HREF, UPGRADE_LABEL, upgradeCopyFor } from '@/lib/profileTier'
 // no `isOwner &&` to get backwards, and no way for one of these to reach a
 // recruiter.
 //
-// Some of these write and some do not yet. The ones that do are the ones that
-// name a field the document knows how to edit; the rest stay drawn, disabled,
-// and saying what they are waiting for, because a section that quietly lost
-// its affordance would look finished.
+// Each of these names a field the document knows how to edit. Where there is
+// nothing to open, nothing is drawn: a disabled control that says what it is
+// waiting for is a promise about a later release, and the page does not make
+// one.
 // ============================================================================
 
 const PencilIcon = () => (
@@ -56,10 +56,6 @@ export function useEditSlot() {
   return edit?.editing ? ' hp-ed-slot' : ''
 }
 
-// Live where it names a field this document knows how to edit, and inert
-// where it does not - the sections that still have no editor keep the pencil
-// they were drawn with, disabled and saying so, rather than losing it and
-// looking finished.
 // A line where a control would have been, saying what the plan would add and
 // linking somewhere it can be added. Deliberately a sentence and a link rather
 // than a dialog: the management page is the profile itself with controls over
@@ -98,19 +94,11 @@ export function EditPencil({ field, label, persists = false, tourId }) {
   // plan it is not. The section carries the line that says why.
   if (!canEdit) return null
 
-  if (!field || !editor) {
-    return (
-      <button
-        type="button"
-        className="hp-ed-pencil"
-        disabled
-        aria-label={`Edit ${label}, not available yet`}
-        title={`Editing ${label} is coming in a later pass`}
-      >
-        <PencilIcon />
-      </button>
-    )
-  }
+  // Nothing to open. No pencil either: a disabled control over a field that
+  // has no editor is a promise about a later release, and the page should
+  // not be making one. Every call site names a field this document can edit,
+  // so this is the guard rather than a state anything reaches.
+  if (!field || !editor) return null
 
   // While an inline editor is open the field it belongs to has been replaced
   // by it, so its own pencil has nothing left to point at. A dialog replaces

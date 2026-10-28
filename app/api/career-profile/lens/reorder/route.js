@@ -126,7 +126,7 @@ export async function PATCH(request) {
     if (!sameSet) {
       return Response.json(
         {
-          error: 'Your career directions changed while you were arranging them. Reopen settings and try again.',
+          error: 'Your Career Directions changed while you were arranging them. Reopen settings and try again.',
           code: 'STALE_ORDER'
         },
         { status: 409 }

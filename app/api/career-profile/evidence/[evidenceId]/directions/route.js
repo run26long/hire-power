@@ -95,7 +95,7 @@ export async function PUT(request, { params }) {
         lensIds = (owned || []).map(lens => lens.id)
         if (lensIds.length !== requested.length) {
           return Response.json(
-            { error: 'One of those directions is not on your profile.', code: 'BAD_LENS' },
+            { error: 'One of those Career Directions is not on your profile.', code: 'BAD_LENS' },
             { status: 400 }
           )
         }

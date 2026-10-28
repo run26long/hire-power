@@ -100,6 +100,6 @@ export async function POST(request) {
     return Response.json({ success: true, relinked: relinked || null })
 
   } catch (error) {
-    return apiError(error, "We couldn't reconnect that resume to its career direction.")
+    return apiError(error, "We couldn't reconnect that resume to its Career Direction.")
   }
 }

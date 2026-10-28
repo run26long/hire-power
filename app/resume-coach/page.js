@@ -561,8 +561,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       if (!res.ok) {
         throw new Error(
           payload?.error === 'PRO_REQUIRED'
-            ? 'Rewriting a career direction is a Pro feature.'
-            : "We couldn't rewrite that direction just now. Please try again."
+            ? 'Rewriting a Career Direction is a Pro feature.'
+            : "We couldn't rewrite that Career Direction just now. Please try again."
         );
       }
       setCustomNote(null);
@@ -570,7 +570,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     } catch (err) {
       // The note stays: the rename stands, and only the offer failed.
       console.error('Lens rewrite failed:', err);
-      setErrorToast(err?.message || "We couldn't rewrite that direction. Please try again.");
+      setErrorToast(err?.message || "We couldn't rewrite that Career Direction. Please try again.");
     } finally {
       setCustomRewriting(false);
     }
@@ -590,7 +590,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         body: JSON.stringify({ lensId: offer.lensId, newName: wanted, intent: 'resolve-duplicate' })
       });
       const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload?.error || "We couldn't rename that direction. Please try again.");
+      if (!res.ok) throw new Error(payload?.error || "We couldn't rename that Career Direction. Please try again.");
       // Refused again: the name is taken by a third direction.
       if (payload?.ok === false) {
         setCustomNote(lensRefusalNote(payload, wanted));
@@ -612,7 +612,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       await loadData();
     } catch (err) {
       console.error('Lens rename failed:', err);
-      setErrorToast(err?.message || "We couldn't rename that direction. Please try again.");
+      setErrorToast(err?.message || "We couldn't rename that Career Direction. Please try again.");
     } finally {
       setCustomRenaming(false);
     }
@@ -632,7 +632,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       });
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setCustomNote({ title: null, body: payload?.error || "We couldn't create that direction. Please try again." });
+        setCustomNote({ title: null, body: payload?.error || "We couldn't create that Career Direction. Please try again." });
         return;
       }
       // An answer of "no" is an ordinary result, not a failure: the request
@@ -664,7 +664,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       }
     } catch (err) {
       console.error('Custom lens create failed:', err);
-      setCustomNote({ title: null, body: "We couldn't create that direction. Please try again." });
+      setCustomNote({ title: null, body: "We couldn't create that Career Direction. Please try again." });
     } finally {
       setCustomBusy(false);
     }
@@ -690,7 +690,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       await loadData();
     } catch (err) {
       console.error('Lens promote failed:', err);
-      setErrorToast("We couldn't show that direction. Please try again.");
+      setErrorToast("We couldn't show that Career Direction. Please try again.");
     } finally {
       setPromotingLensId(null);
     }
@@ -1739,14 +1739,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     // Three cores is the ceiling, so this row is finished. Said plainly,
     // because the alternative is an owner hunting for the control that would
     // add a fourth.
-    if (allSlotsBuilt) return `Switch between your ${LENS_TILE_SLOTS} Core Resumes. Delete one to build a different direction.`;
+    if (allSlotsBuilt) return `Switch between your ${LENS_TILE_SLOTS} Core Resumes. Delete one to build a different Career Direction.`;
     // One core and nothing suggested is a state the card only reaches now that
     // dismissed directions open it, and "switch between" is the wrong thing to
     // say about a single resume.
-    if (suggestionCount === 0 && builtCount === 1) return 'Restore a direction you set aside earlier.';
+    if (suggestionCount === 0 && builtCount === 1) return 'Restore a Career Direction you set aside earlier.';
     if (suggestionCount === 0) return 'Switch between your Core Resumes.';
     if (builtCount > 1) return 'Switch between your Core Resumes, or build the next one.';
-    return 'Coach identified multiple career directions. Create Core Resumes for any paths you want to pursue.';
+    return 'Coach identified multiple Career Directions. Create Core Resumes for any paths you want to pursue.';
   }
   const score = selectedCore?.current_score || null;
   const journeyStep = selectedCore?.journey_step || 'review';
@@ -2244,7 +2244,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                       value={customName}
                                       maxLength={60}
                                       disabled={customBusy}
-                                      placeholder="Type a career direction name..."
+                                      placeholder="Type a Career Direction name..."
                                       onChange={e => { setCustomName(e.target.value); setCustomNote(null); }}
                                       onKeyDown={e => {
                                         if (e.key === 'Enter') { e.preventDefault(); createCustomLens(); }
@@ -2262,11 +2262,11 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                       {customBusy && (
                                         <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent" />
                                       )}
-                                      {customBusy ? 'Building…' : 'Create direction'}
+                                      {customBusy ? 'Building…' : 'Create Career Direction'}
                                     </button>
                                     {customBusy && (
                                       <p className="mt-2 text-[11px] leading-snug text-gray-500">
-                                        Reading your career data and writing the direction. This takes a few seconds.
+                                        Reading your career data and writing the Career Direction. This takes a few seconds.
                                       </p>
                                     )}
                                     {customNote && !customBusy && (

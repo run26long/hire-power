@@ -94,7 +94,7 @@ export async function POST(request) {
     // to promote it out of, and moving its rank would only shuffle the row.
     if (lens.core_resume_id) {
       return Response.json(
-        { error: 'That direction already has a core resume.', code: 'HAS_CORE' },
+        { error: 'That Career Direction already has a core resume.', code: 'HAS_CORE' },
         { status: 400 }
       )
     }
@@ -110,13 +110,13 @@ export async function POST(request) {
       if (!displaced) return Response.json({ error: 'LENS_NOT_FOUND' }, { status: 404 })
       if (displaced.core_resume_id) {
         return Response.json(
-          { error: 'A direction with a core resume cannot be moved off the row.', code: 'DISPLACED_HAS_CORE' },
+          { error: 'A Career Direction with a core resume cannot be moved off the row.', code: 'DISPLACED_HAS_CORE' },
           { status: 400 }
         )
       }
       if (isPrimary(displaced)) {
         return Response.json(
-          { error: 'Your main direction stays on the row.', code: 'DISPLACED_PRIMARY' },
+          { error: 'Your main Career Direction stays on the row.', code: 'DISPLACED_PRIMARY' },
           { status: 400 }
         )
       }
@@ -167,6 +167,6 @@ export async function POST(request) {
     })
 
   } catch (error) {
-    return apiError(error, "We couldn't show that direction. Please try again.")
+    return apiError(error, "We couldn't show that Career Direction. Please try again.")
   }
 }
