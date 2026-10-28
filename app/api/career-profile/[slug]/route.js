@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { apiError } from '@/lib/apiError'
 import { canUseProTools } from '@/lib/tiers'
+import { lensesShownBy } from '../_lib/directions'
 import { onDirection, rowsForDirection } from '@/app/p/[slug]/_lib/profileData'
 
 // ============================================================================
@@ -24,10 +25,6 @@ function isMissingColumnError(error) {
   if (!error) return false
   return error.code === '42703' || error.code === 'PGRST204'
 }
-
-// The page shows three directions at most, the same ceiling the hub selector
-// card uses.
-const LENS_DISPLAY_LIMIT = 3
 
 const PROFILE_BASE = 'id, user_id, slug, is_published'
 const PROFILE_FULL = `${PROFILE_BASE}, template, color_mode, accent, imow_text, imow_type, imow_video_path, contact_email`
@@ -236,24 +233,25 @@ export async function GET(request, { params }) {
       return Response.json({ error: 'PROFILE_LOAD_FAILED' }, { status: 500 })
     }
 
-    // Everything reaching here is active now, so this ranks nothing in practice
-    // and is kept as a floor: a row arriving in some other state through a path
-    // this route does not know about sorts last rather than first. The order
-    // that does the work is sort_order, which is the one the hub gave them.
-    // Anything past the third is not shown.
-    const orderRank = (lens) => (lens?.status === 'active' ? 0 : 1)
-    const sortWeight = (lens) => (Number.isFinite(lens?.sort_order) ? lens.sort_order : Number.MAX_SAFE_INTEGER)
-
-    const visibleLenses = (lenses || [])
-      .slice()
-      .sort((a, b) => {
-        const byStatus = orderRank(a) - orderRank(b)
-        if (byStatus !== 0) return byStatus
-        const byOrder = sortWeight(a) - sortWeight(b)
-        if (byOrder !== 0) return byOrder
-        return String(a.created_at || '').localeCompare(String(b.created_at || ''))
-      })
-      .slice(0, LENS_DISPLAY_LIMIT)
+    // ---- WHICH OF THEM THIS PAGE SHOWS ----
+    //
+    // The order, the ceiling and the plan, from _lib/directions - the same
+    // function the resume download and the evidence media route ask, so a
+    // direction this page has stopped showing cannot still be handing over
+    // its resume and its files to a caller who kept the id.
+    //
+    // Free shows the primary direction and nothing else. Asked here, of the
+    // tier, every time the page is read - not written onto the account when a
+    // plan changes - so a profile is correct the moment the tier moves and
+    // there is nothing to run at a downgrade and nothing to undo at an
+    // upgrade. A tier edited by hand in the database behaves the same as one
+    // Stripe moved, because neither of them is what this reads.
+    //
+    // This is the cut every other part of the payload is measured from:
+    // everything below reads visibleLenses, so a direction dropped here takes
+    // its resume, its evidence, its testimonials, its skill proof and its
+    // headline out of the response with it. None of it reaches the browser.
+    const visibleLenses = lensesShownBy(lenses, personRes.data?.subscription_tier)
 
     // ---- LENS RESUMES ----
     // One query for all of them rather than one per lens.

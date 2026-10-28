@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { requireCustomise } from '../../../_lib/requireCustomise'
 import { canCreateResumes, MAX_LENSES } from '@/lib/tiers'
+import { canShowAllDirections } from '@/lib/profileTier'
 
 // ============================================================================
 // PATCH /api/career-profile/lens/[lensId]/visibility
@@ -123,6 +124,41 @@ export async function PATCH(request, { params }) {
     // A lens that is not theirs answers the way one that does not exist does.
     if (!lens) return Response.json({ error: 'Not found.' }, { status: 404 })
 
+    // ---- ON FREE THERE IS NOTHING TO TOGGLE ----
+    //
+    // The profile renders the primary direction and nothing else, so neither
+    // answer this route could give is true on the page: turning one on would
+    // write 'active' onto a direction that still would not show, and turning
+    // one off would take down something already not being shown. Both are
+    // refused, before either branch below, so the state on the record is
+    // whatever the account last chose while it could choose - which is what
+    // comes back on upgrade.
+    //
+    // Checked here rather than left to the gates further down. Turning one
+    // off was deliberately ungated, so that a lapsed account could always
+    // take its own work off a public page; that reason does not reach this
+    // one, because on free the work is already off the page.
+    const { data: account, error: planError } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (planError) {
+      console.error('[career-profile] Tier lookup failed:', planError)
+      return Response.json({ error: "We couldn't check your plan just now." }, { status: 500 })
+    }
+
+    if (!canShowAllDirections(account?.subscription_tier)) {
+      return Response.json(
+        {
+          error: 'Your Career Profile shows your primary Career Direction. The others stay saved and come back with Pro.',
+          code: 'PRO_REQUIRED'
+        },
+        { status: 403 }
+      )
+    }
+
     if (!visible && isPrimary(lens)) {
       return Response.json(
         {
@@ -186,16 +222,8 @@ export async function PATCH(request, { params }) {
       // their own work. 'suggested' has never been published, so turning it
       // on is adding a fourth thing to a career that was closed.
       if (lens.status !== HIDDEN) {
-        const { data: account, error: tierError } = await supabase
-          .from('profiles')
-          .select('subscription_tier')
-          .eq('id', user.id)
-          .maybeSingle()
-
-        if (tierError) {
-          console.error('[career-profile] Tier lookup failed:', tierError)
-          return Response.json({ error: "We couldn't check your plan just now." }, { status: 500 })
-        }
+        // The tier read at the top of the route, not a second query for the
+        // same column: two reads of one fact are two chances to disagree.
         if (!canCreateResumes(account?.subscription_tier)) {
           return Response.json(
             {

@@ -128,6 +128,13 @@ export default function SettingsDrawer({
   onProfileChanged,
   canCustomise,
   isPro,
+  // Whether the profile renders more than its primary Career Direction.
+  // Defaults to false for the reason lib/profileTier gives for the tiers it
+  // does not recognise: the failure mode of guessing generously is a free
+  // account offered a control that the server will refuse, and the failure
+  // mode of guessing strictly is a paying account seeing a Pro label for the
+  // moment before the management record lands.
+  showsAllDirections = false,
   notify,
   lenses,
   onLensVisibility,
@@ -343,8 +350,10 @@ export default function SettingsDrawer({
   const offeredRows = rows.filter(l => l?.status === 'suggested').map(lens => ({ lens }))
 
   // Nothing to arrange with one row, and nothing to arrange with if the
-  // account cannot customise its profile at all.
-  const canReorder = Boolean(onLensReorder) && canCustomise && activeRows.length > 1
+  // account cannot customise its profile at all - or if the profile is only
+  // showing one of these, which is an order with nothing in it to change.
+  const canReorder =
+    Boolean(onLensReorder) && canCustomise && showsAllDirections && activeRows.length > 1
 
   async function commitOrder(ids) {
     if (!onLensReorder || reordering) return
@@ -899,9 +908,21 @@ export default function SettingsDrawer({
               The count in the label is the point of the section as much as the
               rows are: three is the whole allowance, and an owner deciding
               whether to turn something on needs to know what it costs before
-              they press a control that refuses. */}
+              they press a control that refuses.
+
+              On a plan with nothing to spend there is no allowance to report.
+              Free shows one direction and lists the rest as locked, and "3 of
+              3 active" beside that would be counting a budget this account
+              does not have - or, read the other way, claiming three are on a
+              page that is showing one. The label is just the heading there. */}
           {directions.length > 0 && (
-            <Group label={`Career Directions · ${activeCount} of ${MAX_ACTIVE} active`}>
+            <Group
+              label={
+                showsAllDirections
+                  ? `Career Directions · ${activeCount} of ${MAX_ACTIVE} active`
+                  : 'Career Directions'
+              }
+            >
               {/* Two groups, never mixed. Above the rule, the directions that
                   are on the profile or could be turned back on with a switch;
                   below it, the ones that have not been put on it yet and are
@@ -951,6 +972,16 @@ export default function SettingsDrawer({
                         // yours to change and that it is currently refused,
                         // and only the second of those is true.
                         <span className="hp-ed-lens-fixed">Always on</span>
+                      ) : !showsAllDirections ? (
+                        // Same argument, the other way round: on this plan
+                        // the profile shows the primary direction and this
+                        // one is not on the page, so a switch reading "on"
+                        // would be describing something that is not true.
+                        // It is listed rather than hidden because it still
+                        // exists, everything written for it is still here,
+                        // and it comes back with the plan. The line under
+                        // the list says so.
+                        <span className="hp-ed-lens-fixed" data-locked="true">Pro</span>
                       ) : (
                         <button
                           type="button"
@@ -1013,6 +1044,9 @@ export default function SettingsDrawer({
                         </button>
                       ) : null}
 
+                      {!showsAllDirections ? (
+                        <span className="hp-ed-lens-fixed" data-locked="true">Pro</span>
+                      ) : (
                       <button
                         type="button"
                         className="hp-ed-switch"
@@ -1029,6 +1063,7 @@ export default function SettingsDrawer({
                       >
                         <span className="hp-ed-switch-knob" aria-hidden="true" />
                       </button>
+                      )}
                     </div>
                   )
                 })}

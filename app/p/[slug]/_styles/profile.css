@@ -1485,34 +1485,44 @@
      attributes the rail sets off its own scroll position. At a boundary the
      fade on that side is gone, which is what keeps the first and last names,
      and the selected underline, out from under it. A row that fits carries no
-     mask at all. */
+     mask at all.
+
+     The opening strip only. The sticky bar takes the same mask from the same
+     three values, in its own block below, because its mobile rules have to
+     reach a phone in landscape and this block does not. */
   .hp-directions[data-fade-start="true"],
-  .hp-bar-track[data-fade-start="true"],
-  .hp-directions[data-fade-end="true"],
-  .hp-bar-track[data-fade-end="true"] {
+  .hp-directions[data-fade-end="true"] {
     -webkit-mask-image: var(--rail-mask);
     mask-image: var(--rail-mask);
   }
+}
 
-  /* Wide enough that the name has faded out before the gutter the chevron
-     sits in, which is what separates the two. */
-  [data-fade-start="true"][data-fade-end="false"] {
-    --rail-mask: linear-gradient(90deg, transparent 0, #000 56px, #000 100%);
-  }
+/* The three fades the rails are masked with, at file scope so the opening
+   strip and the sticky bar read the same three values rather than each
+   carrying a copy. Defining a custom property paints nothing: the two rails
+   are the only things that set these attributes, and the mask itself is
+   applied per breakpoint above and below.
 
-  [data-fade-start="false"][data-fade-end="true"] {
-    --rail-mask: linear-gradient(90deg, #000 0, #000 calc(100% - 56px), transparent 100%);
-  }
+   56px wide, which in the opening strip is enough that a name has faded out
+   before the gutter the chevron sits in. The bar keeps no gutter - its names
+   have the full width and the chevron stands on the fade - so there the same
+   56px is what separates the chevron from a name still legible under it. */
+[data-fade-start="true"][data-fade-end="false"] {
+  --rail-mask: linear-gradient(90deg, transparent 0, #000 56px, #000 100%);
+}
 
-  [data-fade-start="true"][data-fade-end="true"] {
-    --rail-mask: linear-gradient(
-      90deg,
-      transparent 0,
-      #000 56px,
-      #000 calc(100% - 56px),
-      transparent 100%
-    );
-  }
+[data-fade-start="false"][data-fade-end="true"] {
+  --rail-mask: linear-gradient(90deg, #000 0, #000 calc(100% - 56px), transparent 100%);
+}
+
+[data-fade-start="true"][data-fade-end="true"] {
+  --rail-mask: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 56px,
+    #000 calc(100% - 56px),
+    transparent 100%
+  );
 }
 /* ---- The sticky bar on a phone ----
    The query is the one in _lib/useNarrow.js, repeated character for
@@ -1531,10 +1541,14 @@
    duplicates leave the tab order and the accessibility tree along with the
    layout; the bar's 68px does not depend on them.
 
-   The chevrons went with them. They are a desktop-shaped answer to a rail
-   that overflows - a target either side, costing 46px of padding each - and
-   on a phone the answer is the swipe the reader is already making. The names
-   get all of it.
+   The chevrons stayed, and the 92px of gutter they used to be given did not.
+   A swipe is the gesture, but nothing on the row says there is anywhere to
+   swipe to: a name that happens to end at the edge leaves a row that looks
+   complete, and the third direction is then a thing the reader has to guess
+   at. So the opening strip's cue comes down here as it is - the same fade at
+   an edge with rail past it, the same chevron on top of it - with the
+   gutters dropped, so the chevron stands over the fade and the names keep
+   the full width of the bar.
 
    Everything the row needs to behave is declared here rather than inherited
    from the width-only block above, because a phone in landscape clears 767
@@ -1542,8 +1556,19 @@
 @media (max-width: 767px), (pointer: coarse) and (max-height: 500px) {
   .hp-bar-actions { display: none; }
 
-  .hp-bar .hp-rail .hp-rail-step { display: none; }
+  /* The strip's own control, unchanged: the rail renders it when the row
+     overflows and there is a direction that way to go to, and the step
+     carries its size, its colour and its chevron from the base rules. What
+     is different here is only where it stands - no gutter is bought for it,
+     so it sits over the fade at the rail's own edge. */
+  .hp-bar .hp-rail .hp-rail-step { display: flex; }
   .hp-bar .hp-rail[data-steps="true"] { padding-inline: 0; }
+
+  /* On the label's optical line rather than the middle of the rail box: the
+     track carries 14px of top padding for the ring, so the box's centre sits
+     below the type. The same value the width-only block gives it, repeated
+     so a phone in landscape places it identically. */
+  .hp-bar-track ~ .hp-rail-step { top: 26px; }
 
   .hp-bar-track {
     flex-wrap: nowrap;
@@ -1556,24 +1581,32 @@
     scroll-padding-inline: 8px;
   }
 
-  /* Tabs, so the one being read sits at the leading edge with the next one
-     showing past it, rather than centred with both neighbours half shown.
-     The last snaps to its own end, which is what lets it be reached at all. */
+  /* The opening strip's alignment, which is the one the fade is drawn for.
+     A swipe settles a name in the middle of the row, where no fade reaches
+     it, and leaves its neighbours showing past both edges. Aligned to the
+     start instead - which is what this was while there was no fade - a swipe
+     parks a name flush against the leading edge and the 56px fade washes out
+     the one thing the reader is meant to be reading.
+
+     The first and last snap to their own edge rather than the centre, which
+     is what stops the rail trying to centre something it cannot centre. */
   .hp-bar-item {
     flex: 0 0 auto;
-    scroll-snap-align: start;
+    scroll-snap-align: center;
   }
 
+  .hp-bar-item:first-child { scroll-snap-align: start; }
   .hp-bar-item:last-child { scroll-snap-align: end; }
 
-  /* The edge fade went with the chevrons it was drawn for: it exists to stop
-     a name rendering under a control in the gutter, and with the gutters
-     gone the only thing left under it is the tab being read, sitting at the
-     leading edge where the start fade is. */
+  /* The same mask the opening strip takes, off the same three values and the
+     same attributes the rail writes from its own scroll position: an edge
+     with rail past it fades, an edge at the end of the row does not, and a
+     row that fits carries no mask at all. Repeated here rather than left to
+     the width-only block so a phone in landscape fades too. */
   .hp-bar-track[data-fade-start="true"],
   .hp-bar-track[data-fade-end="true"] {
-    -webkit-mask-image: none;
-    mask-image: none;
+    -webkit-mask-image: var(--rail-mask);
+    mask-image: var(--rail-mask);
   }
 
   /* One direction is a statement, not a choice. It was already rendered as a

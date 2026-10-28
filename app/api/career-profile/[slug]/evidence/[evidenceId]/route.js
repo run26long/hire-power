@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { apiError } from '@/lib/apiError'
+import { primaryLensId, profileShowsAllDirections } from '../../../_lib/directions'
 import { onDirection, rowsForDirection } from '@/app/p/[slug]/_lib/profileData'
 
 const MEDIA_BUCKET = 'profile-media'
@@ -151,7 +152,26 @@ export async function GET(request, { params }) {
       return Response.json({ error: 'LOOKUP_FAILED' }, { status: 500 })
     }
 
-    const shownLensIds = new Set((visibleLenses || []).map(lens => lens.id))
+    let shownLensIds = new Set((visibleLenses || []).map(lens => lens.id))
+
+    // ---- AND WHAT THE PLAN SHOWS ----
+    //
+    // Free renders the primary direction and nothing else, so every other id
+    // is a direction this profile is not showing and nothing inside it may be
+    // signed. Narrowed rather than refused separately: a direction the plan
+    // does not show answers exactly as one belonging to somebody else does,
+    // which is the rule the rest of this route already follows.
+    //
+    // The primary comes from _lib/directions, so it is the row the document
+    // route opens the page on - the same direction, decided once.
+    const plan = await profileShowsAllDirections(supabase, profile.user_id)
+    if (plan.error) return Response.json({ error: 'LOOKUP_FAILED' }, { status: 500 })
+
+    if (!plan.showsAll) {
+      const primary = await primaryLensId(supabase, profile.id)
+      if (primary.error) return Response.json({ error: 'LOOKUP_FAILED' }, { status: 500 })
+      shownLensIds = new Set(primary.id ? [primary.id] : [])
+    }
 
     // A profile with directions has to be read through one of them. The only
     // request without a lens that means anything is one to a profile that has

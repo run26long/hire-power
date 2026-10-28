@@ -3,6 +3,8 @@ import path from 'path'
 import { renderToBuffer, Font } from '@react-pdf/renderer'
 import { createClient } from '@supabase/supabase-js'
 
+import { primaryLensId, profileShowsAllDirections } from '../_lib/directions'
+
 import ResumePDFCurrent from '../../../templates/pdf/ResumePDF-Current'
 import ResumePDFCommand from '../../../templates/pdf/ResumePDF-Command'
 import ResumePDFCrisp from '../../../templates/pdf/ResumePDF-Crisp'
@@ -166,7 +168,8 @@ export async function POST(request) {
     }
 
     const slug = typeof body?.slug === 'string' ? body.slug : null
-    const lensId = typeof body?.lens_id === 'string' ? body.lens_id : null
+    // Reassigned below where the plan does not show the direction it names.
+    let lensId = typeof body?.lens_id === 'string' ? body.lens_id : null
     if (!slug) {
       return Response.json({ error: 'Profile not found.', code: 'NOT_FOUND' }, { status: 404 })
     }
@@ -208,6 +211,32 @@ export async function POST(request) {
     // checked on both hops: the lens must be this profile's, and the resume
     // must be this profile owner's.
     let resume = null
+
+    // ---- AND WHETHER THE PLAN SHOWS IT ----
+    //
+    // Free renders the primary direction and nothing else, so any other one
+    // named here is a direction this profile is not showing, and handing back
+    // its resume would be serving from a page that does not exist. Answered
+    // the way a direction belonging to somebody else's profile is answered
+    // below - the id simply does not resolve, and the priority core stands in
+    // - rather than with a refusal of its own, because the two are the same
+    // fact from the caller's side and a different answer would say which.
+    //
+    // Both halves come from _lib/directions, so the primary here is the row
+    // the document route opens the page on.
+    if (lensId) {
+      const plan = await profileShowsAllDirections(supabase, profile.user_id)
+      if (plan.error) {
+        return Response.json({ error: 'Something went wrong.', code: 'LOOKUP_FAILED' }, { status: 500 })
+      }
+      if (!plan.showsAll) {
+        const primary = await primaryLensId(supabase, profile.id)
+        if (primary.error) {
+          return Response.json({ error: 'Something went wrong.', code: 'LOOKUP_FAILED' }, { status: 500 })
+        }
+        if (lensId !== primary.id) lensId = null
+      }
+    }
 
     if (lensId) {
       const { data: lens } = await supabase

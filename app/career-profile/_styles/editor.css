@@ -1014,6 +1014,18 @@ html:has(.hp-ed) {
   color: var(--ed-muted);
 }
 
+/* A direction this plan is not showing. The same chip as "Always on", in the
+   accent rather than the muted ink: the row above it is a fact about the
+   profile and this one is a door, and a door should not read as the quietest
+   thing in the list. */
+.hp-ed-lens-fixed[data-locked="true"] {
+  padding: 3px 9px;
+  border: 1px solid var(--ed-accent-edge);
+  border-radius: 999px;
+  background: var(--ed-accent-soft);
+  color: var(--ed-accent);
+}
+
 .hp-ed-lens-add {
   appearance: none;
   display: inline-flex;

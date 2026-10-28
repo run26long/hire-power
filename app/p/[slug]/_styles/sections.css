@@ -2113,27 +2113,29 @@
    The query is the one in _lib/useNarrow.js, repeated character for
    character; see the note at the head of the Skills block below.
 
-   Wrapped, this line is a label and then two or three ragged rows of pills,
-   and the label stops reading as a label at all. So the label takes its own
-   line and the pills take one row under it that scrolls, with the last one
-   cut by the edge to say there is more. Same pills: only the box around them
-   is new. */
+   Wrapped, this line is a label and then two or three ragged rows of pills.
+   One line instead: the label stays where it is and keeps the type it has at
+   every other width, and the pills travel sideways beside it, the last one
+   cut by the edge to say there are more. Same label, same pills; the only
+   new thing is the box the pills scroll inside. */
 @media (max-width: 767px), (pointer: coarse) and (max-height: 500px) {
-  /* The label is small type set as a label, and `width: 100%` in the
-     wrapping line above is what puts the pills on the next line rather than
-     beside it. In Edit mode the pencil stays on the label's line, where it
-     already sits. */
-  .hp-foot-open-label {
-    font-size: 12px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-  }
+  /* Nothing below this line may wrap: the label, the pencil that sits beside
+     it in Edit, and the row of pills are one line. */
+  .hp-foot-open { flex-wrap: nowrap; }
+
+  /* Fixed at the left. Everything that moves is in the box after it. */
+  .hp-foot-open-label { flex: 0 0 auto; }
 
   .hp-open-tags {
     display: flex;
     flex-wrap: nowrap;
     gap: 8px;
-    width: 100%;
+    /* The rest of the line, and `min-width: 0` is what lets it be narrower
+       than the pills inside it - without it a flex item refuses to shrink
+       below its content and the row pushes the line wide instead of
+       scrolling. */
+    flex: 1 1 auto;
+    min-width: 0;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;

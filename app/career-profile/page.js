@@ -1289,6 +1289,7 @@ export default function CareerProfileEditorPage() {
         // Adding a career direction is the one control in the drawer whose
         // answer is Pro rather than Vault, so the drawer needs both.
         isPro={manage?.isPro === true}
+        showsAllDirections={manage?.showsAllDirections === true}
         notify={notify}
         lenses={manage?.lenses || []}
         onLensVisibility={setLensVisibility}
