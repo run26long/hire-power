@@ -3637,13 +3637,30 @@
   overflow: hidden;
   background: var(--profile-shade-8);
   border: 1px solid rgb(var(--profile-accent-rgb) / 0.22);
+
+  /* How tall a portrait or square video may stand. One value, used at every
+     width, because the thing it is protecting is the same at every width: the
+     spread is two columns that have to end near each other, and a phone film
+     at the card's full measure is half as tall again as the account beside it.
+
+     Viewport-relative as well as absolute, so a short laptop screen or a
+     phone in landscape does not get a film plus its controls filling the
+     whole of it. This is the narrow query's cap too - deliberately, because
+     "the same cap" is what it should be, and one declaration is how two
+     places are made to agree. */
+  --voice-video-cap: min(420px, 58vh);
 }
 
+/* The ratio itself is set inline, from the two numbers the payload carries,
+   because it is data rather than design: the frame is this person's video's
+   shape and the stylesheet has no business knowing what that is. What is NOT
+   inline is everything below, which is the treatment that shape gets. */
 .hp-voice-video-el,
 .hp-voice-video-wait {
   display: block;
+  position: relative;
+  z-index: 1;
   width: 100%;
-  aspect-ratio: 16 / 9;
   max-width: 100%;
 }
 
@@ -3652,8 +3669,53 @@
   background: #000;
 }
 
+/* ---- Portrait and square ----
+   Held to the cap and centred, rather than run to the card's full width.
+   Height leads and width follows from the inline ratio, so the film is never
+   stretched and never cropped - it is simply smaller than the frame around
+   it, which is the whole point of the fill below. */
+.hp-voice-video[data-shape="portrait"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hp-voice-video[data-shape="portrait"] > .hp-voice-video-el,
+.hp-voice-video[data-shape="portrait"] > .hp-voice-video-wait {
+  width: auto;
+  height: var(--voice-video-cap);
+  max-width: 100%;
+}
+
+/* ---- What fills the space beside it ----
+   The video's own poster, blown past the edges, blurred and taken down to
+   something like a quarter of its brightness. Not black bars: a letterbox
+   announces that something has been fitted into a box it does not suit, and
+   this is a card that was built to take the film's own shape.
+
+   Scaled up because a blur of this radius has a soft, lighter edge where it
+   runs out of pixels, and 1.18 pushes that edge outside the frame's clip.
+   Behind the controls in the stacking order and inert to the pointer, so
+   nothing about playing the video changes.
+
+   Drawn only where there is a poster to draw. With none, the frame's own
+   ground stands, which is the card's colour rather than a shade invented
+   here. */
+.hp-voice-video-fill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(26px) brightness(0.42) saturate(0.9);
+  transform: scale(1.18);
+  pointer-events: none;
+}
+
 /* Holds the shape while the signed link is fetched, so the column does not
-   jump when it arrives. */
+   jump when it arrives. It knows the shape already: that came with the
+   payload, not with the file. */
 .hp-voice-video-wait { background: var(--profile-fill-4); }
 
 /* With a video above it the passage is a caption rather than the subject, so
@@ -5108,9 +5170,9 @@
    Profile's reset is `.hp-profile button, .hp-ev-backdrop button,
    .hp-rt-backdrop button` at (0,1,1), which out-ranks a bare class and would
    flatten the border, the padding and the colour straight off it. */
-:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts) .hp-manage-add,
-:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts) .hp-manage-secondary,
-:is(.hp-manage, .hp-manage-pane) .hp-manage-done {
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-write-bar) .hp-manage-add,
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-write-bar) .hp-manage-secondary,
+:is(.hp-manage, .hp-manage-pane, .hp-ed-write-bar) .hp-manage-done {
   appearance: none;
   font: inherit;
   font-size: 13px;
@@ -5125,23 +5187,31 @@
    footer is for: leaving, with what you came for. Adding opens another dialog
    over this one and the reference sheet is a download, so both of those are
    outlined and stand to the left of it. */
-:is(.hp-manage, .hp-manage-pane) .hp-manage-done {
+:is(.hp-manage, .hp-manage-pane, .hp-ed-write-bar) .hp-manage-done {
   border: 1px solid transparent;
   background: var(--profile-primary-fill);
   color: var(--profile-on-action);
 }
 
-:is(.hp-manage, .hp-manage-pane) .hp-manage-done:hover { opacity: 0.9; }
+:is(.hp-manage, .hp-manage-pane, .hp-ed-write-bar) .hp-manage-done:hover { opacity: 0.9; }
 
-:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts) .hp-manage-secondary,
-:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts) .hp-manage-add {
+/* The dialog's buttons can be refused where the panels' cannot: Save is off
+   until something has changed, and Polish is off while it is running. */
+:is(.hp-manage, .hp-manage-pane, .hp-ed-write-bar) .hp-manage-done:disabled,
+:is(.hp-manage, .hp-manage-pane, .hp-ed-write-bar) .hp-manage-secondary:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-write-bar) .hp-manage-secondary,
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-write-bar) .hp-manage-add {
   border: 1px solid var(--profile-line-strong);
   background: transparent;
   color: var(--profile-body);
 }
 
-:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts) .hp-manage-secondary:hover,
-:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts) .hp-manage-add:hover { color: var(--profile-text); border-color: var(--profile-accent-edge); }
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-write-bar) .hp-manage-secondary:hover:not(:disabled),
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-write-bar) .hp-manage-add:hover { color: var(--profile-text); border-color: var(--profile-accent-edge); }
 
 /* The reference sheet stands on its own, at the other end. It is the only
    control here that neither adds to the collection nor closes the panel - it
@@ -5295,6 +5365,115 @@
 }
 
 .hp-manage > .hp-manage-note { margin-inline: 0 auto; }
+
+/* ---- Proof points, in the Manage panel --------------------------------
+   The only part of that panel this section adds anything to. Its rows are
+   .hp-manage-row, its handle is .hp-manage-grip, its break is
+   .hp-manage-split and its buttons are .hp-manage-edit, .hp-manage-secondary
+   and .hp-manage-done, all unchanged - a proof point simply has two editable
+   strings where the other three collections have a title to read, so the
+   middle of the row is a pair of fields rather than a label.
+
+   The 96px figure column is the proportion the pencil editor's own rows use
+   (.hp-ed-proof), kept so the two ways into the same three values are set the
+   same way. */
+/* ---- The Career Direction tabs, in the panel ----
+   The directions bar's own tabs, not a second set that resembles them:
+   .hp-bar-item, .hp-bar-label and .hp-bar-mark are the bar's classes from
+   profile.css, carrying the bar's weight, its colour and its sliding
+   underline. What this adds is the row they sit in and one re-assertion.
+
+   The re-assertion is the reset. `.hp-rt-backdrop button` sets `font: inherit`
+   and `color: inherit` at (0,1,1), which out-ranks `.hp-bar-item` at (0,1,0)
+   and would take the size, the weight and the grey straight off every tab
+   inside this dialog. Restated here at (0,2,0), which is the same arithmetic
+   half this file is written in.
+
+   The track itself is deliberately NOT .hp-bar-track: that one carries scroll
+   padding and a negative inline margin tuned to the sticky bar's focus rings
+   and the page gutter, and neither means anything in a 600px panel. */
+.hp-pp-tabs {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 16px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hp-pp-tabs::-webkit-scrollbar { display: none; }
+
+:is(.hp-manage, .hp-manage-pane) .hp-bar-item {
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 1.4;
+  color: var(--profile-meta);
+}
+
+:is(.hp-manage, .hp-manage-pane) .hp-bar-item[data-active="true"] {
+  font-weight: 700;
+  color: var(--profile-text);
+}
+
+:is(.hp-manage, .hp-manage-pane) .hp-bar-item:disabled { cursor: default; }
+
+/* A direction Save refused. Marked rather than announced: the panel has
+   already moved to this tab and the sentence under its rows says what is
+   wrong, so the tab's job is only to be findable again after the owner has
+   wandered off to another one. */
+:is(.hp-manage, .hp-manage-pane) .hp-bar-item[data-fault="true"] {
+  color: var(--profile-error-ink);
+}
+
+:is(.hp-manage, .hp-manage-pane) .hp-bar-item[data-fault="true"] .hp-bar-mark {
+  opacity: 1;
+  transform: scaleX(1);
+  background: var(--profile-error-ink);
+}
+
+/* "Lead", then 2 and 3. Held to one width inside the row so the three sets of
+   fields start in the same place: the word is wider than the numerals, and a
+   rank sized to its own text would step the first row's inputs right of the
+   two below it. Scoped to the row, so the pencil editor's own grid - which
+   gives this a 46px column of its own - is untouched. */
+.hp-manage-row > .hp-ed-proof-rank {
+  flex: none;
+  width: 38px;
+}
+
+.hp-pp-fields {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+/* Below the width the two fields stop fitting side by side, the figure takes
+   its own line above the label rather than shrinking to four characters. The
+   same break the pencil editor's rows take. */
+@media (max-width: 640px) {
+  .hp-pp-fields { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Right-aligned on its own line: More suggestions belongs to the list above
+   it, not to the footer, which is for leaving. */
+.hp-pp-more {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+/* Why Save is off, in the owner's words rather than the route's. Set apart
+   from the panel's instructions above it, which are not about this moment. */
+.hp-pp-why {
+  margin-top: 12px;
+  color: var(--profile-body);
+}
 
 /* Managing is a list, not a wall of mats: the panel takes the measure of the
    evidence modal beside it and only as much height as the rows need, so the

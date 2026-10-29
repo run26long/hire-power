@@ -51,6 +51,18 @@ const PROFILE_COLS =
   'id, slug, is_published, template, color_mode, accent, ' +
   'imow_type, imow_text, imow_video_path, contact_email, created_at, updated_at'
 
+// In My Own Words carries a video shape and a poster now, and those three
+// columns are newer than the table. Asked for on top of the set above and
+// retried without them, so an account whose database has not had
+// scripts/add-imow-video-shape.sql run still manages its profile - it simply
+// has no shape and no poster to report.
+const PROFILE_SHAPE_COLS = `${PROFILE_COLS}, imow_video_width, imow_video_height, imow_poster_path`
+
+function isMissingColumnError(error) {
+  if (!error) return false
+  return error.code === '42703' || error.code === 'PGRST204'
+}
+
 const LENS_COLS =
   'id, name, slug, status, sort_order, source, core_resume_id, ' +
   'headline, bio, proof_points, ready_for_next, ready_tags, ' +
@@ -114,11 +126,19 @@ export async function GET(request) {
     const accountEmail = person?.email || user.email || null
 
     // ---- THE PROFILE ----
-    const { data: profile, error: profileError } = await supabase
+    let { data: profile, error: profileError } = await supabase
       .from('career_profiles')
-      .select(PROFILE_COLS)
+      .select(PROFILE_SHAPE_COLS)
       .eq('user_id', user.id)
       .maybeSingle()
+
+    if (isMissingColumnError(profileError)) {
+      ;({ data: profile, error: profileError } = await supabase
+        .from('career_profiles')
+        .select(PROFILE_COLS)
+        .eq('user_id', user.id)
+        .maybeSingle())
+    }
 
     if (profileError) {
       console.error('[career-profile/manage] Profile lookup failed:', profileError)
@@ -217,7 +237,22 @@ export async function GET(request) {
       }
     })
 
-    const { imow_video_path, ...profileRest } = profile
+    // ---- WHAT THE OWNER IS TOLD ABOUT IN MY OWN WORDS ----
+    //
+    // Both halves, always, and this is the one record that carries both.
+    //
+    // The public payload now sends only the half the profile is showing, which
+    // is right for a visitor and wrong for the person editing: an owner who
+    // has chosen the video still has their written text, and an editor opening
+    // on an empty box would invite them to overwrite it with nothing. So the
+    // workspace reads the text, the type and whether a video exists from here,
+    // where the question is "what do you have" rather than "what are you
+    // showing".
+    //
+    // Both paths are dropped the way every other path on this route is: the
+    // bucket is private, and what the editor needs is whether there is a file,
+    // not where it is.
+    const { imow_video_path, imow_poster_path, ...profileRest } = profile
 
     const testimonials = testimonialRes.data || []
 
@@ -271,7 +306,11 @@ export async function GET(request) {
       canCustomise: canCustomiseProfile(userProfile.subscription_tier),
       canUseProfileTools: canUseProTools(userProfile.subscription_tier),
       showsAllDirections: canShowAllDirections(userProfile.subscription_tier),
-      profile: { ...profileRest, imow_has_video: Boolean(imow_video_path) },
+      profile: {
+        ...profileRest,
+        imow_has_video: Boolean(imow_video_path),
+        imow_has_poster: Boolean(imow_poster_path)
+      },
       primaryCoreResumeId: cores?.[0]?.id || null,
       lenses: lensRes.data || [],
       evidence,

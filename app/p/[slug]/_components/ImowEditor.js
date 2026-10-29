@@ -112,7 +112,20 @@ export default function ImowEditor({ value }) {
   const editor = useFieldEditor('imow')
   const canEdit = useCanEdit()
 
-  const [draft, setDraft] = useState(value || '')
+  // The owner's own text, which is not always what the page is showing. The
+  // document payload now sends only the chosen half, so a profile leading with
+  // its video carries no paragraph - and opening this box empty on somebody
+  // who has written one would invite them to overwrite it with nothing. The
+  // workspace reads both off the management record and hands them down here;
+  // `value` is the fallback, and it is what Preview and the public page would
+  // have, neither of which renders this editor at all.
+  const stored = typeof edit?.imowText === 'string' ? edit.imowText : (value || '')
+  const hasVideo = edit?.imowHasVideo === true
+
+  const [draft, setDraft] = useState(stored)
+  // Which half the profile shows. Held here and written on Save, so Cancel
+  // discards a change of mind the way it discards a change of wording.
+  const [choice, setChoice] = useState(edit?.imowType === 'video' ? 'video' : 'text')
   // Which AI job is in flight, or null. One at a time by construction: the
   // button that starts them is the same button for all three.
   const [running, setRunning] = useState(null)
@@ -150,6 +163,18 @@ export default function ImowEditor({ value }) {
   // the two versions are up, so nothing can focus it until React has put it
   // back, and calling focus() from the button handler would reach a ref that
   // is still null.
+  // Opening reads the record again. The box and the switch both: a video
+  // uploaded since this was last open has already moved the choice, and the
+  // dialog should open on what is true rather than on what it last held.
+  useEffect(() => {
+    if (!isOpen) return
+    setDraft(stored)
+    setChoice(edit?.imowType === 'video' ? 'video' : 'text')
+    // Deliberately keyed on the open alone. A save landing underneath this
+    // must not reach in and replace what is being typed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen])
+
   useEffect(() => {
     if (!isOpen) return
     const node = ref.current
@@ -168,6 +193,29 @@ export default function ImowEditor({ value }) {
 
   const trimmed = draft.trim()
   const busy = Boolean(editor.busy || running)
+
+  // ---- WHICH HALF THE PROFILE SHOWS ----
+  //
+  // Each option is offered only where there is something behind it: Video
+  // needs a file, Written needs words. Written reads the box rather than the
+  // record, because the box is what Save will store - somebody typing their
+  // first paragraph can choose it before it exists anywhere else.
+  //
+  // Neither half deletes the other. Both are stored, and this decides only
+  // which one leaves the server for a visitor.
+  const canShowVideo = hasVideo
+  const canShowWritten = Boolean(trimmed)
+  // Whatever was chosen, corrected to something that exists. A profile that
+  // has just had its only video removed cannot still be showing it.
+  const showing = choice === 'video' && canShowVideo ? 'video'
+    : canShowWritten ? 'text'
+      : (canShowVideo ? 'video' : 'text')
+
+  const textChanged = trimmed !== stored.trim()
+  const choiceChanged = showing !== (edit?.imowType === 'video' ? 'video' : 'text')
+  // Text only where there is some. A profile showing a video it has just
+  // recorded, with nothing written, still has a choice to save.
+  const canSave = Boolean(trimmed || choiceChanged) && (textChanged || choiceChanged) && !busy
   // Two readings exist, so the toggle is up. Nothing is disabled by it: Save
   // takes whatever is on screen, and asking for another version is still
   // allowed.
@@ -292,7 +340,17 @@ export default function ImowEditor({ value }) {
     return polish(polishSource || mine || trimmed, 'again')
   }
 
-  // Unchanged in order and in treatment. Only where it lives has changed.
+  // ---- THE WRITING CONTROLS ----
+  //
+  // Grouped right, in the order the house rule gives: the optional one first,
+  // the way out beside the way on, and the filled primary furthest right.
+  // They are the Manage panels' own buttons rather than a second pair that
+  // resembles them - .hp-manage-secondary and .hp-manage-done, with
+  // .hp-ed-write-bar added to the selector lists those rules already carry.
+  //
+  // Save is always the primary now. It used to hand the treatment to the AI
+  // control until something had been written, which made the one button that
+  // changes nothing the loudest thing in the dialog.
   const writeActions = (
     <div className="hp-ed-editor-bar hp-ed-write-bar">
       {/* One control, leading the bar and carrying the page's primary
@@ -306,8 +364,7 @@ export default function ImowEditor({ value }) {
       {aiOffered ? (
         <button
           type="button"
-          className="hp-ed-action"
-          data-primary={written ? undefined : 'true'}
+          className="hp-manage-secondary"
           onClick={runAi}
           disabled={busy}
           data-working={running ? 'true' : undefined}
@@ -318,18 +375,20 @@ export default function ImowEditor({ value }) {
         </button>
       ) : null}
 
-      <button
-        type="button"
-        className="hp-ed-action"
-        data-primary={written ? 'true' : undefined}
-        onClick={() => editor.save({ imow_text: trimmed })}
-        disabled={!trimmed || trimmed === (value || '').trim() || busy}
-      >
-        {editor.saving ? 'Saving…' : 'Save'}
+      <button type="button" className="hp-manage-secondary" onClick={editor.close} disabled={busy}>
+        Cancel
       </button>
 
-      <button type="button" className="hp-ed-action" onClick={editor.close} disabled={busy}>
-        Cancel
+      {/* The words and the choice in one request, because they are decided
+          together here. Either may be absent: a profile with a video and
+          nothing written still has a choice to store. */}
+      <button
+        type="button"
+        className="hp-manage-done"
+        onClick={() => editor.save({ imow_text: trimmed || undefined, imow_type: showing })}
+        disabled={!canSave}
+      >
+        {editor.saving ? 'Saving…' : 'Save'}
       </button>
     </div>
   )
@@ -352,6 +411,38 @@ export default function ImowEditor({ value }) {
         note about what sets you apart, or upload a video and speak to potential employers
         directly.
       </p>
+
+      {/* Which of the two the profile shows. Both can exist; only one is
+          sent to a visitor, and this is where that is decided. An option with
+          nothing behind it is disabled rather than hidden - a control that
+          vanishes never tells anybody what it would have been for. */}
+      <div className="hp-ed-show-on">
+        <span className="hp-ed-field-label" data-accent="true">Show on your profile</span>
+        <div className="hp-ed-versions" role="group" aria-label="Show on your profile">
+          <button
+            type="button"
+            className="hp-ed-version"
+            data-on={showing === 'text' ? 'true' : 'false'}
+            aria-pressed={showing === 'text'}
+            disabled={!canShowWritten || busy}
+            title={canShowWritten ? undefined : 'Write something first'}
+            onClick={() => setChoice('text')}
+          >
+            Written
+          </button>
+          <button
+            type="button"
+            className="hp-ed-version"
+            data-on={showing === 'video' ? 'true' : 'false'}
+            aria-pressed={showing === 'video'}
+            disabled={!canShowVideo || busy}
+            title={canShowVideo ? undefined : 'Upload a video first'}
+            onClick={() => setChoice('video')}
+          >
+            Video
+          </button>
+        </div>
+      </div>
 
       <p className="hp-ed-field-label" data-accent="true">Write it</p>
 
@@ -424,7 +515,7 @@ export default function ImowEditor({ value }) {
             </span>
             <span className="hp-ed-add-choice-note">
               Prefer to speak directly to an employer? Upload a short video and let them
-              hear what sets you apart. MP4 or WebM, landscape 16:9, up to 50MB.
+              hear what sets you apart. Landscape or portrait, MP4 or WebM, up to 50MB.
             </span>
           </button>
         )}

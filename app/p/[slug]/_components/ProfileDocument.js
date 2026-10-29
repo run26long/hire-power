@@ -339,6 +339,12 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   // Whether a video exists, never where it is. The path stays server-side and
   // the player asks the signing route for a link when it is about to play.
   const imowHasVideo = data?.profile?.imow_has_video === true
+  // The shape it was recorded in, so the frame is the right size before the
+  // file loads. Null for a video uploaded before the column existed, and the
+  // player falls back to 16/9 - which is what every one of those is.
+  const imowVideoWidth = data?.profile?.imow_video_width ?? null
+  const imowVideoHeight = data?.profile?.imow_video_height ?? null
+  const imowHasPoster = data?.profile?.imow_has_poster === true
 
   // Where the resume actually carries one. There is no location and no remote
   // field in the API contract, so nothing is inferred and nothing stands in
@@ -560,6 +566,29 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     }
   }, [editLensId, onLensUpdated])
 
+  // ---- WRITING TO A DIRECTION THAT IS NOT THE ONE ON SCREEN ----
+  //
+  // runWrite above is the field editors' path and is deliberately bound to the
+  // direction the page is showing: a pencil can only ever edit what is under
+  // it, and that is the guarantee that stops an editor left mounted from
+  // writing somebody's second direction with the first one's text.
+  //
+  // The proof points panel is the one control that genuinely spans directions.
+  // It carries a tab per direction on the profile, holds an unsaved draft for
+  // each, and on Save writes every one that changed - so it needs to name the
+  // lens, and it owns its own busy and error state rather than borrowing the
+  // field editor's single `busy` slot for three writes in a row.
+  //
+  // It is still the same route and the same validation. What it does not do is
+  // touch openField, which is what keeps the dialog open across a save that
+  // takes three requests.
+  const saveLensFields = useCallback(async (lensId, values) => {
+    if (!editSave || !lensId) throw new Error("We couldn't save that. Please try again.")
+    const lens = await editSave(lensId, values)
+    if (lens) onLensUpdated?.(lens)
+    return lens
+  }, [editSave, onLensUpdated])
+
   // ---- ASKING FOR WORDS, WHICH IS NOT SAVING THEM ----
   //
   // The sibling of runWrite, and the difference is the whole point of it:
@@ -625,6 +654,9 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       // Every direction on the management record, including the ones the
       // profile is not showing. `lenses` above is what the page renders; this
       // is what it could render, and it is what the rail's offers come from.
+      // Writing proof points to a direction by name, for the one panel that
+      // edits more than the direction on screen. See the note beside it.
+      saveLensFields,
       allLenses: edit.allLenses,
       // The account's priority core, straight from the management record.
       //
@@ -646,7 +678,20 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       onCategoriseTestimonial: edit.onCategoriseTestimonial,
       getAuthHeaders: edit.getAuthHeaders,
       slug,
-      imowHasVideo,
+      // ---- IN MY OWN WORDS, IN THE EDITOR ----
+      //
+      // Off the workspace, which reads the management record, rather than off
+      // the document beside it. The document now carries only the half the
+      // profile is showing; the owner editing it needs both, or the box opens
+      // empty on a profile that has chosen its video and invites them to
+      // overwrite the words they wrote.
+      //
+      // They fall back to the document's values, which is what the public page
+      // and Preview would see - and neither of those renders this editor at
+      // all, so the fallback is only ever a floor.
+      imowText: edit.imowText ?? imowText ?? '',
+      imowType: edit.imowType ?? imowType ?? null,
+      imowHasVideo: edit.imowOwnerHasVideo === true || imowHasVideo,
       onUploadImowVideo: edit.onUploadImowVideo,
       onRemoveImowVideo: edit.onRemoveImowVideo,
       onDownloadReferenceSheet: edit.onDownloadReferenceSheet,
@@ -662,8 +707,12 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       // the one field whose save does not go to the lens route. Dispatched
       // here rather than in the editor, so every field still opens, closes,
       // reports busy and reports failure through the same path.
+      // In My Own Words carries a second value: which of its two halves the
+      // profile shows. It travels with the words because the one dialog
+      // decides both, and either may be absent - a profile with a video and
+      // nothing written still has a choice to store.
       save: (values, field) => runWrite(field, () => (field === 'imow'
-        ? editSaveImow(values.imow_text)
+        ? editSaveImow(values.imow_text, values.imow_type)
         : editSave(editLensId, values))),
       regenerate: (field) => runDraft(field, () => editRegenerate(editLensId, field))
     }
@@ -676,12 +725,13 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     edit?.onMoveEvidence, edit?.onEditEvidence, edit?.onDeleteEvidence,
     edit?.allTestimonialPlacements, edit?.onMoveTestimonial,
     lenses, editLensId, openField, busy, busyKind, writeError, errorField,
-    runWrite, runDraft, editSave, editSaveImow, editRegenerate,
+    runWrite, runDraft, editSave, editSaveImow, editRegenerate, saveLensFields,
     edit?.onGenerateImow, edit?.onStrengthenImow,
     edit?.allLenses, edit?.primaryCoreResumeId, edit?.onLensVisibility,
     edit?.testimonials, edit?.earned360, edit?.onRequestTestimonial,
     edit?.onPublishTestimonial, edit?.onDeleteTestimonial, edit?.onDownloadReferenceSheet,
     edit?.onCategoriseTestimonial, edit?.getAuthHeaders, slug, imowHasVideo,
+    edit?.imowText, edit?.imowType, edit?.imowOwnerHasVideo, imowText, imowType,
     edit?.onUploadImowVideo, edit?.onRemoveImowVideo
   ])
 
@@ -765,6 +815,9 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
         isCollapsible={Boolean(collapsedBio)}
         bioExpanded={bioExpanded}
         onToggleBio={() => setBioExpanded(value => !value)}
+        imowVideoWidth={imowVideoWidth}
+        imowVideoHeight={imowVideoHeight}
+        imowHasPoster={imowHasPoster}
         imowText={imowText}
         imowExpanded={imowExpanded}
         onToggleImow={() => setImowExpanded(value => !value)}

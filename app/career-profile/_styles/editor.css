@@ -1208,7 +1208,6 @@ html:has(.hp-ed) {
    markup, muted - see THE GHOSTS at the end of this file. */
 
 
-
 /* ---- Placing the empty states in the document's own grids ---------------
    Each of these regions is a track in a 12-column grid that the Profile
    places by class or by attribute. An empty state dropped into one of them
@@ -1668,22 +1667,10 @@ html:has(.hp-ed) {
   max-width: 720px;
 }
 
-:is(.hp-profile, .hp-ed-portal) .hp-ed-proofs {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-:is(.hp-profile, .hp-ed-portal) .hp-ed-proof {
-  display: grid;
-  grid-template-columns: 46px 96px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-}
-
+/* "Lead", then 2 and 3, at the head of a proof point row. The inline editor
+   this once belonged to is gone; the Manage panel's rows carry it now, and
+   give it their own width - see .hp-manage-row > .hp-ed-proof-rank in
+   sections.css. */
 .hp-ed-proof-rank {
   font-size: 10.5px;
   font-weight: 700;
@@ -1692,27 +1679,10 @@ html:has(.hp-ed) {
   color: rgb(var(--profile-accent-rgb) / 0.8);
 }
 
-.hp-ed-proof-moves { display: inline-flex; gap: 2px; }
-
 .hp-ed-proof-note {
   margin: 9px 0 0;
   font-size: 11.5px;
   color: var(--profile-ink-3);
-}
-
-@media (max-width: 640px) {
-  :is(.hp-profile, .hp-ed-portal) .hp-ed-proof {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "rank moves"
-      "num  num"
-      "label label";
-    row-gap: 6px;
-  }
-  .hp-ed-proof-rank { grid-area: rank; }
-  .hp-ed-proof-moves { grid-area: moves; justify-self: end; }
-  :is(.hp-profile, .hp-ed-portal) .hp-ed-proof-num { grid-area: num; }
-  :is(.hp-profile, .hp-ed-portal) .hp-ed-proof-label { grid-area: label; }
 }
 
 
@@ -1844,7 +1814,35 @@ html:has(.hp-ed) {
 /* In My Own Words keeps its controls inside the half they belong to rather
    than in the dialog footer, so they scroll with the writing and can never
    end up sitting over the video option below. */
-.hp-ed-portal .hp-ed-write-bar { margin-top: 10px; }
+/* Grouped right, and the house order within it: the optional one first, the
+   way out beside the way on, and the filled primary furthest right. The
+   buttons themselves are the Manage panels' - .hp-ed-write-bar is named in
+   those selector lists in sections.css rather than given a second pair of
+   values here. */
+.hp-ed-portal .hp-ed-write-bar {
+  margin-top: 10px;
+  justify-content: flex-end;
+}
+
+/* Which half of the section the profile shows, above everything else in the
+   dialog because it frames what the two halves below it are for. The switch
+   is the one this dialog already carries for the two readings of a polish. */
+.hp-ed-show-on {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--profile-line);
+}
+
+.hp-ed-show-on .hp-ed-field-label { margin: 0; }
+
+:is(.hp-profile, .hp-ed-portal) .hp-ed-version:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 
 /* ---- A dialog that fits rather than one that scrolls ------------------ */
 /*
@@ -1860,10 +1858,15 @@ html:has(.hp-ed) {
    what `flex: 0 1 auto` with `min-height: 0` says. It never grows past the
    height useAutoGrow writes - only shrinks below it when the screen is
    short. */
+/* It scrolls if it has to. The box of text still gives way first - that is
+   the `flex: 0 1 auto` below, and on most screens it is enough - but a short
+   screen with a video preview, a switch and three buttons in it can run out
+   of room, and a dialog that clipped its own Save would be worse than one
+   with a scrollbar. Nothing is cut off either way. */
 .hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body {
   display: flex;
   flex-direction: column;
-  overflow-y: hidden;
+  overflow-y: auto;
 }
 
 .hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body > * {
@@ -2791,18 +2794,33 @@ html:has(.hp-ed) {
 
 .hp-ed-vid { margin-top: 4px; }
 
+/* ---- The preview inside Tell your story ----
+   Capped rather than shaped. The dialog holds a box of text, an AI control,
+   three buttons and this, and a portrait film at the dialog's full width
+   pushed every one of them off the bottom of the screen - the one thing a
+   preview must not do is hide the controls that act on what it is previewing.
+
+   So the ratio comes off and a ceiling goes on. Any orientation sits inside
+   it on the card's own ground, which is a shade of the profile rather than
+   the pure black a letterbox would be. This is a thumbnail of a decision,
+   not the published frame; the published frame takes the video's own shape
+   and is in sections.css. */
 .hp-ed-vid-preview {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  height: auto;
+  max-height: 200px;
   object-fit: contain;
-  background: #000;
+  background: var(--profile-shade-8);
   border-radius: 9px;
   border: 1px solid var(--profile-edge-6);
   margin-bottom: 10px;
 }
 
-.hp-ed-vid-preview[data-waiting="true"] { background: var(--profile-fill-5); }
+.hp-ed-vid-preview[data-waiting="true"] {
+  aspect-ratio: 16 / 9;
+  background: var(--profile-fill-5);
+}
 
 /* The picker is a label wrapping a real file input, so the click that says
    "upload" is the click that opens the dialog. Taken out of sight rather than
@@ -3460,8 +3478,6 @@ html:has(.hp-ed) {
   /* Each description stays on one line at desktop. */
   .hp-ed-guide-step-note { white-space: nowrap; }
 }
-
-
 
 
 /* ===========================================================================

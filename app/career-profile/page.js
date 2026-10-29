@@ -674,17 +674,28 @@ export default function CareerProfileEditorPage() {
   //
   // The save writes; the draft does not. They are separate on purpose and the
   // route behind the second one has no write in it at all.
-  const saveImow = useCallback(async (imowText) => {
+  // The words and which half the profile is showing, together, because they
+  // are decided together in one dialog. Either may be omitted: a profile with
+  // a video and nothing written still has a choice to make, and the switch
+  // that makes it has no text to send.
+  //
+  // Both records are re-read. The document decides what renders - and now
+  // carries only the chosen half - while the management record is the only one
+  // holding both, which is where the editor reads from.
+  const saveImow = useCallback(async (imowText, imowType) => {
     const res = await fetch('/api/career-profile/imow', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
-      body: JSON.stringify({ imow_text: imowText })
+      body: JSON.stringify({
+        ...(typeof imowText === 'string' ? { imow_text: imowText } : {}),
+        ...(imowType === 'text' || imowType === 'video' ? { imow_type: imowType } : {})
+      })
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
-    await reloadDocument()
+    await Promise.all([reloadDocument(), reloadManage()])
     return payload
-  }, [getAuthHeaders, reloadDocument])
+  }, [getAuthHeaders, reloadDocument, reloadManage])
 
   const generateImow = useCallback(async () => {
     const res = await fetch('/api/career-profile/imow/generate', {
@@ -814,11 +825,20 @@ export default function CareerProfileEditorPage() {
   //
   // The same three steps as an evidence upload, for the same reason: the file
   // goes straight to storage and never through a request body here.
-  const uploadImowVideo = useCallback(async (file, { onProgress } = {}) => {
+  const uploadImowVideo = useCallback(async (
+    file,
+    { onProgress, poster = null, width = null, height = null } = {}
+  ) => {
     const startRes = await fetch('/api/career-profile/imow/video', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
-      body: JSON.stringify({ content_type: file.type, size: file.size })
+      body: JSON.stringify({
+        content_type: file.type,
+        size: file.size,
+        // Somewhere for the captured frame, asked for at the same time as the
+        // video so both objects exist before either is finalised.
+        poster_content_type: poster?.contentType || null
+      })
     })
     const start = await startRes.json().catch(() => ({}))
     if (!startRes.ok) throw new Error(start?.error || "We couldn't start that upload.")
@@ -839,10 +859,39 @@ export default function CareerProfileEditorPage() {
       xhr.send(file)
     })
 
+    // The frame, after the video and before the row. It is small, so it gets
+    // no progress of its own; the bar has already reached a hundred on the
+    // thing that took the time.
+    //
+    // A frame that will not upload is not worth losing the video over: the
+    // path is simply not claimed at the finish and the video keeps the
+    // browser's own first frame, which is what all of these had before.
+    let posterClaim = null
+    if (poster?.blob && start.poster_signed_url && start.poster_path) {
+      try {
+        const res = await fetch(start.poster_signed_url, {
+          method: 'PUT',
+          headers: { 'Content-Type': start.poster_content_type || poster.contentType },
+          body: poster.blob
+        })
+        if (res.ok) posterClaim = { poster_path: start.poster_path, poster_ticket: start.poster_ticket }
+      } catch {
+        posterClaim = null
+      }
+    }
+
     const finishRes = await fetch('/api/career-profile/imow/video', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
-      body: JSON.stringify({ path: start.path, ticket: start.ticket })
+      body: JSON.stringify({
+        path: start.path,
+        ticket: start.ticket,
+        ...(posterClaim || {}),
+        // What the browser read off the file. The server bounds it rather than
+        // trusting it, and a database without the columns drops it.
+        width: Number.isInteger(width) ? width : null,
+        height: Number.isInteger(height) ? height : null
+      })
     })
     const payload = await finishRes.json().catch(() => ({}))
     if (!finishRes.ok) throw new Error(payload?.error || "We couldn't save that.")
@@ -1249,6 +1298,17 @@ export default function CareerProfileEditorPage() {
           onEditEvidence: editEvidence,
           onDeleteEvidence: deleteEvidence,
           onSaveImow: saveImow,
+          // ---- IN MY OWN WORDS, AS THE OWNER HAS IT ----
+          //
+          // Off the management record, never off the document. The document is
+          // the recruiter's payload and now sends only the half the profile is
+          // showing, which is right for a visitor and wrong for the person
+          // editing: an owner who has chosen the video still has their written
+          // text, and an editor opening on an empty box would invite them to
+          // overwrite it with nothing.
+          imowText: manage?.profile?.imow_text || '',
+          imowType: manage?.profile?.imow_type || null,
+          imowOwnerHasVideo: manage?.profile?.imow_has_video === true,
           onGenerateImow: generateImow,
           onStrengthenImow: strengthenImow,
           // The whole set, so the rail can offer a direction the profile is

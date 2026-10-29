@@ -1,7 +1,8 @@
 'use client'
 
 import { EditPencil, SlotGuide, SlotGhost, GhostText, useEditSlot, UpgradeNote } from './EditAffordance'
-import { ProseEditor, ProofPointsEditor } from './EditFields'
+import { ProseEditor } from './EditFields'
+import ProofPointsManage from './ProofPointsManage'
 import { useFieldEditor, useCanShowEmpty } from '../_lib/editContext'
 
 // ============================================================================
@@ -93,6 +94,19 @@ export default function IdentityAct({
   const headlineEditor = useFieldEditor('headline')
   const proofEditor = useFieldEditor('proof_points')
 
+  // The proof points have one control now, and the pencil is it. It opens
+  // ProofPointsManage: picking, reordering, replacing and editing the three
+  // figures across every Career Direction, with suggestions drawn from this
+  // person's own career data.
+  //
+  // Opened through openField the way In My Own Words is, which is the house
+  // pattern for a field whose editor is a dialog rather than an inline form.
+  // Two things follow from that and both are deliberate. The pencil carries
+  // `persists`, so it stays where it is instead of hiding under its own
+  // dialog. And the composition below is no longer swapped out while the
+  // editor is open: a dialog replaces nothing, so the cover stays exactly as
+  // it is behind it, which is also what makes it a preview of itself.
+
   return (
     <section className="hp-act1">
       <span className="hp-act1-atmosphere" aria-hidden="true" />
@@ -115,7 +129,7 @@ export default function IdentityAct({
             the public page chooses exactly what it chose before. */}
         <div
           className="hp-act1-stage"
-          data-proof={hasProof || (canShowEmpty && !proofEditor?.isOpen) ? 'true' : 'false'}
+          data-proof={hasProof || canShowEmpty ? 'true' : 'false'}
         >
           {/* The selector comes first, in the DOM and on the page, because
               everything below it is what it changes. Choosing a direction and
@@ -145,9 +159,7 @@ export default function IdentityAct({
             ) : null}
           </div>
 
-          {proofEditor?.isOpen ? <ProofPointsEditor value={proofPoints} /> : null}
-
-          {hasProof && !proofEditor?.isOpen && (
+          {hasProof && (
             /* The featured figure and the two beneath it are one block. The
                band is what makes them one: below 1200 it is `display:
                contents` and both tiers are handed to the stage grid exactly as
@@ -172,7 +184,7 @@ export default function IdentityAct({
                 data-enter="0"
                 key={`lead-${directionKey}`}
               >
-                <EditPencil field="proof_points" label="the proof points" />
+                <EditPencil field="proof_points" label="the proof points" persists />
                 <span className="hp-proof-caption">Selected proof</span>
                 <ProofValue className="hp-proof-lead-num" value={lead?.num} />
                 <span className="hp-proof-lead-label">{lead?.label}</span>
@@ -217,7 +229,7 @@ export default function IdentityAct({
               context. Ghost markup has no such instinct, so the condition has
               to carry it: without this, a profile with no proof points would
               have shipped ghost figures to visitors. */}
-          {!hasProof && canShowEmpty && !proofEditor?.isOpen && (
+          {!hasProof && canShowEmpty && (
             <div className="hp-proof-band hp-ed-ghost-proof">
               {/* The invitation takes the lead figure's own position, so the
                   hero keeps its real shape and the explanation sits where the
@@ -231,7 +243,7 @@ export default function IdentityAct({
                     feature="identity"
                     onAction={() => proofEditor?.open()}
                   >
-                    Two or three results that stand behind this Career Direction. They
+                    Three results that stand behind this Career Direction. They
                     lead the cover.
                   </SlotGuide>
                 </div>
@@ -247,6 +259,15 @@ export default function IdentityAct({
               </div>
             </div>
           )}
+
+          {/* It portals onto the body, so where it sits in this tree decides
+              nothing but whether it exists. The pencil opens it and closing it
+              clears the field, so there is one open state rather than two that
+              could disagree. It reads every direction's figures off the edit
+              context, so nothing about them is passed down here. */}
+          {proofEditor ? (
+            <ProofPointsManage open={proofEditor.isOpen} onClose={proofEditor.close} />
+          ) : null}
 
           {/* The foot of the composition, wherever the composition happens to
               end. Full width so auto-placement cannot tuck it into a gap

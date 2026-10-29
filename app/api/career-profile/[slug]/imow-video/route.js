@@ -25,11 +25,31 @@ import { createClient } from '@supabase/supabase-js'
 // FAIL CLOSED, THE SAME AS EVERYTHING ELSE HERE
 // Unpublished, missing, or a profile whose type does not say video: 404. The
 // path comes from the row and never from the request, and the response carries
-// the URL and nothing else - no storage path, no user id, no profile id.
+// the URLs and nothing else - no storage path, no user id, no profile id.
+//
+// THE POSTER COMES BACK WITH IT
+// One request rather than two, because they are needed at the same moment and
+// by the same element: the poster is what the frame shows until somebody
+// presses play, and for a portrait video it is also the blurred fill either
+// side of it. It is signed for the same two hours; a dead poster costs a
+// still, not a video.
+//
+// A profile whose database has not had scripts/add-imow-video-shape.sql run
+// has no poster column to read. The select is tried with it and retried
+// without, and the answer is simply a video with no poster - which is what
+// every one of these was until the column existed.
 // ============================================================================
 
 const BUCKET = 'profile-media'
 const SIGNED_URL_TTL_SECONDS = 2 * 60 * 60
+
+// PostgREST reports an unknown column as 42703 on a select. imow_poster_path
+// is newer than this table, so the select is tried in full and retried with
+// the columns that have always existed rather than failing the video.
+function isMissingColumnError(error) {
+  if (!error) return false
+  return error.code === '42703' || error.code === 'PGRST204'
+}
 
 const notFound = () => Response.json({ error: 'NOT_FOUND' }, { status: 404 })
 
@@ -43,11 +63,20 @@ export async function GET(request, { params }) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     )
 
-    const { data: profile, error } = await supabase
+    const BASE = 'id, user_id, is_published, imow_type, imow_video_path'
+    let { data: profile, error } = await supabase
       .from('career_profiles')
-      .select('id, user_id, is_published, imow_type, imow_video_path')
+      .select(`${BASE}, imow_poster_path`)
       .eq('slug', slug)
       .maybeSingle()
+
+    if (isMissingColumnError(error)) {
+      ;({ data: profile, error } = await supabase
+        .from('career_profiles')
+        .select(BASE)
+        .eq('slug', slug)
+        .maybeSingle())
+    }
 
     if (error) {
       console.error('[imow-video] Profile lookup failed:', error)
@@ -83,8 +112,19 @@ export async function GET(request, { params }) {
       return notFound()
     }
 
+    // Signed separately and never required. A poster that will not sign is a
+    // frame the browser fills itself, which is what it did before there were
+    // any posters at all.
+    let posterUrl = null
+    if (profile.imow_poster_path) {
+      const { data: signedPoster } = await supabase.storage
+        .from(BUCKET)
+        .createSignedUrl(profile.imow_poster_path, SIGNED_URL_TTL_SECONDS)
+      posterUrl = signedPoster?.signedUrl || null
+    }
+
     return Response.json(
-      { url: signed.signedUrl, expires_in: SIGNED_URL_TTL_SECONDS },
+      { url: signed.signedUrl, poster_url: posterUrl, expires_in: SIGNED_URL_TTL_SECONDS },
       {
         // Never in a shared cache, and never outliving the signature it
         // carries: a cached copy would hand one reader's signed URL to the

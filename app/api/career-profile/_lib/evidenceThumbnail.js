@@ -182,7 +182,19 @@ export const thumbnailPathFor = (storagePath) => (
 // The one place anything in this file writes. Everything above it is about
 // getting hold of some pixels; this is the part that proves they are pixels
 // and turns them into the object a reader is eventually served.
+//
+// Exported as storeImage because it is now the only picture encoder on the
+// Career Profile that is shared. In My Own Words captures a poster frame in
+// the browser the way the evidence gallery does, and that frame has to go
+// through exactly this: the decode check that makes the declared content type
+// irrelevant, the EXIF rotate, the 800px cap, the webp, and the verify that
+// deletes an object it could not read back. A second copy of that over in the
+// video route is five rules that would quietly stop matching.
 // ---------------------------------------------------------------------------
+export async function storeImage(supabase, input, thumbPath) {
+  return store(supabase, input, thumbPath)
+}
+
 async function store(supabase, input, thumbPath) {
   let output
   try {

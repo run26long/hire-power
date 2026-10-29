@@ -295,7 +295,16 @@ async function storeSkillProof({ supabase, profileId, lensId, userId, lensName, 
 // The resume reaches the prompt as text rather than JSON so the model reads it
 // the way a person would, and so the shape of resume_data never leaks into the
 // writing.
-function convertResumeToText(data) {
+//
+// Exported because the proof point suggestions route renders the same resume
+// the same way. It reads this as source material AND checks every figure a
+// suggestion contains against it, so the two have to be one rendering: a
+// second copy that dropped a section would start refusing true numbers.
+//
+// Note what it leaves out, which is the point of it being this function rather
+// than the one in lib/resumeText: no contact block, and none of the builder's
+// working keys. A prompt has no use for somebody's phone number.
+export function convertResumeToText(data) {
   if (!data) return ''
   let text = ''
 

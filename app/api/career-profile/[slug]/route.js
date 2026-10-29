@@ -36,6 +36,13 @@ function isMissingColumnError(error) {
 
 const PROFILE_BASE = 'id, user_id, slug, is_published'
 const PROFILE_FULL = `${PROFILE_BASE}, template, color_mode, accent, imow_text, imow_type, imow_video_path, contact_email`
+// A third rung, and the reason it is its own rung rather than three more
+// columns on PROFILE_FULL: the retry below drops everything PROFILE_FULL adds,
+// so folding these in would mean a database without the video shape migration
+// losing the template, the accent and In My Own Words along with it. Tried
+// first, then PROFILE_FULL, then PROFILE_BASE, so each missing generation of
+// columns costs only itself.
+const PROFILE_SHAPE = `${PROFILE_FULL}, imow_video_width, imow_video_height, imow_poster_path`
 
 // sort_order and created_at are read to order the directions and are not sent;
 // see publicLens below. evidence_summary and ready_for_next are not read at
@@ -171,9 +178,18 @@ export async function GET(request, { params }) {
     // ---- THE PROFILE ----
     let { data: profile, error: profileError } = await supabase
       .from('career_profiles')
-      .select(PROFILE_FULL)
+      .select(PROFILE_SHAPE)
       .eq('slug', slug)
       .maybeSingle()
+
+    if (isMissingColumnError(profileError)) {
+      console.warn('[career-profile] career_profiles has no In My Own Words video shape columns; has scripts/add-imow-video-shape.sql been run?')
+      ;({ data: profile, error: profileError } = await supabase
+        .from('career_profiles')
+        .select(PROFILE_FULL)
+        .eq('slug', slug)
+        .maybeSingle())
+    }
 
     if (isMissingColumnError(profileError)) {
       console.warn('[career-profile] career_profiles is missing its styling columns, reading without them')
@@ -620,6 +636,21 @@ export async function GET(request, { params }) {
       ? { name: coreResume.display_name || null }
       : null
 
+    // ---- WHICH HALF OF IN MY OWN WORDS THIS PROFILE SHOWS ----
+    //
+    // Read once, here, because four fields below depend on agreeing about it.
+    // Asked of both columns rather than of the type alone: imow_type accepts
+    // any string, so a row that says video without a file is a row that says
+    // nothing.
+    const showsVideo = profile.imow_type === 'video' && Boolean(profile.imow_video_path)
+
+    // A stored pixel count, or null. Bounded rather than trusted: the numbers
+    // were read by a browser and the column may not exist at all yet.
+    const shapeOf = (value) => {
+      const n = Number(value)
+      return Number.isInteger(n) && n > 0 && n <= 16384 ? n : null
+    }
+
     // Whether this profile offers the recruiter tools. A boolean and nothing
     // more: no tier name, no billing state, and in particular no "free" - a
     // public page should not tell a visitor what its owner declined to buy.
@@ -654,13 +685,39 @@ export async function GET(request, { params }) {
         template: profile.template ?? null,
         color_mode: profile.color_mode ?? null,
         accent: profile.accent ?? null,
-        imow_text: profile.imow_text ?? null,
-        imow_type: profile.imow_type ?? null,
+        // ---- IN MY OWN WORDS: THE CHOSEN HALF, AND ONLY IT ----
+        //
+        // The section has two forms and the owner picks one. Both are stored
+        // and neither write path ever clears the other, so a profile showing
+        // the video still holds the words that were typed before it - and
+        // those words are not this payload's business. A visitor is sent what
+        // the page renders, which is one of the two.
+        //
+        // imow_type is the choice. It decides here rather than on the page,
+        // so the half that is not showing is not in the response at all: a
+        // recruiter opening the network tab on a profile that leads with a
+        // video finds no paragraph, and one reading the paragraph finds no
+        // evidence a video exists.
+        //
+        // Both guards are "and", never "or". The type column takes any string
+        // and nothing guarantees a profile claiming video has a file, so
+        // video means the type says so AND a path is there; text means the
+        // type does not say video AND something was written.
+        imow_text: showsVideo ? null : (profile.imow_text ?? null),
+        imow_type: showsVideo ? 'video' : (profile.imow_text ? 'text' : null),
         // Whether there is a video, never where it is. The path is a location
         // in a private bucket and is not a link holder's business; the player
         // asks the signing route for a URL by slug, and that route checks
         // publication again before it signs anything.
-        imow_has_video: Boolean(profile.imow_video_path),
+        imow_has_video: showsVideo,
+        // The shape it was recorded in, so the frame is the right size before
+        // the file has loaded rather than a 16/9 box that resizes under the
+        // reader. Null for a video uploaded before the column existed, and the
+        // page falls back to 16/9 - which is what every one of those is.
+        imow_video_width: showsVideo ? (shapeOf(profile.imow_video_width) ?? null) : null,
+        imow_video_height: showsVideo ? (shapeOf(profile.imow_video_height) ?? null) : null,
+        // The fact of a poster, never its path. Same rule as the video.
+        imow_has_poster: showsVideo && Boolean(profile.imow_poster_path),
         // The one field on this table that is somebody's address rather than a
         // styling choice, so it is the one field with a condition on it. Sent
         // only for a published profile, and only to its owner otherwise: a

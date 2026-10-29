@@ -60,6 +60,12 @@ export default function ProfileSpread({
   onToggleImow,
   imowType,
   imowHasVideo,
+  // The shape the video was recorded in, and whether there is a still to show
+  // before it plays. Passed straight through to the player, which is the only
+  // thing that uses them; the card around it is unchanged.
+  imowVideoWidth = null,
+  imowVideoHeight = null,
+  imowHasPoster = false,
   slug,
   getAuthHeaders,
   animate = true
@@ -233,7 +239,14 @@ export default function ProfileSpread({
               <span className="hp-eyebrow">In my own words</span>
 
               {hasVideo && (
-                <ImowVideo slug={slug} getAuthHeaders={getAuthHeaders} onUnavailable={onVideoGone} />
+                <ImowVideo
+                  slug={slug}
+                  getAuthHeaders={getAuthHeaders}
+                  onUnavailable={onVideoGone}
+                  width={imowVideoWidth}
+                  height={imowVideoHeight}
+                  hasPoster={imowHasPoster}
+                />
               )}
 
               {/* Video first, then the words, when there are both: the point
