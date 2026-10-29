@@ -1256,11 +1256,16 @@ export default function CareerProfileEditorPage() {
           // and carries only what is active, which is the right list to render
           // and the wrong one to ask what else exists.
           allLenses: manage?.lenses || [],
-          // The account's priority core, already resolved by the document
-          // route the house way: the flagged one, or the newest. It is the
-          // last stop for "Edit in Resume Writer" before the hub, so a
-          // direction with no resume of its own still opens a resume.
-          primaryCoreResumeId: document_?.coreResume?.id || null,
+          // The account's priority core, resolved the house way by the manage
+          // route: the flagged one, or the newest. It is the last stop for
+          // "Edit in Resume Writer" before the hub, so a direction with no
+          // resume of its own still opens a resume.
+          //
+          // Read from the management record rather than from the document.
+          // The document is the recruiter's payload and now carries only what
+          // the public page draws; an id for an owner-only link is exactly the
+          // kind of thing it has no business holding.
+          primaryCoreResumeId: manage?.primaryCoreResumeId || null,
           onLensVisibility: setLensVisibility,
           testimonials: manage?.testimonials || [],
           earned360: manage?.earned360 || null,

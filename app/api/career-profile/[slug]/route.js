@@ -13,6 +13,14 @@ import { onDirection, rowsForDirection } from '@/app/p/[slug]/_lib/profileData'
 // `select('*')` on any of these tables would publish whatever gets added to it
 // next, to anyone holding a link.
 //
+// Naming a column is not enough for resume_data, which is one jsonb blob
+// holding the contact block, the referees and the builder's own working notes.
+// That one is rebuilt field by field on the way out - see publicResume and
+// publicRole below - so the payload is the page's needs rather than the
+// record's contents. Everything else that leaves this route goes through the
+// same kind of constructor: publicLens for a direction, the eligibleEvidence
+// map for an item, and the explicit object in the response for the profile.
+//
 // An Authorization header is optional. When one is present and it belongs to
 // the profile's owner, the response says so, and the page shows owner controls.
 // The owner's user id itself is never returned.
@@ -29,17 +37,126 @@ function isMissingColumnError(error) {
 const PROFILE_BASE = 'id, user_id, slug, is_published'
 const PROFILE_FULL = `${PROFILE_BASE}, template, color_mode, accent, imow_text, imow_type, imow_video_path, contact_email`
 
-const LENS_BASE = 'id, name, slug, sort_order, status, evidence_summary, core_resume_id, created_at'
+// sort_order and created_at are read to order the directions and are not sent;
+// see publicLens below. evidence_summary and ready_for_next are not read at
+// all - the first is a note the direction detector writes to itself, and the
+// second is generated prose the Profile deliberately never renders - so
+// neither is selected either.
+const LENS_BASE = 'id, name, slug, sort_order, status, core_resume_id, created_at'
 // previous_slugs rides with LENS_FULL rather than LENS_BASE on purpose.
 // LENS_BASE is the retry for a database that has not caught up, and putting a
 // newer column in it would make the fallback fail for the same reason the
 // first attempt did.
-const LENS_FULL = `${LENS_BASE}, headline, bio, proof_points, ready_for_next, ready_tags, skill_emphasis, previous_slugs`
+const LENS_FULL = `${LENS_BASE}, headline, bio, proof_points, ready_tags, skill_emphasis, previous_slugs`
 
 // The only schemes that may reach a browser from this route. The column is
 // constrained to the same thing, so this is the second lock rather than the
 // first: a row written before that constraint existed still cannot get out.
 const SAFE_URL = /^https?:\/\//i
+
+// ---------------------------------------------------------------------------
+// WHAT A RESUME IS ALLOWED TO BECOME ON ITS WAY TO A BROWSER
+//
+// resume_data is one jsonb blob and it is the private half of this product.
+// Alongside the work history it holds the contact block - email, phone,
+// linkedin, portfolio - the referees, and the coaching artefacts the builder
+// leaves behind it: _originalTranscript, _rewrittenResume, _analysisResults,
+// _remainingGaps. The Profile renders none of that, and until now the whole
+// blob travelled anyway, twice: once as coreResume and again per direction in
+// lensResumes. Anyone holding a published link could read all of it in the
+// network tab without the page ever drawing a pixel of it.
+//
+// So nothing is passed through. Each of these builds a new object out of the
+// fields the page actually reads, and a field added to resume_data next year
+// is absent from the payload until somebody adds it here on purpose. That is
+// the whole point of writing it as a constructor rather than as a deny-list:
+// a deny-list is correct only until the next migration.
+// ---------------------------------------------------------------------------
+
+// Strings and numbers pass; everything else becomes null. Dates are stored as
+// either, and a date that arrives as an object is not a date this renders.
+const scalar = (value) =>
+  (typeof value === 'string' || typeof value === 'number') ? value : null
+
+const text = (value) => (typeof value === 'string' ? value : null)
+
+// One role, as Selected experience and the skill-proof resolver read it.
+//
+// Bullets are mapped rather than filtered. A stored skill proof points at
+// `experience[i].bullets[j]`, so dropping a malformed entry would slide every
+// bullet after it one place and quietly re-point somebody's proof at the
+// wrong sentence. An unusable entry becomes an empty string, which the
+// renderer already drops and the proof check already fails to match.
+const publicRole = (role) => ({
+  title: text(role?.title),
+  company: text(role?.company),
+  summary: text(role?.summary),
+  bullets: (Array.isArray(role?.bullets)
+    ? role.bullets
+    : Array.isArray(role?.achievements) ? role.achievements : []
+  ).map(one => (typeof one === 'string' ? one : '')),
+  // Both spellings collapse to one, because dateRangeFor reads both and the
+  // browser has no reason to know which one this row happens to use.
+  startDate: scalar(role?.startDate ?? role?.start_date),
+  endDate: scalar(role?.endDate ?? role?.end_date),
+  current: role?.current === true || role?.is_current === true,
+  // The single combined string some older rows carry instead of two dates.
+  dates: text(role?.dates ?? role?.date ?? role?.period)
+})
+
+const publicRoles = (list) => (Array.isArray(list) ? list : []).map(publicRole)
+
+// Skill labels, in whichever of the two stored shapes they arrived in.
+//
+// The shape is preserved rather than normalised: groupSkills re-sorts an
+// object by size and leaves an array in its written order, so turning one
+// into the other here would silently reorder the clusters on the page.
+const publicSkillCategories = (categories) => {
+  const labels = (value) =>
+    (Array.isArray(value) ? value : [value]).filter(one => typeof one === 'string')
+
+  if (Array.isArray(categories)) {
+    return categories.map(group => ({ name: text(group?.name), skills: labels(group?.skills) }))
+  }
+  if (categories && typeof categories === 'object') {
+    return Object.fromEntries(
+      Object.entries(categories).map(([name, value]) => [name, labels(value)])
+    )
+  }
+  return null
+}
+
+// What the page reads out of a resume once the experience has been resolved
+// separately: the skills it clusters, and the one line of the contact block it
+// prints. Nothing else, and in particular no name, no email and no phone - the
+// name on the page comes from the account's display name, which is already
+// sent, and the rest is how somebody is reached, which is the contact button's
+// job and is gated separately.
+const publicResume = (row) => row && ({
+  resume_data: {
+    location: text(row.resume_data?.location),
+    skills: (Array.isArray(row.resume_data?.skills) ? row.resume_data.skills : [])
+      .filter(one => typeof one === 'string'),
+    skillsCategories: publicSkillCategories(row.resume_data?.skillsCategories)
+  }
+})
+
+// One direction, as the page renders it. sort_order and created_at did the
+// ordering above and stay here; evidence_summary and ready_for_next are not
+// selected at all.
+const publicLens = (lens) => ({
+  id: lens.id,
+  name: lens.name,
+  slug: lens.slug,
+  status: lens.status,
+  core_resume_id: lens.core_resume_id,
+  headline: lens.headline ?? null,
+  bio: lens.bio ?? null,
+  proof_points: lens.proof_points ?? null,
+  ready_tags: lens.ready_tags ?? null,
+  skill_emphasis: lens.skill_emphasis ?? null,
+  previous_slugs: lens.previous_slugs ?? null
+})
 
 export async function GET(request, { params }) {
   try {
@@ -137,7 +254,11 @@ export async function GET(request, { params }) {
       // that predates the column, which would empty the page.
       supabase
         .from('resumes')
-        .select('id, display_name, resume_data, current_score')
+        // display_name stands in as the page's name for a profile with no
+        // directions; resume_data is cut down by publicResume before it is
+        // sent. The id and the score used to come too and no longer do -
+        // nothing on the page read either.
+        .select('display_name, resume_data')
         .eq('user_id', profile.user_id)
         .eq('resume_type', 'core')
         .eq('is_active', true)
@@ -260,7 +381,10 @@ export async function GET(request, { params }) {
     if (lensResumeIds.length > 0) {
       const { data: rows, error: lensResumeError } = await supabase
         .from('resumes')
-        .select('id, display_name, resume_data')
+        // id is the key these are filed under, not something that is sent:
+        // publicResume builds a new object and the key stays in the map.
+        // display_name is not read for a lens resume and is not asked for.
+        .select('id, resume_data')
         .in('id', lensResumeIds)
         .eq('user_id', profile.user_id)
         .eq('is_active', true)
@@ -467,15 +591,16 @@ export async function GET(request, { params }) {
 
     const coreResume = (coreRes.data || [])[0] || null
 
-    // Experience, certifications and education follow the rule the rest of the
-    // page follows: the lens's own resume once it has been built, the priority
-    // core until then. Resolved here so the page reads one shape rather than
-    // repeating the lookup per section.
-    const sectionsFrom = (resumeData) => ({
-      experience: Array.isArray(resumeData?.experience) ? resumeData.experience : [],
-      certifications: Array.isArray(resumeData?.certifications) ? resumeData.certifications : [],
-      education: Array.isArray(resumeData?.education) ? resumeData.education : []
-    })
+    // Experience follows the rule the rest of the page follows: the lens's own
+    // resume once it has been built, the priority core until then. Resolved
+    // here so the page reads one shape rather than repeating the lookup per
+    // section, and shaped on the way out by publicRole.
+    //
+    // Certifications and education used to ride along here and no longer do.
+    // Nothing renders them - a credential reaches the public profile as
+    // curated evidence or not at all - so they were two lists of somebody's
+    // record being published to make no difference to the page.
+    const sectionsFrom = (resumeData) => ({ experience: publicRoles(resumeData?.experience) })
     const resumeSections = {
       byLens: Object.fromEntries(
         visibleLenses
@@ -486,14 +611,13 @@ export async function GET(request, { params }) {
     }
 
     // A profile with no lenses is still a profile. The priority core stands in
-    // as the default view so the page has a name, a line about the person, and a
-    // score rather than rendering empty.
+    // so the page has a name rather than rendering empty.
+    //
+    // The resume's own summary and its score used to come with it. Neither is
+    // rendered: the headline falls back to the career context's target roles,
+    // and nothing on a public profile has ever shown a score.
     const fallback = visibleLenses.length === 0 && coreResume
-      ? {
-          name: coreResume.display_name || null,
-          headline: coreResume.resume_data?.summary || null,
-          score: coreResume.current_score ?? null
-        }
+      ? { name: coreResume.display_name || null }
       : null
 
     // Whether this profile offers the recruiter tools. A boolean and nothing
@@ -553,10 +677,18 @@ export async function GET(request, { params }) {
         target_roles: contextRes.data?.target_roles || [],
         current_lens_name: contextRes.data?.current_lens_name || null
       },
-      lenses: visibleLenses,
+      lenses: visibleLenses.map(publicLens),
       fallback,
-      coreResume,
-      lensResumes,
+      // Both shaped, both for the same two readings: the skills the page
+      // clusters, and whether a resume exists at all - which is what the
+      // download button and its per-direction menu are asking. The id each of
+      // these used to carry went with them; the one thing that needed it was
+      // the owner's "Edit in Resume Writer" link, which now reads
+      // primaryCoreResumeId off the management record instead.
+      coreResume: publicResume(coreResume),
+      lensResumes: Object.fromEntries(
+        Object.entries(lensResumes).map(([id, row]) => [id, publicResume(row)])
+      ),
       resumeSections,
       testimonials,
       evidence,

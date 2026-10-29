@@ -418,13 +418,19 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   // read. Switching direction changes the key and rebuilds the map from
   // nothing: there is no merge and no fallback, so a skill that two directions
   // share never carries the other one's evidence.
+  //
+  // The roles come from lensSections rather than from the active resume's own
+  // resume_data. They are the same roles - both resolve the direction's resume
+  // first and the priority core second - and asking for them in one place
+  // means the route sends them once. The public payload no longer carries a
+  // resume's experience twice over.
   const skillProof = useMemo(
     () => resolveSkillProof(data?.skillProofs?.[selectedLens?.id], {
       evidence,
       testimonials,
-      resumeData: activeResume?.resume_data
+      resumeData: lensSections
     }),
-    [data?.skillProofs, selectedLens?.id, evidence, testimonials, activeResume]
+    [data?.skillProofs, selectedLens?.id, evidence, testimonials, lensSections]
   )
 
   async function handleGenerate() {
@@ -620,6 +626,17 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       // profile is not showing. `lenses` above is what the page renders; this
       // is what it could render, and it is what the rail's offers come from.
       allLenses: edit.allLenses,
+      // The account's priority core, straight from the management record.
+      //
+      // This object is built key by key and has no spread, so anything the
+      // workspace puts on `edit` that is not named here never reaches a
+      // section. That is the right default - it is the seam between the
+      // workspace and the document - but it is also how this one went missing:
+      // the workspace has set primaryCoreResumeId since the day "Edit in
+      // Resume Writer" was written, and useResumeEditorHref has read it off
+      // the context ever since, and the two were never joined up. The link's
+      // third fallback has been dead the whole time.
+      primaryCoreResumeId: edit.primaryCoreResumeId ?? null,
       onLensVisibility: edit.onLensVisibility,
       testimonials: edit.testimonials,
       earned360: edit.earned360,
@@ -661,7 +678,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     lenses, editLensId, openField, busy, busyKind, writeError, errorField,
     runWrite, runDraft, editSave, editSaveImow, editRegenerate,
     edit?.onGenerateImow, edit?.onStrengthenImow,
-    edit?.allLenses, edit?.onLensVisibility,
+    edit?.allLenses, edit?.primaryCoreResumeId, edit?.onLensVisibility,
     edit?.testimonials, edit?.earned360, edit?.onRequestTestimonial,
     edit?.onPublishTestimonial, edit?.onDeleteTestimonial, edit?.onDownloadReferenceSheet,
     edit?.onCategoriseTestimonial, edit?.getAuthHeaders, slug, imowHasVideo,

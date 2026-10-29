@@ -221,6 +221,36 @@ export async function GET(request) {
 
     const testimonials = testimonialRes.data || []
 
+    // ---- THE ACCOUNT'S PRIORITY CORE ----
+    //
+    // One id, for one control: "Edit in Resume Writer" sits over Experience
+    // and Skills in edit mode, and when the direction on screen has no resume
+    // of its own it has to open the account's main one.
+    //
+    // It used to be read off the public document payload, which meant the
+    // document had to carry the whole core resume row to supply an id that
+    // only the owner's editor ever looked at. It belongs here instead: this
+    // route already answers nobody but the owner.
+    //
+    // Resolved the way the document route resolves it - the flagged core, or
+    // the newest - because a strict is_priority_core filter returns nothing
+    // for an account that predates the column. Non-fatal: the link falls back
+    // to the resume hub, which is where it goes for an account with no core
+    // resume anyway.
+    const { data: cores, error: coreError } = await supabase
+      .from('resumes')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('resume_type', 'core')
+      .eq('is_active', true)
+      .order('is_priority_core', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (coreError) {
+      console.error('[career-profile/manage] Priority core lookup failed (non-fatal):', coreError)
+    }
+
     return Response.json({
       userProfile,
       accountEmail,
@@ -242,6 +272,7 @@ export async function GET(request) {
       canUseProfileTools: canUseProTools(userProfile.subscription_tier),
       showsAllDirections: canShowAllDirections(userProfile.subscription_tier),
       profile: { ...profileRest, imow_has_video: Boolean(imow_video_path) },
+      primaryCoreResumeId: cores?.[0]?.id || null,
       lenses: lensRes.data || [],
       evidence,
       placements: placementRows,
