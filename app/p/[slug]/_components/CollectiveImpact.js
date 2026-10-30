@@ -5,6 +5,7 @@ import Reveal from './Reveal'
 import { GhostText, useEditSlot } from './EditAffordance'
 import ProfileModal from './ProfileModal'
 import ManageList from './ManageList'
+import { usePaneGuard } from './ManageShell'
 import { TestimonialEditPane, TestimonialRequestPane, useTestimonialDelete } from './ManagePanes'
 import TestimonialReview from './TestimonialReview'
 import TestimonialsAll from './TestimonialsAll'
@@ -85,6 +86,17 @@ export default function CollectiveImpact({
   // asked for one and wrote it, which is the Request flow, and it never
   // leaves. Hiding is the whole of what this list can do to one.
   const closeManage = useCallback(() => { setManageOpen(false); setPane(null); setSentTo(null) }, [])
+
+  // ---- THE EDIT PANE'S UNSAVED WORK, HELD HERE ----
+  //
+  // The pane is the body of a modal whose X, Escape and backdrop belong to
+  // this component, so this is where the guard has to live: the pane reports
+  // what it has typed and how to save it, and the pane renders the bar from
+  // the same guard. See usePaneGuard in ./ManageShell.
+  //
+  // It is false until a pane says otherwise, so with no pane open - or nothing
+  // typed into one - every way out closes immediately, exactly as before.
+  const paneGuard = usePaneGuard({ onClose: closeManage })
 
   // Resolved from the record rather than held in state, so publishing or
   // categorising is reflected in the pane that did it.
@@ -721,10 +733,13 @@ export default function CollectiveImpact({
               title="Manage testimonials"
               titleId="hp-manage-testimonials"
               portalClass="hp-ed-portal"
-              onClose={closeManage}
+              // Guarded, so a half-typed request or a changed relationship is
+              // never lost to the X, Escape or a press on the backdrop.
+              onClose={paneGuard.requestClose}
             >
               {pane === 'request' ? (
                 <TestimonialRequestPane
+                  guard={paneGuard}
                   onBack={() => setPane(null)}
                   // Back to the list, and the list now has the new request in
                   // it. The name comes back so the confirmation can say who was
@@ -732,7 +747,7 @@ export default function CollectiveImpact({
                   onSent={(name) => { setPane(null); setSentTo(name) }}
                 />
               ) : paneItem ? (
-                <TestimonialEditPane item={paneItem} onBack={() => setPane(null)} />
+                <TestimonialEditPane item={paneItem} onBack={() => setPane(null)} guard={paneGuard} />
               ) : (
                 <ManageList
                   items={manageItems}

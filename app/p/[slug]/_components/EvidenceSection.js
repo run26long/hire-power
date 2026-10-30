@@ -10,6 +10,7 @@ import { EditGrip, SlotGuide, SlotGhost, UpgradeNote, useEditSlot } from './Edit
 import AddEvidence from './AddEvidence'
 import { isEvidenceItem } from '@/lib/portfolio'
 import ManageList from './ManageList'
+import { usePaneGuard } from './ManageShell'
 import { EvidenceEditPane, useEvidenceDelete } from './ManagePanes'
 import { useCanShowEmpty, useCanEdit, useProfileEdit } from '../_lib/editContext'
 import { directionsByItem, rowsForDirection, selectForDirection } from '../_lib/profileData'
@@ -119,6 +120,17 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
   const slot = useEditSlot()
   const backToGallery = useCallback(() => setOverlay({ mode: 'gallery' }), [])
   const close = useCallback(() => setOverlay(null), [])
+
+  // ---- THE EDIT PANE'S UNSAVED WORK, HELD HERE ----
+  //
+  // The pane is the body of a modal whose X, Escape and backdrop belong to
+  // this component, so this is where the guard has to live: the pane reports
+  // what it has typed and how to save it, and renders the bar from the same
+  // guard. See usePaneGuard in ./ManageShell.
+  //
+  // It is false until a pane says otherwise, so with no pane open - or nothing
+  // typed into one - every way out closes immediately, exactly as before.
+  const paneGuard = usePaneGuard({ onClose: close })
 
   // ---- MANAGING WHAT THIS DIRECTION SHOWS ----
   //
@@ -513,7 +525,9 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
         lensId={lensId}
         onOpenItem={fromGallery}
         onBack={overlay?.fromGallery ? backToGallery : null}
-        onClose={close}
+        // Guarded, so a half-typed edit is never lost to the X, Escape or a
+        // press on the backdrop. See the note beside paneGuard.
+        onClose={paneGuard.requestClose}
         // The same gate the section's own Manage control stands behind, so
         // the gallery can never offer a way into a panel this account does
         // not get. Absent outside Edit mode, which is how Preview and the
@@ -526,6 +540,7 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
             item={editingItem}
             lensId={lensId}
             onBack={() => setEditingId(null)}
+            guard={paneGuard}
           />
         ) : (
           <ManageList

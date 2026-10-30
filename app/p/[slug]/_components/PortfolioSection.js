@@ -14,6 +14,7 @@ import { directionsByItem, rowsForDirection, selectForDirection } from '../_lib/
 import { PICKABLE } from './DirectionPicker'
 import { PORTFOLIO_PREVIEW_DESKTOP, isPortfolioItem } from '@/lib/portfolio'
 import ManageList from './ManageList'
+import { usePaneGuard } from './ManageShell'
 import { EvidenceEditPane, useEvidenceDelete } from './ManagePanes'
 import { useGridDrag } from '../_lib/gridDrag'
 
@@ -118,6 +119,16 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
   const fromGrid = useCallback((index) => setOverlay({ mode: 'item', index, fromGrid: true }), [])
   const backToGrid = useCallback(() => setOverlay({ mode: 'grid' }), [])
   const close = useCallback(() => setOverlay(null), [])
+  // ---- THE EDIT PANE'S UNSAVED WORK, HELD HERE ----
+  //
+  // The pane is the body of a modal whose X, Escape and backdrop belong to
+  // this component, so this is where the guard has to live: the pane reports
+  // what it has typed and how to save it, and renders the bar from the same
+  // guard. See usePaneGuard in ./ManageShell.
+  //
+  // It is false until a pane says otherwise, so with no pane open - or nothing
+  // typed into one - every way out closes immediately, exactly as before.
+  const paneGuard = usePaneGuard({ onClose: close })
 
   // ---- MANAGING WHAT THIS DIRECTION SHOWS ----
   //
@@ -445,7 +456,9 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
         lensId={lensId}
         onOpenItem={fromGrid}
         onBack={overlay?.fromGrid ? backToGrid : null}
-        onClose={close}
+        // Guarded, so a half-typed edit is never lost to the X, Escape or a
+        // press on the backdrop. See the note beside paneGuard.
+        onClose={paneGuard.requestClose}
         // The same gate the section's own Manage control stands behind, so
         // the grid can never offer a way into a panel this account does not
         // get. Absent outside Edit mode, which is how Preview and the public
@@ -458,6 +471,7 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
             item={editingItem}
             lensId={lensId}
             onBack={() => setEditingId(null)}
+            guard={paneGuard}
           />
         ) : (
           <ManageList

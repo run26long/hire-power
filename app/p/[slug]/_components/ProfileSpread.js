@@ -7,7 +7,7 @@ import { EditPencil, SlotGuide, GuideAction, useEditSlot, UpgradeNote } from './
 import { ProseEditor } from './EditFields'
 import ImowEditor from './ImowEditor'
 import ImowVideo from './ImowVideo'
-import { useFieldEditor } from '../_lib/editContext'
+import { useFieldEditor, useProfileEdit } from '../_lib/editContext'
 import { useCanShowEmpty } from '../_lib/editContext'
 
 // ============================================================================
@@ -123,6 +123,51 @@ export default function ProfileSpread({
   const bioEditor = useFieldEditor('bio')
   const imowEditor = useFieldEditor('imow')
 
+  // ---- WHICH HALF A VISITOR SEES, DECIDED WHERE THEY WOULD SEE IT ----
+  //
+  // An owner with both a paragraph and a film has one thing left to decide
+  // about this section: which of them a visitor gets. That decision used to be
+  // made inside Tell your story, which is the room for writing and uploading -
+  // so the owner chose a half while looking at a form rather than at the card
+  // the choice is about. It is here instead, directly above the card, and
+  // selecting swaps the card in place.
+  //
+  // THE PROPS ABOVE ARE THE PUBLIC TRUTH; THIS IS THE OWNER'S
+  // The document payload carries only the chosen half - imowText is null on a
+  // profile leading with its video - so the props this component renders from
+  // cannot say whether the other half exists. The edit context can: it is
+  // built from the management record, which holds both. Hence the reads below
+  // rather than the props above.
+  //
+  // The context is null on the public page and in preview, which is what keeps
+  // the switch off both without a second condition saying so.
+  const edit = useProfileEdit()
+  const ownerHasText = Boolean(String(edit?.imowText || '').trim())
+  const ownerHasVideo = edit?.imowHasVideo === true
+  const canChooseHalf = Boolean(edit?.setImowLive) && ownerHasText && ownerHasVideo
+  const liveHalf = edit?.imowType === 'video' ? 'video' : 'text'
+
+  // Its own flag rather than the field editor's busy slot: nothing is being
+  // edited, and the pencil's spinner has nothing to do with this.
+  const [swapping, setSwapping] = useState(false)
+
+  const chooseHalf = useCallback(async (next) => {
+    if (!edit?.setImowLive || next === liveHalf) return
+    setSwapping(true)
+    try {
+      // The existing write, which reloads both records and so swaps the card
+      // under this switch. It opens nothing and closes nothing.
+      await edit.setImowLive(next)
+    } catch (err) {
+      edit.notify?.({
+        type: 'error',
+        message: err?.message || "We couldn't change that. Please try again."
+      })
+    } finally {
+      setSwapping(false)
+    }
+  }, [edit, liveHalf])
+
   // The public rule stands: with nothing to say, this section does not exist.
   // Edit mode is the one exception, because an owner cannot write a bio into
   // a section that refuses to appear until they already have.
@@ -217,14 +262,59 @@ export default function ProfileSpread({
             stays exactly where it was while somebody is writing. */}
         <ImowEditor value={imowText} />
 
+        {/* The slot exists so the switch can stand above the card without
+            becoming a column of its own: at desktop the spread places its
+            direct children, and two of them would be two placements. The card
+            keeps data-resolve="voice" - it is still the thing that resolves on
+            a direction change - and the slot is placed by its own class in
+            sections.css, so nothing about the card moves.
+
+            The slot is here in every mode rather than only when the switch is,
+            so there is one shape to lay out rather than two. */}
         {hasVoice && (
+          <div className="hp-voice-slot">
+          {/* The profile's own segmented control, the one the editor already
+              uses for two readings of a polish. Not a tab row: these are not
+              two pages, they are two values of one setting, and the setting is
+              named beside them. Nothing but this moves the line. */}
+          {canChooseHalf ? (
+            <div className="hp-voice-live">
+              <span className="hp-voice-live-label">Show on profile</span>
+              <div className="hp-ed-versions" role="group" aria-label="Which half your profile shows">
+                <button
+                  type="button"
+                  className="hp-ed-version"
+                  data-on={liveHalf === 'text' ? 'true' : 'false'}
+                  aria-pressed={liveHalf === 'text'}
+                  disabled={swapping}
+                  onClick={() => chooseHalf('text')}
+                >
+                  Written
+                </button>
+                <button
+                  type="button"
+                  className="hp-ed-version"
+                  data-on={liveHalf === 'video' ? 'true' : 'false'}
+                  aria-pressed={liveHalf === 'video'}
+                  disabled={swapping}
+                  onClick={() => chooseHalf('video')}
+                >
+                  Video
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           <figure
             className={`hp-voice hp-refocus${slot}`}
             data-resolve="voice"
             data-video={hasVideo ? 'true' : undefined}
           >
+            {/* No UpgradeNote beside it any more. This section is writable on
+                every plan, so a line saying otherwise would be wrong; the one
+                thing still gated here - having it written for you - is locked
+                where it is offered, inside the dialog. */}
             <EditPencil field="imow" label="In My Own Words" persists />
-            <UpgradeNote feature="imow" />
 
             {/* The quotation marks are for a quotation. Behind a video frame
                 they are either invisible or peeking out from under it, and a
@@ -288,6 +378,7 @@ export default function ProfileSpread({
               <span className="hp-voice-mark hp-voice-mark-close" aria-hidden="true">&#8221;</span>
             )}
           </figure>
+          </div>
         )}
 
         {/* The public voice card, empty. The same figure, the same wash, the

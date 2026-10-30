@@ -55,7 +55,27 @@ const clock = (seconds) => {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-export default function VideoFramePicker({ file, onFrame, onDuration }) {
+/**
+ * `compact` is for a picker inside a frame that has already said what it is.
+ *
+ * The default is the evidence gallery's, and everything it carries is right
+ * there: the picker stands in a long form among other fields, so it needs a
+ * label to say which field it is, a preview of the square the gallery will
+ * actually crop to, and a sentence saying what happens if the owner leaves it
+ * alone. Nothing about that behaviour changes - this prop only hides, and the
+ * gallery never passes it.
+ *
+ * In Tell your story the picker IS the dialog's middle, under a tab that says
+ * Video, in a box with one fixed height. The label repeats the tab, the square
+ * preview is about a gallery mat that has nothing to do with this section, and
+ * the help sentence is a third line in a box sized for a film. What is left is
+ * the video, its scrubber, the button and the time - which is the picker.
+ *
+ * The failure sentence is NOT hidden. It is not help; it is the one thing in
+ * here that reports something went wrong, and a frame that would not read is
+ * worth a line wherever this is used.
+ */
+export default function VideoFramePicker({ file, onFrame, onDuration, compact = false }) {
   const videoRef = useRef(null)
   const [ready, setReady] = useState(false)
   const [duration, setDuration] = useState(null)
@@ -175,8 +195,8 @@ export default function VideoFramePicker({ file, onFrame, onDuration }) {
   if (!file) return null
 
   return (
-    <div className="hp-ed-frame">
-      <p className="hp-ed-field-label">Thumbnail frame</p>
+    <div className="hp-ed-frame" data-compact={compact ? 'true' : undefined}>
+      {compact ? null : <p className="hp-ed-field-label">Thumbnail frame</p>}
 
       <div className="hp-ed-frame-stage">
         {/* The owner's own file, played locally. Nothing is uploaded until
@@ -195,17 +215,24 @@ export default function VideoFramePicker({ file, onFrame, onDuration }) {
         />
 
         {/* What the gallery will show, beside what it was taken from. A
-            thumbnail somebody cannot see is a thumbnail they cannot judge. */}
-        <div className="hp-ed-frame-chosen">
-          <span className="hp-ed-frame-chosen-label">Gallery shows</span>
-          {poster ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img className="hp-ed-frame-thumb" src={poster.url} alt="" />
-          ) : (
-            <span className="hp-ed-frame-thumb" data-waiting="true" aria-hidden="true" />
-          )}
-          {poster && <span className="hp-ed-frame-at">at {clock(poster.at)}</span>}
-        </div>
+            thumbnail somebody cannot see is a thumbnail they cannot judge.
+
+            Not where there is no gallery mat to preview: In My Own Words shows
+            the still full width behind its own player, at the shape the film
+            was recorded in, so a square crop of it would be a preview of
+            something that never appears. */}
+        {compact ? null : (
+          <div className="hp-ed-frame-chosen">
+            <span className="hp-ed-frame-chosen-label">Gallery shows</span>
+            {poster ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="hp-ed-frame-thumb" src={poster.url} alt="" />
+            ) : (
+              <span className="hp-ed-frame-thumb" data-waiting="true" aria-hidden="true" />
+            )}
+            {poster && <span className="hp-ed-frame-at">at {clock(poster.at)}</span>}
+          </div>
+        )}
       </div>
 
       <div className="hp-ed-row">
@@ -222,11 +249,19 @@ export default function VideoFramePicker({ file, onFrame, onDuration }) {
         </span>
       </div>
 
-      <p className="hp-ed-proof-note">
-        {failed
-          ? "We couldn't read a frame from this video. It will use the play mark instead, and still plays normally."
-          : 'Scrub to the moment you want and press the button. If you leave it, the gallery uses the frame a second in.'}
-      </p>
+      {/* The failure wherever this is used; the help only where there is room
+          for it. See the note on `compact`. */}
+      {failed ? (
+        <p className="hp-ed-proof-note">
+          We couldn&rsquo;t read a frame from this video. It will use the play mark
+          instead, and still plays normally.
+        </p>
+      ) : compact ? null : (
+        <p className="hp-ed-proof-note">
+          Scrub to the moment you want and press the button. If you leave it, the
+          gallery uses the frame a second in.
+        </p>
+      )}
     </div>
   )
 }

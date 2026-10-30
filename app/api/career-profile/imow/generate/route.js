@@ -251,9 +251,17 @@ export async function POST(request) {
     if (!profile) return Response.json({ error: 'No profile to write for.' }, { status: 404 })
 
     // ---- TIER ----
-    // A paid plan, or a free account with only its one entitled direction.
-    // Vault is in: a profile it keeps whole is one it can still write, and the
-    // direction count is what free is held to rather than what Vault is.
+    // A paid plan. Vault is in: a profile it keeps whole is one it can still
+    // write.
+    //
+    // FREE IS REFUSED, WHERE IT USED TO BE LET THROUGH ON ONE DIRECTION
+    // The old rule was "paid, or free with only its one entitled direction",
+    // which let a free account have a draft written for it. That made sense
+    // while free could not write the section at all - the generated draft was
+    // the only way they would ever have one. Free can write it now, by hand,
+    // through PATCH /api/career-profile/imow. So the box and the Save are
+    // theirs and having it written for them is not, which is the line every
+    // other AI tool on this product already draws.
     const { data: account } = await supabase
       .from('profiles')
       .select('subscription_tier, display_name')
@@ -261,12 +269,7 @@ export async function POST(request) {
       .maybeSingle()
 
     if (!canUseProTools(account?.subscription_tier)) {
-      const { count } = await supabase
-        .from('profile_lenses')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .in('status', ['active', 'suggested'])
-      if ((count || 0) > 1) return Response.json({ error: 'PRO_REQUIRED' }, { status: 403 })
+      return Response.json({ error: 'PRO_REQUIRED' }, { status: 403 })
     }
 
     // ---- MATERIAL ----

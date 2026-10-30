@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import ProfileModal from './ProfileModal'
+import { UnsavedBar, useUnsavedGuard } from './ManageShell'
 import { useProfileEdit } from '../_lib/editContext'
 
 // ============================================================================
@@ -48,6 +49,16 @@ import { useProfileEdit } from '../_lib/editContext'
 // than deleting a row, which is why Add from the suggestions always has
 // somewhere to land - and when every slot is full, Add asks which one it is
 // replacing instead of silently choosing.
+//
+// AND NOTHING IS LOST BY LEAVING
+// This is the one panel on the profile that holds work: the other three write
+// each change as it is made, so their Done is a way of saying "finished
+// looking" and closing them can cost nothing. Here a drag, a typed figure and
+// three tabs' worth of drafts all live in this component until Save, so every
+// way out - the X, Escape, the backdrop and Cancel - goes through one guard
+// and asks before throwing them away. The question is a bar inside the panel
+// rather than a dialog over it, so the changes being asked about are still on
+// screen while it is answered. See ./ManageShell.
 //
 // NOTHING IS WRITTEN UNTIL SAVE, AND THEN ALL OF IT IS
 // Save sends one PATCH per direction that actually changed, each carrying
@@ -151,6 +162,36 @@ export default function ProofPointsManage({ open, onClose }) {
   const slots = drafts[tabId] || slotsFrom(lensById(tabId)?.proof_points)
   const draft = trimmed(slots)
 
+  // ---- WHAT THERE IS TO LOSE ----
+  //
+  // Every direction holding a draft that differs from what is stored. Save
+  // works from this same list, so the question asked on the way out and the
+  // writes made on the way through can never disagree about whether anything
+  // has changed.
+  //
+  // Declared up here rather than beside Save, because the guard it feeds has
+  // to exist before the open effect below, which clears a question left
+  // standing from the last visit.
+  const changedLenses = lenses.filter(lens => {
+    const held = drafts[lens.id]
+    return held && !same(trimmed(held), storedFor(lens.id))
+  })
+
+  // Save and close, on the bar, is this panel's own save() and not a second
+  // path to the same writes - held in a ref because save() is declared below
+  // where the guard has to be, and a fresh closure passed in each render would
+  // give the hook a new dependency on every keystroke.
+  const saveRef = useRef(null)
+  const runSave = useCallback(() => saveRef.current?.(), [])
+
+  // Every way out of this panel goes through it: the shell's X, its Escape,
+  // its backdrop and the Cancel below. See ./ManageShell.
+  const guard = useUnsavedGuard({
+    dirty: changedLenses.length > 0,
+    onClose,
+    onSave: runSave
+  })
+
   const setSlots = useCallback((next) => {
     setDrafts(current => ({
       ...current,
@@ -211,6 +252,11 @@ export default function ProofPointsManage({ open, onClose }) {
     setReplacing({})
     setFaulted({})
     setSaveError(null)
+    // A question left standing from the last visit is not a question about
+    // this one. The drafts it was about have just been cleared above.
+    guard.reset()
+    // reset is stable across renders; listing it would say otherwise.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, openLensId])
 
   // The first visit to a tab fetches its suggestions. Keyed on the absence of
@@ -344,12 +390,8 @@ export default function ProofPointsManage({ open, onClose }) {
   //
   // Checked across all of them before anything is sent. A run that wrote two
   // and stopped on the third would leave the owner with two directions changed
-  // and no way to tell which.
-  const changedLenses = lenses.filter(lens => {
-    const held = drafts[lens.id]
-    return held && !same(trimmed(held), storedFor(lens.id))
-  })
-
+  // and no way to tell which. changedLenses is built further up, beside the
+  // guard that asks about it.
   const fault = faultIn(draft)
   const canSave = changedLenses.length > 0 && !saving
 
@@ -378,6 +420,10 @@ export default function ProofPointsManage({ open, onClose }) {
     }
   }
 
+  // What Save and close calls. Assigned on every render so the bar is never
+  // holding last render's drafts.
+  saveRef.current = save
+
   if (!edit?.editing) return null
 
   const tabSuggestions = suggestions[tabId]
@@ -392,9 +438,13 @@ export default function ProofPointsManage({ open, onClose }) {
       title="Manage proof points"
       titleId="hp-manage-proof-points"
       portalClass="hp-ed-portal"
-      onClose={onClose}
+      // The X, Escape and the backdrop all arrive here, so all three are
+      // guarded by guarding this one.
+      onClose={guard.requestClose}
     >
       <div className="hp-manage">
+        {/* Everything above the footer, and the only part that scrolls. */}
+        <div className="hp-manage-scroll">
         {/* The directions bar's own tabs, in the panel. One per direction the
             profile shows; a profile showing one gets none, because a row of
             one is a label pretending to be a choice. */}
@@ -579,28 +629,42 @@ export default function ProofPointsManage({ open, onClose }) {
 
         {fault ? <p className="hp-manage-note hp-pp-why" role="status">{fault}</p> : null}
         {saveError ? <p className="hp-manage-note hp-pp-why" role="alert">{saveError}</p> : null}
-
-        {/* One group, on the right, with the filled button furthest right and
-            the way out beside it - the same footer the other three panels
-            carry, with Save where Done stands in them. */}
-        <div className="hp-manage-foot">
-          <button
-            type="button"
-            className="hp-manage-secondary"
-            disabled={saving}
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="hp-manage-done"
-            disabled={!canSave}
-            onClick={save}
-          >
-            {saving ? 'Saving…' : 'Save'}
-          </button>
         </div>
+
+        {/* One row of buttons at any moment. While the question is up it IS
+            the row - the footer gives way to it rather than stacking under it,
+            so Save and Discard are never two separate offers on screen at
+            once. Both are pinned: neither scrolls with the rows above, at any
+            screen height. Built once in ./ManageShell. */}
+        {guard.asking ? (
+          <UnsavedBar
+            onKeep={guard.keepEditing}
+            onDiscard={guard.discard}
+            onSave={guard.saveAndClose}
+          />
+        ) : (
+          /* One group, on the right, with the filled button furthest right and
+             the way out beside it - the same footer the other three panels
+             carry, with Save where Done stands in them. */
+          <div className="hp-manage-foot">
+            <button
+              type="button"
+              className="hp-manage-secondary"
+              disabled={saving}
+              onClick={guard.requestClose}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="hp-manage-done"
+              disabled={!canSave}
+              onClick={save}
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        )}
       </div>
     </ProfileModal>
   )

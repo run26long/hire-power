@@ -186,10 +186,12 @@ export async function POST(request) {
     if (!profile) return Response.json({ error: 'No profile to write for.' }, { status: 404 })
 
     // ---- TIER ----
-    // The same question ./generate asks, asked the same way: Pro, or a free
-    // account with only its one entitled direction. Two tools on one control
-    // bar that disagreed about who may use them would be two answers to one
-    // product decision.
+    // The same question ./generate asks, asked the same way, and refused the
+    // same way: a paid plan, or nothing. Two tools on one control bar that
+    // disagreed about who may use them would be two answers to one product
+    // decision - and the direction-count escape they both used to carry is
+    // gone for the reason written out beside it in ./generate: a free account
+    // writes this section itself now.
     const { data: account } = await supabase
       .from('profiles')
       .select('subscription_tier')
@@ -197,12 +199,7 @@ export async function POST(request) {
       .maybeSingle()
 
     if (!canUseProTools(account?.subscription_tier)) {
-      const { count } = await supabase
-        .from('profile_lenses')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .in('status', ['active', 'suggested'])
-      if ((count || 0) > 1) return Response.json({ error: 'PRO_REQUIRED' }, { status: 403 })
+      return Response.json({ error: 'PRO_REQUIRED' }, { status: 403 })
     }
 
     // Two attempts, like ./generate. At temperature 0 the second pass is only

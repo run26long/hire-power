@@ -1,4 +1,3 @@
-import { requireCustomise } from '../_lib/requireCustomise'
 import { createClient } from '@supabase/supabase-js'
 import { noEmDash } from '../_lib/recruiterContext'
 
@@ -50,6 +49,29 @@ import { noEmDash } from '../_lib/recruiterContext'
 //
 // Neither half is ever deleted by the other. This route writes imow_text and
 // imow_type and touches nothing else, exactly as before.
+//
+// THIS ROUTE IS NOT BEHIND requireCustomise, AND THAT IS DELIBERATE
+// Every other route that writes owner-authored content on this profile is.
+// This one was too, and it is the exception now: a free account may write In
+// My Own Words.
+//
+// The reason is what the section is. Everything else the gate protects is
+// something the coaching already produced and the owner is refining - the
+// headline, the bio, the proof points all arrive written. This one arrives
+// empty, because it is the one part of the profile only the person can supply.
+// A free profile with the paragraph missing is not a profile with a feature
+// locked; it is a profile with a hole in it, and the hole is the part a
+// recruiter would have read in their own voice.
+//
+// What stays gated is everything that costs us something or that is a tool
+// rather than a text box: ./generate and ./strengthen both refuse a free
+// account outright, and ./video is Pro and Vault. So free gets the box and
+// the Save, and not the writing done for them.
+//
+// Nothing else is relaxed by this. The length ceiling, the control-character
+// strip, the em-dash pass and the refusal of an empty save are all below and
+// all unchanged, and the row is still found from the token rather than the
+// body.
 // ============================================================================
 
 const MIN = 1
@@ -76,11 +98,6 @@ export async function PATCH(request) {
     const { data: { user }, error: authError } =
       await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-    // In My Own Words is owner-authored text, so it is behind the same gate
-    // as the rest of it. Clearing the field is not: see requireCustomise.
-    const gate = await requireCustomise(user.id, supabase)
-    if (gate) return gate
 
     let body
     try {
@@ -137,9 +154,18 @@ export async function PATCH(request) {
 
     // What this profile has, which is what decides what it may choose. Read
     // here rather than taken from the body for the same reason the user id is.
+    //
+    // imow_text IS IN THIS SELECT AND HAS TO BE
+    // It was not, and that was a bug with a name: the switch on the page sends
+    // the choice alone - there is no text to send, nothing is being rewritten -
+    // so willHaveText below had to read the stored column to know whether
+    // 'text' was a thing this profile could show. With the column missing from
+    // the select it read undefined, decided there was nothing written, and
+    // fell through to keeping 'video'. Selecting Written did nothing, every
+    // time, for anybody who had both.
     const { data: current } = await supabase
       .from('career_profiles')
-      .select('imow_type, imow_video_path')
+      .select('imow_type, imow_text, imow_video_path')
       .eq('user_id', user.id)
       .maybeSingle()
 

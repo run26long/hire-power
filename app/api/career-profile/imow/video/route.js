@@ -329,11 +329,22 @@ export async function PUT(request) {
     // time the row is touched.
     const posterPath = await storePoster(supabase, body, user.id, path)
 
-    // Uploading a video is choosing it. The written text is untouched either
-    // way - the two live in their own columns and neither write path has ever
-    // cleared the other - so this changes which one the page shows and nothing
-    // about what is stored.
-    const core = { imow_video_path: path, imow_type: 'video' }
+    // A FIRST video is choosing it. A REPLACEMENT is not.
+    //
+    // This used to set imow_type to 'video' on every upload, which meant an
+    // owner whose profile was showing their paragraph could swap the file
+    // behind their video - a file nobody was being shown - and find the
+    // paragraph had come off the profile. Only the owner's own "Show this on
+    // my profile" is supposed to move that line.
+    //
+    // So a replacement keeps whatever was live, with one correction: a stored
+    // choice of 'text' with no text behind it cannot be honoured, and the
+    // video is the only half left to show.
+    //
+    // The written text is untouched either way - the two live in their own
+    // columns and neither write path has ever cleared the other.
+    const keepType = profile.imow_type === 'text' && profile.imow_text ? 'text' : 'video'
+    const core = { imow_video_path: path, imow_type: previous ? keepType : 'video' }
     const extra = {
       ...(videoShape(body) || {}),
       ...(posterPath ? { imow_poster_path: posterPath } : {})

@@ -200,6 +200,10 @@ export default function TestimonialReview({
 
         <div className="hp-pf-box-gallery" data-manage="true">
           <div className="hp-manage">
+            {/* The scrolling part. Everything a reviewer reads is in here and
+                the decision bar below it stays on screen, which matters most
+                on exactly the testimonial long enough to need scrolling. */}
+            <div className="hp-manage-scroll">
             {/* Who wrote it, and what they were to this person. The same three
                 facts the row in the list carries, said in full. */}
             <div className="hp-manage-pane-head">
@@ -245,6 +249,8 @@ export default function TestimonialReview({
                 This one has no tidied version yet, so it cannot go on your profile.
               </p>
             ) : null}
+
+            </div>
 
             {/* Decline alone on the left - the one irreversible control here.
                 Approve on the right, which is the act this panel exists for. */}

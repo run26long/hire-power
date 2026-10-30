@@ -589,6 +589,22 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     return lens
   }, [editSave, onLensUpdated])
 
+  // ---- WHICH HALF OF IN MY OWN WORDS THE PROFILE SHOWS ----
+  //
+  // The same route the words go to, carrying only the choice. It is here for
+  // the same reason saveLensFields is: runWrite closes the open field when it
+  // lands, and this is a control INSIDE Tell your story rather than a way out
+  // of it - the owner presses "Show this on my profile" and stays where they
+  // are, looking at the tab that now says On profile.
+  //
+  // It sends no text, so a draft in the box is neither saved nor disturbed by
+  // it, and the other half is untouched: there is one column saying which is
+  // live, so moving it to one is what takes it off the other.
+  const setImowLive = useCallback(async (type) => {
+    if (!editSaveImow) throw new Error("We couldn't save that. Please try again.")
+    return editSaveImow(undefined, type)
+  }, [editSaveImow])
+
   // ---- ASKING FOR WORDS, WHICH IS NOT SAVING THEM ----
   //
   // The sibling of runWrite, and the difference is the whole point of it:
@@ -714,7 +730,8 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       save: (values, field) => runWrite(field, () => (field === 'imow'
         ? editSaveImow(values.imow_text, values.imow_type)
         : editSave(editLensId, values))),
-      regenerate: (field) => runDraft(field, () => editRegenerate(editLensId, field))
+      regenerate: (field) => runDraft(field, () => editRegenerate(editLensId, field)),
+      setImowLive
     }
   }, [
     edit?.editing, edit?.canCustomise, edit?.canUseProfileTools, edit?.notify,
@@ -726,6 +743,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     edit?.allTestimonialPlacements, edit?.onMoveTestimonial,
     lenses, editLensId, openField, busy, busyKind, writeError, errorField,
     runWrite, runDraft, editSave, editSaveImow, editRegenerate, saveLensFields,
+    setImowLive,
     edit?.onGenerateImow, edit?.onStrengthenImow,
     edit?.allLenses, edit?.primaryCoreResumeId, edit?.onLensVisibility,
     edit?.testimonials, edit?.earned360, edit?.onRequestTestimonial,

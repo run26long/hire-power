@@ -265,6 +265,12 @@ export default function ManageList({
 
   return (
     <div className="hp-manage" style={{ '--hp-manage-cols': columns.length || 1 }}>
+      {/* Everything above the footer, and the only part of a panel that
+          scrolls. The footer stays put below it at every height, which is
+          what .hp-manage-scroll in sections.css is for - declared once there
+          rather than per panel, because all four of these are the same
+          problem. */}
+      <div className="hp-manage-scroll">
       <p className="hp-manage-note">{note}</p>
 
       {notice ? <p className="hp-manage-notice" role="status">{notice}</p> : null}
@@ -435,10 +441,17 @@ export default function ManageList({
         </ul>
       )}
 
+      </div>
+
       {/* One group, on the right, with the primary furthest right. Leaving is
           what this footer is for - adding opens another dialog over this one,
           and the reference sheet is a download - so Done takes the weight and
-          the other two stand to its left in the order they are reached. */}
+          the other two stand to its left in the order they are reached.
+
+          No unsaved-changes bar above it, and that is not an omission: every
+          control in this list writes as it is used, so there has never been a
+          moment where closing loses anything. Done means "I have finished
+          looking", not "commit". */}
       <div className="hp-manage-foot">
         {onSecondary ? (
           <button type="button" className="hp-manage-secondary" onClick={onSecondary}>

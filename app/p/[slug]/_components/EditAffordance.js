@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useProfileEdit, useFieldEditor, useCanEdit, useShowUpgrade } from '../_lib/editContext'
+import { useProfileEdit, useFieldEditor, useCanEdit, useCanEditField, useShowUpgrade } from '../_lib/editContext'
 import { PRO_UPGRADE_HREF, PRO_UPGRADE_LABEL, upgradeCopyFor } from '@/lib/profileTier'
 
 // ============================================================================
@@ -27,7 +27,7 @@ const PencilIcon = () => (
   </svg>
 )
 
-const LockIcon = () => (
+export const LockIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect x="4" y="10" width="16" height="10" rx="2" />
     <path d="M8 10V7a4 4 0 0 1 8 0v3" />
@@ -85,7 +85,9 @@ export function UpgradeNote({ feature }) {
 export function EditPencil({ field, label, persists = false, tourId }) {
   const edit = useProfileEdit()
   const editor = useFieldEditor(field)
-  const canEdit = useCanEdit()
+  // Per field, not per profile: In My Own Words is writable on every plan.
+  // See useCanEditField.
+  const canEdit = useCanEditField(field)
   if (!edit?.editing) return null
 
   // A free account keeps everything the coaching wrote and loses the pencil
@@ -246,8 +248,11 @@ export function EditElsewhere({ children, href }) {
 // The one control a guided slot offers: the action on a plan that can use it,
 // and the line saying why not on one that cannot. Shared so every guided slot
 // makes the same offer and the primary style is declared in a single place.
-export function GuideAction({ label, feature, onAction }) {
-  const canEdit = useCanEdit()
+// `field` where the field's name is not the feature's. Every current call
+// site names them the same thing, so it defaults to the feature and the one
+// that matters - imow - is right either way.
+export function GuideAction({ label, feature, field, onAction }) {
+  const canEdit = useCanEditField(field || feature)
 
   if (!canEdit) {
     return (

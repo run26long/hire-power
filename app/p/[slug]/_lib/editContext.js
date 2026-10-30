@@ -89,6 +89,38 @@ export function useCanEdit() {
   return edit.canCustomise === true
 }
 
+// ---------------------------------------------------------------------------
+// THE SAME QUESTION, ASKED ABOUT ONE FIELD
+//
+// useCanEdit above is the plan's answer for the profile as a whole, and it is
+// still the right question for almost everything: the headline, the bio, the
+// proof points, the evidence and the testimonials all arrive written or
+// collected, and refining them is what the plan is for.
+//
+// In My Own Words is the exception, and it is an exception about the content
+// rather than about the price. It is the only part of the profile that arrives
+// empty, because it is the only part only the person can supply - so a free
+// profile without it is not a profile with a feature locked, it is a profile
+// missing the paragraph a recruiter would have read in their voice. The server
+// agrees: PATCH /api/career-profile/imow is the one write route on this
+// profile with no requireCustomise in front of it.
+//
+// What free still does not get is the writing done for it. The AI controls in
+// that dialog are gated on canUseProfileTools, and ./generate and ./strengthen
+// both refuse free outright. Video is Pro and Vault, as it was.
+//
+// A set rather than a flag on each call site, so there is one list and anybody
+// reading it can see how short it is.
+// ---------------------------------------------------------------------------
+const FREE_WRITABLE = new Set(['imow'])
+
+export function useCanEditField(field) {
+  const edit = useContext(ProfileEditContext)
+  if (!edit || edit.editing !== true) return false
+  if (edit.canCustomise === true) return true
+  return FREE_WRITABLE.has(field)
+}
+
 // True only where an upgrade prompt belongs: the management page, on an
 // account that cannot use the control it stands in for. The public page and
 // preview get neither the control nor the prompt.

@@ -1,6 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+
+import { DeleteSessionModal } from '@/app/components/interview/PracticeLeftPanel'
 import { useProfileEdit, useNotify } from '../_lib/editContext'
 import VideoFramePicker from './VideoFramePicker'
 
@@ -8,7 +11,15 @@ import VideoFramePicker from './VideoFramePicker'
 // THE VIDEO HALF OF IN MY OWN WORDS, IN THE EDITOR
 //
 // Choose a file, pick the frame it shows, watch it upload, see it play back,
-// replace it or take it down.
+// replace it or delete it.
+//
+// A HOOK AND A BODY, BECAUSE THE CONTROLS ARE NOT IN THE BODY ANY MORE
+// This was one component that rendered the preview, the picker and its own row
+// of buttons. The buttons now belong to the dialog's pinned footer, which is a
+// sibling of the dialog's body and therefore nowhere this component could
+// reach. So the state moved up: useImowVideo owns everything, ImowVideoBody
+// renders the part that scrolls, and Tell your story places the controls
+// itself. There is still exactly one copy of each piece of behaviour.
 //
 // ANY ORIENTATION, AND THE BROWSER IS WHAT KNOWS THE SHAPE
 // This used to refuse anything that was not landscape, because the public
@@ -41,10 +52,25 @@ import VideoFramePicker from './VideoFramePicker'
 // Not the local file, and not a stored path. The owner watching their own
 // video goes through the same signing route a recruiter does, so what they are
 // checking is what will actually play - poster included.
+//
+// DELETING IS ASKED IN THE PROFILE'S OWN DIALOG
+// It used to be window.confirm, which blocks the tab, cannot be styled, reads
+// as a browser warning rather than as part of this product, and on some
+// platforms puts the destructive choice where the safe one usually goes. It is
+// now DeleteSessionModal - the same confirmation evidence and testimonials
+// ask in - portalled into the same raised layer they use, because a dialog
+// rendered inside this one would be measured inside it and could not stand
+// over the thing that asked the question.
 // ============================================================================
 
 const MAX_BYTES = 50 * 1024 * 1024
 const ACCEPT = 'video/mp4,video/webm'
+
+// Said on the Video tab, under the middle of the dialog - the place the
+// written tab puts its character count. Both are the same kind of line: the
+// one fact about the thing in the frame above that the owner needs while they
+// are deciding what to put there.
+export const VIDEO_HELP = 'Landscape or portrait, MP4 or WebM, up to 50MB.'
 
 const humanSize = (bytes) => {
   if (!Number.isFinite(bytes) || bytes <= 0) return null
@@ -75,18 +101,44 @@ function inspect(file) {
   })
 }
 
-export default function ImowVideoField() {
+/**
+ * Everything the video half does, with nothing rendered.
+ *
+ * `active` is whether the dialog holding it is open. It gates the one thing
+ * here that costs anything: asking the signing route for a playable link. The
+ * hook is called from the editor's top level, which is mounted for the life of
+ * the section, so without this every profile in Edit mode would sign a video
+ * URL on load for a dialog nobody had opened.
+ *
+ * `onUploaded` is called after a video has landed and the records have been
+ * re-read, so the dialog can decide what happens next - which is not this
+ * hook's business: uploading is the same act whether the dialog then closes
+ * or stays open.
+ */
+export function useImowVideo({ active = true, onUploaded } = {}) {
   const edit = useProfileEdit()
   const notify = useNotify()
 
-  const [busy, setBusy] = useState(null)      // 'upload' | 'remove' | null
+  const [busy, setBusy] = useState(null)      // 'upload' | 'delete' | null
   const [progress, setProgress] = useState(0)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [previewPoster, setPreviewPoster] = useState(null)
   // The file waiting to be uploaded, and the shape read off it. Held so the
   // frame picker has something to work on before anything leaves the browser.
   const [pending, setPending] = useState(null)
-  const inputRef = useRef(null)
+  // Whether the delete question is up. Not a boolean about "something": there
+  // is only ever one video, so there is nothing to name.
+  const [asking, setAsking] = useState(false)
+
+  // Which round of choosing this is. It keys the file input, so a file that
+  // has been dealt with - uploaded, or put back - leaves a fresh input behind
+  // it. Without that, a browser still holding the same selection fires no
+  // change event when the owner picks that same file again.
+  //
+  // A counter rather than a ref to the input. The control that holds the
+  // input is rendered from this hook's return value, and a ref travelling in
+  // that object is a ref the compiler has to assume is read during render.
+  const [round, setRound] = useState(0)
 
   // The captured still, in a ref rather than state: it changes on every scrub
   // and nothing renders it except the picker itself, which holds its own copy.
@@ -103,7 +155,7 @@ export default function ImowVideoField() {
   // The same link a reader gets. Fetched here rather than held, so what the
   // owner is checking is what will actually play.
   const loadPreview = useCallback(async () => {
-    if (!hasVideo || !edit?.slug) { setPreviewUrl(null); setPreviewPoster(null); return }
+    if (!active || !hasVideo || !edit?.slug) { setPreviewUrl(null); setPreviewPoster(null); return }
     try {
       const res = await fetch(
         `/api/career-profile/${encodeURIComponent(edit.slug)}/imow-video`,
@@ -117,7 +169,7 @@ export default function ImowVideoField() {
       setPreviewUrl(null)
       setPreviewPoster(null)
     }
-  }, [hasVideo, edit?.slug, authFor])
+  }, [active, hasVideo, edit?.slug, authFor])
 
   useEffect(() => {
     let cancelled = false
@@ -125,11 +177,9 @@ export default function ImowVideoField() {
     return () => { cancelled = true }
   }, [loadPreview])
 
-  if (!edit?.editing) return null
-
   // Everything a browser can refuse without spending an upload. The shape is
   // read here too, and is no longer a reason to refuse anything.
-  async function choose(file) {
+  const choose = useCallback(async (file) => {
     setPending(null)
     poster.current = null
     if (!file) return
@@ -153,10 +203,12 @@ export default function ImowVideoField() {
     // from, and the owner may want a different frame than the one it takes by
     // default, so the upload waits for them to say so.
     setPending({ file, width: meta.width, height: meta.height })
-  }
+  }, [notify])
 
-  async function upload() {
-    if (!pending || busy) return
+  // Returns whether it worked, because the caller may be in the middle of
+  // leaving and a failed upload is a reason to stay.
+  const upload = useCallback(async () => {
+    if (!pending || busy) return false
     setBusy('upload')
     setProgress(0)
     try {
@@ -169,118 +221,185 @@ export default function ImowVideoField() {
       setPending(null)
       poster.current = null
       await loadPreview()
-      if (inputRef.current) inputRef.current.value = ''
+      setRound(n => n + 1)
+      onUploaded?.()
+      return true
     } catch (err) {
       notify({ type: 'error', message: err?.message || "We couldn't upload that. Please try again." })
+      return false
     } finally {
       setBusy(null)
       setProgress(0)
     }
-  }
+  }, [pending, busy, edit, loadPreview, notify, onUploaded])
 
-  function cancelPending() {
+  const cancelPending = useCallback(() => {
     setPending(null)
     poster.current = null
-    if (inputRef.current) inputRef.current.value = ''
-  }
+    setRound(n => n + 1)
+  }, [])
 
-  async function remove() {
-    const ok = window.confirm(
-      'Remove your video?\n\n' +
-      'The file is deleted. If you have written text it takes the place of the video; if not, the section comes off your profile.'
-    )
-    if (!ok) return
-    setBusy('remove')
+  const askDelete = useCallback(() => setAsking(true), [])
+  const cancelDelete = useCallback(() => { if (busy !== 'delete') setAsking(false) }, [busy])
+
+  const confirmDelete = useCallback(async () => {
+    if (busy) return
+    setBusy('delete')
     try {
       await edit.onRemoveImowVideo()
+      setAsking(false)
       setPreviewUrl(null)
       setPreviewPoster(null)
     } catch (err) {
-      notify({ type: 'error', message: err?.message || "We couldn't remove that. Please try again." })
+      // The question has been answered either way. The failure is reported by
+      // the toast, which stands above this layer.
+      setAsking(false)
+      notify({ type: 'error', message: err?.message || "We couldn't delete that. Please try again." })
     } finally {
       setBusy(null)
     }
+  }, [busy, edit, notify])
+
+  // The profile's own confirmation, in the layer that clears this dialog. The
+  // body is the sentence this control has always carried, because what happens
+  // to the section when the file goes is the thing somebody needs to know
+  // before they answer.
+  const deleteModal = asking && typeof document !== 'undefined'
+    ? createPortal(
+        <div className="hp-ed-modal-layer-raised">
+          <DeleteSessionModal
+            deleting={busy === 'delete'}
+            onCancel={cancelDelete}
+            onConfirm={confirmDelete}
+            title="Delete this video?"
+            body={
+              'The file is deleted. If you have written text it takes the place of the video; ' +
+              "if not, the section comes off your profile. This can't be undone."
+            }
+            confirmLabel="Delete"
+          />
+        </div>,
+        document.body
+      )
+    : null
+
+  return {
+    hasVideo,
+    pending: Boolean(pending),
+    pendingFile: pending?.file || null,
+    busy,
+    progress,
+    previewUrl,
+    previewPoster,
+    round,
+    accept: ACCEPT,
+    onFrame,
+    choose,
+    upload,
+    cancelPending,
+    askDelete,
+    // Whether the question is up, and the way to put it away. The dialog above
+    // needs both: ProfileModal's Escape is a capture listener on the document
+    // and fires before this confirmation's own, so without somewhere to send
+    // that key, Escape would close the editor and leave the question standing
+    // over the page on its own.
+    asking,
+    cancelDelete,
+    deleteModal,
+    // Whether this account has the delete at all. Taking a video down is
+    // never gated - an account that lapses must still be able to - so this is
+    // only about the op existing on the context.
+    canDelete: Boolean(edit?.onRemoveImowVideo)
+  }
+}
+
+/**
+ * The video tab's middle: whatever belongs in the space the written tab gives
+ * its box of text, at the same width. One of three things, never two - a
+ * player and a picker side by side would be two films asking to be judged.
+ *
+ *   nothing uploaded yet   the area that opens the file picker
+ *   a file chosen          the frame picker, on the file in the browser
+ *   a video stored         that video, with the still it shows before it plays
+ *
+ * Its controls are the dialog's footer and are not here. The specs line under
+ * it is the dialog's, for the same reason the character count is: it is one
+ * line about the frame above, in the same place on both tabs.
+ */
+export function ImowVideoBody({ video }) {
+  if (video.pending) {
+    // The gallery's own picker, unchanged. It takes a frame a second in by
+    // itself, so leaving it alone is a real poster rather than nothing. Use
+    // this frame belongs to it.
+    return (
+      <div className="hp-ed-vid hp-ed-imow-middle">
+        <VideoFramePicker file={video.pendingFile} onFrame={video.onFrame} compact />
+      </div>
+    )
   }
 
-  return (
-    <div className="hp-ed-vid">
-      {/* The help comes first now. Somebody deciding whether to record
-          anything needs the reason and the limits before the button, not
-          underneath it where it reads as small print about a thing they have
-          already done. */}
-      <p className="hp-ed-proof-note">
-        Prefer to speak directly to an employer? Upload a short video and let them hear
-        what sets you apart. Landscape or portrait, MP4 or WebM, up to 50MB.
-      </p>
-
-      {/* What is already on the profile, unless a new file is waiting - two
-          players side by side would be two videos asking to be judged. */}
-      {!pending && hasVideo && previewUrl ? (
-        <video
-          className="hp-ed-vid-preview"
-          src={previewUrl}
-          poster={previewPoster || undefined}
-          controls
-          preload="metadata"
-          playsInline
-        />
-      ) : !pending && hasVideo ? (
-        <div className="hp-ed-vid-preview" data-waiting="true" aria-hidden="true" />
-      ) : null}
-
-      {/* The gallery's own picker, unchanged, on the file not yet uploaded.
-          It takes a frame a second in by itself, so leaving it alone is a
-          real poster rather than nothing. */}
-      {pending ? (
-        <VideoFramePicker file={pending.file} onFrame={onFrame} />
-      ) : null}
-
-      <div className="hp-ed-row">
-        {pending ? (
-          <>
-            <button
-              type="button"
-              className="hp-ed-action"
-              data-primary="true"
-              onClick={upload}
-              disabled={Boolean(busy)}
-            >
-              {busy === 'upload' ? `Uploading… ${progress}%` : (hasVideo ? 'Replace video' : 'Use this video')}
-            </button>
-            <button
-              type="button"
-              className="hp-ed-action"
-              onClick={cancelPending}
-              disabled={Boolean(busy)}
-            >
-              Choose another
-            </button>
-          </>
+  if (video.hasVideo) {
+    return (
+      <div className="hp-ed-vid hp-ed-imow-middle">
+        {video.previewUrl ? (
+          <video
+            className="hp-ed-vid-preview"
+            src={video.previewUrl}
+            poster={video.previewPoster || undefined}
+            controls
+            preload="metadata"
+            playsInline
+          />
         ) : (
-          <label className="hp-ed-action" data-primary={hasVideo ? undefined : 'true'}>
-            {hasVideo ? 'Replace video' : 'Upload a video'}
-            <input
-              ref={inputRef}
-              type="file"
-              className="hp-ed-file-input"
-              accept={ACCEPT}
-              disabled={Boolean(busy)}
-              onChange={e => choose(e.target.files?.[0] || null)}
-            />
-          </label>
+          <div className="hp-ed-vid-preview" data-waiting="true" aria-hidden="true" />
         )}
-
-        {hasVideo && !pending ? (
-          <button
-            type="button"
-            className="hp-ed-action hp-ed-danger"
-            onClick={remove}
-            disabled={Boolean(busy)}
-          >
-            {busy === 'remove' ? 'Removing…' : 'Remove'}
-          </button>
-        ) : null}
       </div>
-    </div>
+    )
+  }
+
+  // Nothing yet. The area is the picker, in the space the box of text
+  // occupies on the other tab, so the frame does not change size when the
+  // owner moves between them. The footer's Upload a video opens the same
+  // dialog; two ways in, one input each, neither standing for the other.
+  return (
+    <label className="hp-ed-add-choice hp-ed-imow-middle hp-ed-imow-drop">
+      <span className="hp-ed-add-choice-title">Upload a video</span>
+      <span className="hp-ed-add-choice-note">
+        Speak directly to an employer and let them hear what sets you apart.
+      </span>
+      <input
+        key={video.round}
+        type="file"
+        className="hp-ed-file-input"
+        accept={video.accept}
+        disabled={Boolean(video.busy)}
+        onChange={e => video.choose(e.target.files?.[0] || null)}
+      />
+    </label>
+  )
+}
+
+/**
+ * Choosing a file: a real <input type="file"> inside the button, so the press
+ * that says "upload" is the press that opens the picker. Taken out of sight
+ * rather than display:none, because a hidden input is not focusable.
+ *
+ * It wears the Manage panels' buttons like everything else in this footer,
+ * which is why it is a <label> with one of their classes rather than
+ * .hp-ed-action.
+ */
+export function ImowVideoChoose({ video, label, primary = false }) {
+  return (
+    <label className={primary ? 'hp-manage-done' : 'hp-manage-secondary'} data-file="true">
+      {label}
+      <input
+        key={video.round}
+        type="file"
+        className="hp-ed-file-input"
+        accept={video.accept}
+        disabled={Boolean(video.busy)}
+        onChange={e => video.choose(e.target.files?.[0] || null)}
+      />
+    </label>
   )
 }

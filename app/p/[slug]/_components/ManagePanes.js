@@ -3,6 +3,7 @@
 import { useCallback, useState, useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
+import { UnsavedBar, usePaneReport } from './ManageShell'
 import { useProfileEdit, useNotify } from '../_lib/editContext'
 import { DeleteSessionModal } from '@/app/components/interview/PracticeLeftPanel'
 import { EVIDENCE_TYPES, FAMILY_LABELS, familyForType } from '@/lib/evidenceTypes'
@@ -24,6 +25,26 @@ import BrandSelect from './BrandSelect'
 // moved rather than rewritten: the same fields, the same validation, the same
 // reasons in the same comments. What changed is where it is shown and what
 // surrounds it.
+//
+// NOTHING TYPED INTO ONE OF THESE IS LOST BY LEAVING
+// Each of the three is a form with a draft in it, and each of them used to be
+// closeable by four controls that threw the draft away without asking: the
+// pane's own Cancel, and the X, Escape and backdrop of the modal around it.
+//
+// They are guarded now, by the same guard and the same bar the Manage panels
+// use - but the state has to cross a modal boundary to get there, because the
+// X belongs to the section that opened the modal and the draft belongs to the
+// pane inside it. usePaneGuard and usePaneReport in ./ManageShell are that
+// crossing; the section holds the guard and the pane reports to it.
+//
+// WHERE THE BAR GOES, AND WHAT STAYS PUT
+// Directly above each pane's existing footer rather than in place of it. In a
+// Manage panel the bar replaces the footer, because that footer is two buttons
+// and the bar is the same decision said better. These footers are not: they
+// carry Delete, Cancel request, Replace file - controls about the item rather
+// than about leaving - and a bar that swallowed them would take away the
+// delete somebody may have come for. So the footers and their destructive
+// buttons are exactly where they were and the bar stands over them.
 //
 // REMOVING AN ITEM, AND WHY IT IS HERE RATHER THAN IN THE LIST
 // Taking something off one direction is a switch, and that switch is in the
@@ -382,7 +403,7 @@ export function useTestimonialDelete({ onDeleted } = {}) {
   }
 }
 
-export function EvidenceEditPane({ item, lensId, onBack }) {
+export function EvidenceEditPane({ item, lensId, onBack, guard }) {
   const edit = useProfileEdit()
   const notify = useNotify()
   const [busy, setBusy] = useState(null)
@@ -419,17 +440,72 @@ export function EvidenceEditPane({ item, lensId, onBack }) {
   // stands alone on the left of the footer.
   const canReplace = item.source_type === 'upload' && Boolean(edit?.onReplaceEvidenceFile)
 
+  // Returns whether it worked, which is what Save and close needs to know
+  // before it goes on to leave.
   async function run(key, work) {
-    if (busy) return
+    if (busy) return false
     setBusy(key)
     try {
       await work()
+      return true
     } catch (err) {
       notify({ type: 'error', message: err?.message || "We couldn't save that. Please try again." })
+      return false
     } finally {
       setBusy(null)
     }
   }
+
+  // ---- WHAT THERE IS TO LOSE ----
+  //
+  // The six text fields, against the item they were loaded from. The two rows
+  // above them - which directions it appears in, and whether it is private -
+  // are written the moment they are changed and so are never unsaved.
+  const changed = (
+    draft.title !== (item.title || '') ||
+    draft.description !== (item.description || '') ||
+    draft.evidence_type !== (item.evidence_type || '') ||
+    draft.organization !== (item.organization || '') ||
+    draft.date_label !== (item.date_label || '') ||
+    draft.url !== (item.url || '')
+  )
+
+  // The same work Save does, so Save and close cannot mean something slightly
+  // different from Save. Declared before the footer that also calls it.
+  const save = () => run('save', async () => {
+    const values = {
+      title: draft.title.trim(),
+      description: draft.description.trim() || null,
+      organization: draft.organization.trim() || null,
+      date_label: draft.date_label.trim() || null,
+      url: draft.url.trim(),
+    }
+    // Sent only when it changed. The route refiles the family from whatever
+    // type it is given, and it only accepts the list - so re-sending an
+    // unchanged off-list type would turn an edit to the title into a
+    // rejection.
+    if (draft.evidence_type !== item.evidence_type) {
+      values.evidence_type = draft.evidence_type
+    }
+    await edit?.onEditEvidence?.(item.id, values)
+    onBack()
+  })
+
+  // What Save refuses, which is also what Save and close refuses: the bar's
+  // primary runs this same save, so a pane that will not save cannot be left
+  // by saving.
+  const canSave = Boolean(draft.title.trim()) && !busy &&
+    // A link item with its address emptied has nothing left to open. The route
+    // refuses it too; this is so the refusal is a button that will not press
+    // rather than an error after the press.
+    (item.source_type === 'upload' || Boolean(draft.url.trim())) &&
+    // An off-list type is fine as long as it is the one already stored.
+    // Choosing a new one means choosing from the list.
+    (draft.evidence_type === item.evidence_type || Boolean(familyForType(draft.evidence_type)))
+
+  usePaneReport(guard?.bind, changed, save)
+
+  const leave = guard ? () => guard.requestClose(onBack) : onBack
 
   return (
     <div className="hp-manage-pane">
@@ -599,6 +675,21 @@ export function EvidenceEditPane({ item, lensId, onBack }) {
         onChange={e => setDraft(d => ({ ...d, url: e.target.value }))}
       />
 
+      {/* Over the footer rather than in place of it: that footer carries
+          controls about the item, and a bar that swallowed them would take
+          away the delete somebody may have come for. Built once in
+          ./ManageShell. */}
+      {guard?.asking ? (
+        <UnsavedBar
+          onKeep={guard.keepEditing}
+          onDiscard={guard.discard}
+          // Offered only where Save itself is pressable. On a form that is not
+          // complete enough to save, the question is Discard or Keep editing
+          // and a third button that did nothing would be worse than two.
+          onSave={canSave ? guard.saveAndClose : undefined}
+        />
+      ) : null}
+
       {/* Replace file and Delete on the left: the two things this pane does to
           the item itself rather than to a field of it. Cancel and Save on the
           right, Cancel first, so the control that commits the edit is the last
@@ -620,40 +711,14 @@ export function EvidenceEditPane({ item, lensId, onBack }) {
         </span>
 
         <span className="hp-ed-foot-right">
-          <button type="button" className="hp-ed-action" onClick={onBack} disabled={Boolean(busy)}>
+          <button type="button" className="hp-ed-action" onClick={leave} disabled={Boolean(busy)}>
             Cancel
           </button>
 
           <button
             type="button" className="hp-ed-action" data-primary="true"
-            disabled={
-              !draft.title.trim() || Boolean(busy) ||
-              // A link item with its address emptied has nothing left to open.
-              // The route refuses it too; this is so the refusal is a button
-              // that will not press rather than an error after the press.
-              (item.source_type !== 'upload' && !draft.url.trim()) ||
-              // An off-list type is fine as long as it is the one already
-              // stored. Choosing a new one means choosing from the list.
-              (draft.evidence_type !== item.evidence_type && !familyForType(draft.evidence_type))
-            }
-            onClick={() => run('save', async () => {
-              const values = {
-                title: draft.title.trim(),
-                description: draft.description.trim() || null,
-                organization: draft.organization.trim() || null,
-                date_label: draft.date_label.trim() || null,
-                url: draft.url.trim(),
-              }
-              // Sent only when it changed. The route refiles the family from
-              // whatever type it is given, and it only accepts the list - so
-              // re-sending an unchanged off-list type would turn an edit to the
-              // title into a rejection.
-              if (draft.evidence_type !== item.evidence_type) {
-                values.evidence_type = draft.evidence_type
-              }
-              await edit?.onEditEvidence?.(item.id, values)
-              onBack()
-            })}
+            disabled={!canSave}
+            onClick={save}
           >
             {busy === 'save' ? 'Saving…' : 'Save'}
           </button>
@@ -671,7 +736,7 @@ export function EvidenceEditPane({ item, lensId, onBack }) {
 // ---------------------------------------------------------------------------
 // ONE TESTIMONIAL
 // ---------------------------------------------------------------------------
-export function TestimonialEditPane({ item, onBack }) {
+export function TestimonialEditPane({ item, onBack, guard }) {
   const edit = useProfileEdit()
   const notify = useNotify()
   const [busy, setBusy] = useState(null)
@@ -695,17 +760,41 @@ export function TestimonialEditPane({ item, onBack }) {
   // paragraph they had already written.
   const ready = Boolean(item.polished_text)
 
+  // Returns whether it worked, which is what Save and close needs to know
+  // before it goes on to leave.
   async function run(key, work) {
-    if (busy) return
+    if (busy) return false
     setBusy(key)
     try {
       await work()
+      return true
     } catch (err) {
       notify({ type: 'error', message: err?.message || "We couldn't do that. Please try again." })
+      return false
     } finally {
       setBusy(null)
     }
   }
+
+  // The one field on this pane that is a draft. Everything else here is a
+  // state written the moment it changes.
+  const changed = (draft.relationship_type || '') !== (item.relationship_type || '')
+
+  // The footer's own save, so Save and close cannot mean something slightly
+  // different from Save.
+  const save = () => run('save', async () => {
+    // Sent only when it changed. Nothing else on this pane is a draft, so an
+    // unchanged select makes Save a way of closing.
+    const next = draft.relationship_type || null
+    if (next !== (item.relationship_type || null)) {
+      await edit?.onCategoriseTestimonial?.(item.id, next)
+    }
+    onBack()
+  })
+
+  usePaneReport(guard?.bind, changed, save)
+
+  const leave = guard ? () => guard.requestClose(onBack) : onBack
 
   return (
     <div className="hp-manage-pane">
@@ -804,6 +893,21 @@ export function TestimonialEditPane({ item, onBack }) {
         </div>
       ) : null}
 
+      {/* Over the footer rather than in place of it: that footer carries
+          controls about the item, and a bar that swallowed them would take
+          away the delete somebody may have come for. Built once in
+          ./ManageShell. */}
+      {guard?.asking ? (
+        <UnsavedBar
+          onKeep={guard.keepEditing}
+          onDiscard={guard.discard}
+          // Offered only where Save itself is pressable. On a form that is not
+          // complete enough to save, the question is Discard or Keep editing
+          // and a third button that did nothing would be worse than two.
+          onSave={!busy ? guard.saveAndClose : undefined}
+        />
+      ) : null}
+
       {/* Delete alone on the left - the one irreversible control here - and
           the way out and the way on together on the right. Withdrawing a
           request and deleting an answer are the same delete underneath: the
@@ -825,7 +929,7 @@ export function TestimonialEditPane({ item, onBack }) {
         </span>
 
         <span className="hp-ed-foot-right">
-          <button type="button" className="hp-ed-action" onClick={onBack} disabled={Boolean(busy)}>
+          <button type="button" className="hp-ed-action" onClick={leave} disabled={Boolean(busy)}>
             Cancel
           </button>
 
@@ -834,15 +938,7 @@ export function TestimonialEditPane({ item, onBack }) {
             className="hp-ed-action"
             data-primary="true"
             disabled={Boolean(busy)}
-            onClick={() => run('save', async () => {
-              // Sent only when it changed. Nothing else on this pane is a
-              // draft, so an unchanged select makes Save a way of closing.
-              const next = draft.relationship_type || null
-              if (next !== (item.relationship_type || null)) {
-                await edit?.onCategoriseTestimonial?.(item.id, next)
-              }
-              onBack()
-            })}
+            onClick={save}
           >
             {busy === 'save' ? 'Saving…' : 'Save'}
           </button>
@@ -864,7 +960,7 @@ const EMPTY_REQUEST = {
   relationship_type: '',
 }
 
-export function TestimonialRequestPane({ onBack, onSent }) {
+export function TestimonialRequestPane({ onBack, onSent, guard }) {
   const edit = useProfileEdit()
   const notify = useNotify()
   const [form, setForm] = useState(EMPTY_REQUEST)
@@ -875,8 +971,17 @@ export function TestimonialRequestPane({ onBack, onSent }) {
     form.recipient_name.trim() && form.recipient_email.trim() && form.relationship_type
   ) && !sending
 
+  // Anything typed into any of the four. A half-filled request is still a
+  // name somebody looked up, which is the thing worth not losing - so this is
+  // not canSend: the bar asks about work done, and Save and close is what
+  // refuses to act on work that is not finished.
+  const started = Object.keys(EMPTY_REQUEST).some(key => String(form[key] || '').trim() !== '')
+
+  // Returns whether it worked, which is what Save and close needs before it
+  // goes on to leave. A form that is not complete enough to send reports
+  // false and the pane stays where it is with everything still in it.
   async function send() {
-    if (!canSend) return
+    if (!canSend) return false
     setSending(true)
     const askedName = form.recipient_name.trim()
     try {
@@ -892,12 +997,18 @@ export function TestimonialRequestPane({ onBack, onSent }) {
       // the list can say who was asked.
       if (typeof onSent === 'function') onSent(askedName)
       else onBack()
+      return true
     } catch (err) {
       notify({ type: 'error', message: err?.message || "We couldn't send that request." })
+      return false
     } finally {
       setSending(false)
     }
   }
+
+  usePaneReport(guard?.bind, started, send)
+
+  const leave = guard ? () => guard.requestClose(onBack) : onBack
 
   return (
     <div className="hp-manage-pane">
@@ -942,10 +1053,25 @@ export function TestimonialRequestPane({ onBack, onSent }) {
         whether it appears on your profile.
       </p>
 
+      {/* Over the footer rather than in place of it: that footer carries
+          controls about the item, and a bar that swallowed them would take
+          away the delete somebody may have come for. Built once in
+          ./ManageShell. */}
+      {guard?.asking ? (
+        <UnsavedBar
+          onKeep={guard.keepEditing}
+          onDiscard={guard.discard}
+          // Offered only where Save itself is pressable. On a form that is not
+          // complete enough to save, the question is Discard or Keep editing
+          // and a third button that did nothing would be worse than two.
+          onSave={canSend ? guard.saveAndClose : undefined}
+        />
+      ) : null}
+
       {/* One group, on the right, with the primary furthest right. */}
       <div className="hp-ed-editor-bar">
         <span className="hp-ed-foot-right">
-          <button type="button" className="hp-ed-action" onClick={onBack} disabled={sending}>
+          <button type="button" className="hp-ed-action" onClick={leave} disabled={sending}>
             Cancel
           </button>
           <button type="button" className="hp-ed-action" data-primary="true" onClick={send} disabled={!canSend}>

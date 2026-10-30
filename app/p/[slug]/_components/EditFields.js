@@ -57,6 +57,53 @@ function useLoadOnOpen(isOpen, load) {
 }
 
 // ---------------------------------------------------------------------------
+// ONE LAYOUT, FOR EVERY FIELD EDITOR'S BUTTONS
+//
+// The headline, the bio, the Open To tags and In My Own Words are four editors
+// that each used to arrange their own buttons, and no two of them agreed. Three
+// had the generator leading on the left and Cancel last; one had all three
+// crowded on the right; and the primary treatment moved between the AI control
+// and Save depending on whether anything had been written yet, so the loudest
+// button in the dialog changed while you were using it.
+//
+// There is one arrangement now and this is it:
+//
+//     [ Cancel ]                        [ AI action ] [ Save ]
+//
+// Cancel at the far left, because leaving without keeping anything is the one
+// decision that should never sit next to the thing that keeps it. The other
+// two grouped at the right, in that order, because the question at the end of
+// an edit is "this, or something else" and those are its two answers. Save is
+// the filled primary, always - it is the only control here that does what the
+// editor was opened to do.
+//
+// `middle` is whatever stands between them. In the prose editors it is the AI
+// control; in Tell your story's video tab it is Choose another or Replace
+// video. The slot is named for where it is rather than for what one caller
+// puts in it, because the layout is the thing being shared.
+//
+// The buttons are the Manage panels' own, .hp-manage-secondary and
+// .hp-manage-done, rather than a second pair that resembles them; this bar is
+// named in those selector lists in sections.css. The right-hand group is
+// .hp-ed-foot-right, which is already the "pushed to the end" group the dialog
+// footers use.
+//
+// Every editor hands its three buttons here and arranges nothing itself, which
+// is the point: the layout is in one place and cannot drift again.
+// ---------------------------------------------------------------------------
+export function FieldEditorBar({ cancel, middle, save }) {
+  return (
+    <div className="hp-ed-editor-bar hp-ed-field-bar">
+      {cancel}
+      <span className="hp-ed-foot-right">
+        {middle}
+        {save}
+      </span>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // The row under every editor: what it can do, what went wrong, and the way out.
 // ---------------------------------------------------------------------------
 // `hint` and `count` are the row under the field. It sits under rather than
@@ -65,11 +112,10 @@ function useLoadOnOpen(isOpen, load) {
 // answering a question nobody had asked yet, and they pushed the words the
 // editor exists to show further down the screen.
 //
-// The order of the bar is the order of the decision. Asking for another
-// version is the thing most people will want first and is the only control
-// here that does any work, so it leads and carries the page's primary
-// treatment; Save and Cancel follow in the outlined treatment, because by the
-// time somebody is pressing either of those they are looking for them.
+// The buttons themselves are laid out by FieldEditorBar above, which every
+// field editor on the profile shares. This shell decides only what the three
+// of them say and when each is offered.
+//
 // `modalTitle` is what turns this from a panel in the document into a dialog
 // over it. Some of these fields are a line of text and belong where the line
 // is; others are a whole editing session, and one of those opening inline made
@@ -81,61 +127,56 @@ function useLoadOnOpen(isOpen, load) {
 // single place and not restated here. The bar becomes its pinned footer, in
 // the same order it has inline.
 function EditorShell({
-  editor, label, onSave, canSave, children, onRegenerate, hint, count, note, modalTitle,
-  // Which of the two carries the primary treatment. Before a version has been
-  // written the generator is the only thing on the bar that does any work, so
-  // it leads. Once there is a draft on screen the decision has moved: the thing
-  // to do next is keep it, and Save leads instead.
-  savePrimary = false
+  editor, label, onSave, canSave, children, onRegenerate, hint, count, note, modalTitle
 }) {
+  // Offered only where it exists. A free account with more than one direction
+  // cannot generate at all, and a button that always answered PRO_REQUIRED
+  // would be worse than no button.
+  //
+  // It takes several seconds and says so while it does. Without the mark the
+  // only sign anything was happening was the button going flat, which reads as
+  // a control that refused rather than one that is working.
+  const aiAction = editor.canRegenerate && onRegenerate ? (
+    <button
+      type="button"
+      className="hp-manage-secondary"
+      data-working={editor.working ? 'true' : undefined}
+      onClick={onRegenerate}
+      disabled={editor.busy}
+      title="Write this again from your coaching sessions"
+    >
+      {editor.working ? <span className="hp-ed-spin" aria-hidden="true" /> : null}
+      {editor.working ? 'Creating another version…' : 'Show me another version'}
+    </button>
+  ) : null
+
   const bar = (
-    <>
-        {/* Offered only where it exists. A free account with more than one
-            direction cannot generate at all, and a button that always
-            answered PRO_REQUIRED would be worse than no button.
-
-            It takes several seconds and says so while it does. Without the
-            mark the only sign anything was happening was the button going
-            flat, which reads as a control that refused rather than one that
-            is working. */}
-        {editor.canRegenerate && onRegenerate ? (
-          <button
-            type="button"
-            className="hp-ed-action"
-            data-primary={savePrimary ? undefined : 'true'}
-            data-working={editor.working ? 'true' : undefined}
-            onClick={onRegenerate}
-            disabled={editor.busy}
-            title="Write this again from your coaching sessions"
-          >
-            {editor.working ? <span className="hp-ed-spin" aria-hidden="true" /> : null}
-            {editor.working ? 'Creating another version…' : 'Show me another version'}
-          </button>
-        ) : null}
-
-        {/* `saving`, not `busy`. This button is disabled while a new version is
-            being written, and a disabled control is not a reason to claim a
-            database write is under way. It says Saving… when it is saving. */}
+    <FieldEditorBar
+      cancel={
         <button
           type="button"
-          className="hp-ed-action"
-          data-primary={savePrimary ? 'true' : undefined}
-          onClick={onSave}
-          disabled={!canSave || editor.busy}
-        >
-          {editor.saving ? 'Saving…' : 'Save'}
-        </button>
-        <button
-          type="button"
-          className="hp-ed-action"
+          className="hp-manage-secondary"
           onClick={editor.close}
           disabled={editor.busy}
         >
           Cancel
         </button>
-
-      <span className="hp-ed-editor-gap" />
-    </>
+      }
+      middle={aiAction}
+      /* `saving`, not `busy`. This button is disabled while a new version is
+         being written, and a disabled control is not a reason to claim a
+         database write is under way. It says Saving… when it is saving. */
+      save={
+        <button
+          type="button"
+          className="hp-manage-done"
+          onClick={onSave}
+          disabled={!canSave || editor.busy}
+        >
+          {editor.saving ? 'Saving…' : 'Save'}
+        </button>
+      }
+    />
   )
 
   const body = (
@@ -162,7 +203,7 @@ function EditorShell({
         titleId={`hp-ed-modal-${label.replace(/\s+/g, '-').toLowerCase()}`}
         portalClass="hp-ed-portal"
         onClose={editor.close}
-        foot={<span className="hp-ed-foot-left">{bar}</span>}
+        foot={bar}
       >
         {body}
       </ProfileModal>
@@ -172,7 +213,7 @@ function EditorShell({
   return (
     <div className="hp-ed-editor" role="group" aria-label={`Editing ${label}`}>
       {body}
-      <div className="hp-ed-editor-bar">{bar}</div>
+      {bar}
     </div>
   )
 }
@@ -218,13 +259,6 @@ export function ProseEditor({ field, label, value, size = 'body', rows = 3 }) {
   // initialiser only covers the first one: the editor is mounted for the life
   // of the section and merely returns null while closed, so it runs once.
   const [draft, setDraft] = useState(value || '')
-  // Whether a version has been written since this opened. Both versions here
-  // are generated, so there is nothing to compare against and nothing to
-  // choose between: the new wording simply replaces what was in the field, and
-  // the only thing left to decide is whether to keep it. Save leads from then
-  // on. Cancel still restores the saved version, because the draft has never
-  // been anywhere near the record.
-  const [regenerated, setRegenerated] = useState(false)
   const ref = useRef(null)
 
   const isOpen = editor?.isOpen === true
@@ -233,12 +267,9 @@ export function ProseEditor({ field, label, value, size = 'body', rows = 3 }) {
 
   useAutoGrow(ref, draft, shape.minRows, shape.maxRows, isOpen)
 
-  // This direction's saved words, not the last direction's. `regenerated` goes
-  // with them: it says a version has been written since this opened, and on a
-  // fresh open nothing has.
+  // This direction's saved words, not the last direction's.
   useLoadOnOpen(isOpen, () => {
     setDraft(value || '')
-    setRegenerated(false)
   })
 
   useEffect(() => {
@@ -266,10 +297,7 @@ export function ProseEditor({ field, label, value, size = 'body', rows = 3 }) {
     // for breaking it, so this should never have anything to do. It stays as
     // the last line of defence: a field that will not save what its own button
     // just put in it is worse than a slightly shorter answer.
-    if (typeof next === 'string') {
-      setDraft(clampToLimit(next, max))
-      setRegenerated(true)
-    }
+    if (typeof next === 'string') setDraft(clampToLimit(next, max))
   }
 
   const trimmed = draft.trim()
@@ -293,7 +321,6 @@ export function ProseEditor({ field, label, value, size = 'body', rows = 3 }) {
       canSave={Boolean(trimmed) && trimmed !== (value || '').trim() && !over}
       onSave={() => editor.save({ [field]: trimmed })}
       onRegenerate={regenerate}
-      savePrimary={regenerated}
     >
       <textarea
         ref={ref}
