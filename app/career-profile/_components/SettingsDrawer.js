@@ -65,8 +65,15 @@ function Value({ children, empty }) {
 //
 // Four states, and only one of them has no control. A dismissed direction is
 // not offered back here, because putting something back that somebody threw
-// away is a different decision from un-hiding something they kept; it is
-// offered back on the Resume Writer hub, which is where it was thrown away.
+// away is a different decision from un-hiding something they kept.
+//
+// It used to be offered back on the Resume Writer hub, which was where it was
+// thrown away. The hub no longer shows directions at all, and nothing can
+// dismiss one any more, so no new dismissed rows appear - but the two rows
+// already carrying that status now have nowhere to be restored from, and the
+// visibility route still refuses them with "Restore it from your suggestions
+// first", pointing at a control that is gone. Whoever adds a way back should
+// add it here.
 //
 // PRIMARY is the only row without a switch, and it is first in the ladder
 // because it is the only fact about a row that the owner cannot change from
@@ -281,8 +288,9 @@ export default function SettingsDrawer({
         // them it does and they are looking at it. Showing the first for the
         // second would send them off to build evidence they already have.
         //
-        // The words are in lib/lensRefusal because the Resume Writer hub asks
-        // this same route and has to give this same answer.
+        // The words are in lib/lensRefusal rather than inline: the Resume
+        // Writer hub used to ask this same route and the two answers had
+        // drifted apart. See that file.
         setCreateNote(lensRefusalNote(result, name))
         return
       }
@@ -1018,9 +1026,10 @@ export default function SettingsDrawer({
                         <span className="hp-ed-lens-name">{lens.name}</span>
                       </span>
                       {/* ---- Only a direction they named, and only off the
-                          profile, and only with no resume behind it. The route
-                          enforces all three again; this is about not offering
-                          something that would be refused.
+                          profile. The route enforces both again; this is about
+                          not offering something that would be refused. There
+                          was a third condition - no core resume behind it -
+                          and a direction owns no resume now.
 
                           Before the switch, so that the switch is the last
                           thing in every row and the toggles read down one
@@ -1031,8 +1040,7 @@ export default function SettingsDrawer({
                           hover: on a phone there is no hover, and this drawer
                           is full width there. */}
                       {onLensDelete
-                        && lens.source === 'user_created'
-                        && !lens.core_resume_id ? (
+                        && lens.source === 'user_created' ? (
                         <button
                           onClick={(e) => { e.stopPropagation(); askDelete(lens); }}
                           className="w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all flex-shrink-0"

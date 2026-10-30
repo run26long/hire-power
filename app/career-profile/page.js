@@ -995,11 +995,11 @@ export default function CareerProfileEditorPage() {
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) {
-      throw new Error(
-        payload?.code === 'LENS_IN_USE'
-          ? 'That Career Direction has a resume behind it. Delete the resume first.'
-          : payload?.error || "We couldn't delete that Career Direction. Please try again."
-      )
+      // LENS_IN_USE used to be answered here, for a direction that had a core
+      // resume of its own and so could not be deleted without detaching it.
+      // A direction owns no resume now and the route cannot refuse for that
+      // reason any more.
+      throw new Error(payload?.error || "We couldn't delete that Career Direction. Please try again.")
     }
     await Promise.all([reloadDocument(), reloadManage()])
     return payload

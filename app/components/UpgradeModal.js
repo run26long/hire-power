@@ -125,7 +125,7 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
             {[
               { icon: '💬', title: 'Coaching conversation', desc: 'We interview you like a professional resume writer — uncovering achievements you forgot to include.' },
               { icon: '⚡', title: 'Improvements applied automatically', desc: 'No guessing how to rewrite bullets. Pro does it for you in under a minute.' },
-              { icon: '🎯', title: 'Tailored for every job', desc: 'Up to 3 core resumes, and unlimited job-specific resumes and cover letters.' },
+              { icon: '🎯', title: 'Tailored for every job', desc: 'Unlimited job-specific resumes and cover letters.' },
               { icon: '🎤', title: 'Interview Practice included', desc: 'Unlimited Power Analysis and spoken practice against your resume and target job.' },
               { icon: '📇', title: 'Career Profile with recruiter tools', desc: 'A page recruiters can read, with your evidence, testimonials and portfolio on it.' },
               { icon: '🧭', title: 'Up to 3 Career Directions', desc: 'One profile, written three ways, so you are not one job title to everybody.' },

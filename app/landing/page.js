@@ -1264,7 +1264,6 @@ const supabase = createClient();
               <ul className="tier-features">
                 <li><span className="check">✓</span> Everything included in Free Tier PLUS:</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Resume Writer</li>
-                <li><span className="check">✓</span> Up to 3 core resumes</li>
                 <li><span className="check">✓</span> Unlimited job-specific resumes</li>
                 <li><span className="check">✓</span> Unlimited reword, fix, and add edits</li>
                 <li><span className="check">✓</span> Unlimited cover letters and job match scores</li>
@@ -1362,7 +1361,6 @@ const supabase = createClient();
                 featured: true,
                 features: [
                   'Everything in Free, plus:',
-                  'Up to 3 core resumes',
                   'Unlimited job-specific resumes',
                   'Unlimited reword, fix, and add edits',
                   'Unlimited cover letters and job match scores',

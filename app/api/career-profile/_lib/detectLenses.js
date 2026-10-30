@@ -91,7 +91,12 @@ export async function ensureCareerProfile(supabaseWrite, userId, displayName) {
 // or dismissed is never re-suggested. A row the user owns is never touched, and
 // neither is one they have built: only a still-suggested row this evaluation
 // wrote gets its evidence refreshed, and only its evidence.
-export async function saveSuggestedLenses(supabaseWrite, { userId, profileId, coreResumeId, lenses }) {
+//
+// It no longer takes a core resume to bind these to. A Career Direction used
+// to be able to own a core of its own, through profile_lenses.core_resume_id;
+// there is one core resume per account now and every direction reads it, so
+// the column is written by nothing.
+export async function saveSuggestedLenses(supabaseWrite, { userId, profileId, lenses }) {
   if (!profileId || !Array.isArray(lenses) || lenses.length === 0) return
 
   for (const lens of lenses) {
@@ -128,8 +133,7 @@ export async function saveSuggestedLenses(supabaseWrite, { userId, profileId, co
           slug,
           evidence_summary: evidence,
           status: 'suggested',
-          source: 'coaching_extraction',
-          core_resume_id: coreResumeId || null
+          source: 'coaching_extraction'
         })
 
       // A concurrent run can take the slug between the check above and this
@@ -161,30 +165,19 @@ export async function ensurePrimaryLens({ userId, displayName, supabase, nameOve
     const profileId = await ensureCareerProfile(supabaseWrite, userId, displayName)
     if (!profileId) return
 
-    const [contextRes, coreRes, existingRes] = await Promise.all([
+    // The account's core resumes used to be read here as well, to point the
+    // primary direction at one through profile_lenses.core_resume_id. Nothing
+    // writes that column any more - there is one core resume and every
+    // direction reads it - so the query went with the binding.
+    const [contextRes, existingRes] = await Promise.all([
       supabaseWrite
         .from('career_context')
         .select('current_lens_name, target_roles')
         .eq('user_id', userId)
         .maybeSingle(),
-      // Ordering rather than a strict is_priority_core filter: the column
-      // defaults false, so an account that predates it would match nothing.
-      //
-      // Every active core, not just the first. The first is still the one a
-      // primary lens is pointed at, but knowing the whole set is what lets the
-      // binding below tell "not pointed anywhere yet" from "pointed at a resume
-      // that has since been archived", and heal the second as well as the first.
-      supabaseWrite
-        .from('resumes')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('resume_type', 'core')
-        .eq('is_active', true)
-        .order('is_priority_core', { ascending: false })
-        .order('created_at', { ascending: false }),
       supabaseWrite
         .from('profile_lenses')
-        .select('id, name, core_resume_id')
+        .select('id, name')
         .eq('profile_id', profileId)
         .eq('source', 'user')
         .eq('sort_order', 0)
@@ -209,23 +202,16 @@ export async function ensurePrimaryLens({ userId, displayName, supabase, nameOve
     const override = typeof nameOverride === 'string' ? nameOverride.trim() : ''
     const name = override || contextName || firstTarget || 'Core'
     const slug = slugify(name) || 'core'
-    const coreResumeId = (coreRes.data || [])[0]?.id || null
     const existing = existingRes.data
 
     if (existing) {
       const patch = {}
       if (existing.name !== name) { patch.name = name; patch.slug = slug }
 
-      // Bound when it points at nothing, and re-bound when what it points at is
-      // no longer one of this account's active cores - a core that was archived
-      // or deleted leaves a pointer behind, and a lens pointing at a resume that
-      // is gone names nothing and reads as a lens with no core.
-      //
-      // A pointer at a different but still active core is left alone. That is
-      // somebody's own arrangement, not a fault to correct.
-      const activeCoreIds = new Set((coreRes.data || []).map(row => row.id))
-      const boundToLiveCore = existing.core_resume_id && activeCoreIds.has(existing.core_resume_id)
-      if (!boundToLiveCore && coreResumeId) patch.core_resume_id = coreResumeId
+      // The primary used to be pointed at the account's priority core here,
+      // and re-pointed when the resume it named had been archived. A direction
+      // owns no resume now, so there is nothing to keep in step: the name is
+      // the only thing this row carries that a re-coach can change.
 
       if (Object.keys(patch).length === 0) return
 
@@ -257,8 +243,7 @@ export async function ensurePrimaryLens({ userId, displayName, supabase, nameOve
           slug: candidate,
           status: 'active',
           source: 'user',
-          sort_order: 0,
-          core_resume_id: coreResumeId
+          sort_order: 0
         })
 
       if (!insertError) return
@@ -407,9 +392,6 @@ export async function evaluateLensesFromKnowledge({ userId, supabase, displayNam
     await saveSuggestedLenses(client, {
       userId,
       profileId,
-      // A suggestion is not tied to a resume. build-core sets core_resume_id when
-      // the user turns one into an actual core.
-      coreResumeId: null,
       lenses
     })
   } catch (e) {

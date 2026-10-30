@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import puppeteer from 'puppeteer';
 import { normalizeSkillCategories } from '@/lib/resumeText'
-import { coreResumeLabel } from '@/lib/resumeLabel'
 import { isRealCore } from '@/lib/coreResumes'
 import { canAccessBuiltWork } from '@/lib/tiers'
 import { freeCoreId } from '@/lib/resumeAccess'
@@ -278,8 +277,9 @@ export async function GET(req) {
     
     const userTier = profile?.subscription_tier || 'free';
     
-    // Get core resume. The flagged priority core wins; without one the newest
-    // still does, which is how this behaved before lens cores existed.
+    // Get the core resume. One per account; the flagged priority core wins,
+    // and without one the newest does, because a strict is_priority_core
+    // filter returns nothing for an account that predates the column.
     const { data: coreResumes, error: resumeError } = await supabase
       .from('resumes')
       .select('*')
@@ -296,10 +296,9 @@ export async function GET(req) {
     
     const allCore = coreResumes || [];
     const activeChatResume = allCore.find(r => r.created_via === 'resume_chat' && !r.coaching_complete) || null;
-    // isRealCore is this same test, lifted into lib so the build limit counts
-    // the resumes this picks from. They were written twice and disagreed: the
-    // limit read coaching_complete alone, which is false on most people's main
-    // core, so an account holding three was counted as holding one.
+    // isRealCore is the test every core gate shares, in lib so the hub and the
+    // routes that refuse a second core cannot disagree about what counts as
+    // having one.
     const coreResume = allCore.find(isRealCore) || null;
     
     // Generate thumbnail if core resume exists and doesn't have one
@@ -381,82 +380,41 @@ export async function GET(req) {
         .maybeSingle());
     }
 
-    // Every lens this account has, for naming its cores. Deliberately a second
-    // query rather than a reuse of the one below: that one is filtered to
-    // source 'coaching_extraction' because it feeds the suggestion tiles, and
-    // the primary direction carries source 'user', so it is the one row that
-    // query can never return. Naming a core from it needs all of them.
-    const { data: namingLenses, error: namingLensesError } = await supabase
-      .from('profile_lenses')
-      .select('name, source, sort_order, status, core_resume_id')
+    // Whether this account has a Career Profile at all, which is the other
+    // half of the question the hub's Career Profile card asks. Coaching
+    // creates the row, so a coached account nearly always has one - but
+    // "nearly always" is not a thing to render a card on, and a card pointing
+    // at a page that was never built is worse than no card.
+    //
+    // head:true because only the existence matters; the hub links to
+    // /career-profile, which resolves the owner's own profile from the
+    // session.
+    const { count: careerProfileCount, error: careerProfileError } = await supabase
+      .from('career_profiles')
+      .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id);
 
-    if (namingLensesError) {
-      // Costs the direction in the title, nothing else. Every card still
-      // renders, just under the name it had before.
-      console.error('Naming lens lookup failed (non-fatal):', namingLensesError);
+    if (careerProfileError) {
+      // Costs the card, nothing else. The rest of the hub is unaffected, and
+      // a missing invitation is better than one that leads nowhere.
+      console.error('Career profile lookup failed (non-fatal):', careerProfileError);
     }
 
-    // Every direction this account has, whether Coach found it in the background
-    // or the user's own coaching established it.
-    // Service role, so this is not subject to RLS on profile_lenses.
-    //
-    // Both statuses: a suggestion is a core the user could build, an active lens
-    // is one they already did, and the hub selector needs to show either.
-    //
-    // No source filter. This used to take only 'coaching_extraction', which
-    // silently dropped every direction carrying source 'user' - the primary one
-    // among them. An account with three directions, two of them its own, showed
-    // one tile and looked like an account with one. The page decides what each
-    // lens is by whether it has a core behind it, which is the question that
-    // actually distinguishes a tile you switch to from one you build.
-    //
-    // Hidden ones travel as well. Hiding takes a direction off the public
-    // profile and changes nothing about the resume behind it, so the hub still
-    // has a core to offer or to switch to - the two pages are answering
-    // different questions, and a direction being unpublished is no reason for
-    // the one about resumes to forget it exists.
-    //
-    // Dismissed ones travel too, for the row that offers them back. Those are
-    // not tiles and the page must not treat them as any: what separates a
-    // direction still in play from a discarded one is the status, and the split
-    // on the page names 'dismissed' rather than testing for "not active"
-    // because of it.
-    const { data: profileLenses, error: lensesError } = await supabase
-      .from('profile_lenses')
-      .select('id, name, slug, evidence_summary, status, source, core_resume_id')
-      .eq('user_id', user.id)
-      .in('status', ['suggested', 'active', 'hidden', 'dismissed'])
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: true });
+    // Every Career Direction this account has used to be read here, twice: once
+    // to name the cores and once to feed the hub's tile row, which offered a
+    // core to build for each direction without one. Directions live on the
+    // Career Profile now and the hub neither names a resume after one nor
+    // builds anything for one, so neither query has a reader.
 
-    if (lensesError) {
-      console.error('Profile lenses error:', lensesError);
-    }
-    
-    // The card shape, shared by the core the hub opens with and every core it can
-    // toggle to. The thumbnail is passed in because only the one core above pays to
-    // have one generated; the rest carry whatever they already had.
-    // How many cores this account holds, which is what decides whether the
-    // account's direction can be taken to mean one particular document. The
-    // query above is already filtered to is_active, and isRealCore is what
-    // the server enforces the limit with. Counting every core row instead
-    // counted abandoned resume_chat attempts that spend no slot, so the
-    // number on screen could read three of three while the route would still
-    // allow a fourth.
-    const activeCoreCount = allCore.filter(isRealCore).length;
-
+    // The card shape for the one core resume. The thumbnail is passed in
+    // because generating one is paid for above rather than here.
     const projectCore = (core, generatedThumbnail) => ({
       id: core.id,
-      // The direction this resume is for, where one is knowable. Resolved here
-      // rather than in the page so every caller of this route agrees, and so
-      // the rule lives in one testable place.
-      display_name: coreResumeLabel({
-        resume: core,
-        lenses: namingLenses || [],
-        currentLensName: careerContext?.current_lens_name || null,
-        coreCount: activeCoreCount
-      }),
+      // One core resume per account, and it is called "Core Resume". It used
+      // to be named after the Career Direction a lens bound it to; nothing
+      // binds one now, and a resume that covers a whole career should not be
+      // filed under one slice of it.
+      display_name: 'Core Resume',
       resume_data: core.resume_data,
       current_score: core.current_score,
       initial_score: core.initial_resume_power_score,
@@ -467,31 +425,17 @@ export async function GET(req) {
       updated_at: core.updated_at,
       thumbnail_url: generatedThumbnail ?? core.thumbnail_url,
       score_breakdown: core.score_breakdown,
-      has_coaching_conversation: !!(core.coaching_conversation?.length > 0)
+      has_coaching_conversation: !!(core.coaching_conversation?.length > 0),
+      // Whether the coaching conversation finished, which is what the Career
+      // Profile card waits for: the profile is written out of that
+      // conversation, so offering it before there has been one would point at
+      // a page with nothing on it.
+      coaching_complete: core.coaching_complete === true
     });
 
     // Format core resume data
     const coreResumeData = coreResume ? projectCore(coreResume, thumbnailUrl) : null;
 
-    // Every core the hub can toggle between. Only finished ones: an unfinished brb
-    // attempt or a lens core still being coached is not something to switch to,
-    // which is the same rule the resume page breadcrumb switcher uses. That test
-    // also subsumes the resume_chat check the single core above makes, since an
-    // unfinished chat resume fails coaching_complete on its own.
-    // Which cores the hub will switch between. isRealCore, not
-    // coaching_complete: most people's main core is an upload sitting at
-    // 'review' and has never been coached, and testing the flag alone left
-    // such a core out of this list entirely. A direction pointing at one
-    // then matched none of the hub's three groups and rendered no tile -
-    // present on the public page, absent from the hub, with no way to build
-    // the core it was supposedly missing.
-    //
-    // The same test the build limit and /api/coach already count with, so a
-    // core the hub shows is a core the limit has counted.
-    const allCoreData = allCore
-      .filter(isRealCore)
-      .map(r => projectCore(r, r.id === coreResume?.id ? thumbnailUrl : null));
-    
     // Format resume versions data (tier-specific)
     const resumeVersionsData = versions?.map(v => ({
       id: v.id,
@@ -524,15 +468,16 @@ export async function GET(req) {
         jms_count: profile.jms_count ?? 0
       },
       coreResume: coreResumeData,
-      coreResumes: allCoreData,
-      // Which single core a free account keeps. Computed here, from the full
-      // set of rows, so the hub and the resume page lock the same one rather
-      // than each picking from whatever subset it happens to hold.
+      // Which core a free account keeps. One per account now, so this is
+      // almost always that one - but an account that was on Pro and lapsed may
+      // still hold archived extras it can restore, and the hub, the editor,
+      // the Vault and the PDF route have to agree about which single resume is
+      // open. Computed here from the full set of rows, so they do.
       accessibleCoreId: freeCoreId(allCore),
       resumeVersions: resumeVersionsData,
       coverLetters: coverLetters || [],
-      profileLenses: profileLenses || [],
-      currentLensName: careerContext?.current_lens_name || null,
+      // Whether there is a Career Profile to send somebody to.
+      hasCareerProfile: (careerProfileCount ?? 0) > 0,
       stats: {
         hasCoreResume: !!coreResume,
         hasCareerContext: !!careerContext?.completed_at,

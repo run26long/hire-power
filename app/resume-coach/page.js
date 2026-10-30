@@ -7,15 +7,14 @@ import MainNav from '../components/MainNav';
 import AppShell from '../components/AppShell';
 import UpgradeModal from '../components/UpgradeModal';
 import Tour, { tourSeen, TourReplayButton } from '../components/Tour';
-import { lensRefusalNote, rewriteOfferNote, REWRITE_OFFER } from '@/lib/lensRefusal';
 import VaultUpgradeModal from '../components/VaultUpgradeModal';
 import ErrorToast from '../components/ErrorToast';
 import { getJobSources } from '../utils/getJobSources';
-import { directionFromLabel } from '@/lib/resumeLabel';
 import { track } from '../utils/analytics';
 import { TIERS } from '@/lib/subscription';
 import { canAccessBuiltWork, canCreateResumes } from '@/lib/tiers';
 import { LOCK_COPY } from '@/lib/resumeAccess';
+import { hasRealCore, ONE_CORE_MESSAGE } from '@/lib/coreResumes';
 import ResumeContent from '../components/ResumeContent';
 import Breadcrumb from '../components/Breadcrumb';
 import { fetchJSON } from '@/lib/fetchJSON';
@@ -194,8 +193,8 @@ const resumeCoachSidebar = (
               },
               { 
                 num: '2', 
-                title: 'Build Your Core Resumes', 
-                desc: 'Review → Assess → Coach → Improve → Format → Save. Your core resumes are your foundation for every application.' 
+                title: 'Build Your Core Resume',
+                desc: 'Review → Assess → Coach → Improve → Format → Save. Your core resume is the foundation for every application.'
               },
               { 
                 num: '3', 
@@ -274,15 +273,6 @@ export default function MyResumesPage() {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
-  const [editingLensId, setEditingLensId] = useState(null);
-  const [editingLensName, setEditingLensName] = useState('');
-  const [lensRenameError, setLensRenameError] = useState(null);
-  // Escape unmounts the input, and removing a focused element fires blur in
-  // some browsers. This tells the blur handler the edit was abandoned.
-  const cancelLensRenameRef = useRef(false);
-  const [buildLens, setBuildLens] = useState(null);
-  const [buildingCore, setBuildingCore] = useState(false);
-  const [buildCoreError, setBuildCoreError] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [retryCount, setRetryCount] = useState(1);
   const [uploading, setUploading] = useState(false);
@@ -292,49 +282,6 @@ export default function MyResumesPage() {
   const [downloadError, setDownloadError] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-  // Which core the card above the selector is showing. Null means the one the
-  // route opened with, so the first paint needs no effect to correct it.
-  const [selectedCoreId, setSelectedCoreId] = useState(null);
-  // Which suggestion is asking to be confirmed. The question lives on the tile
-  // rather than in a dialog, so removing one never takes over the page.
-  const [confirmingLensId, setConfirmingLensId] = useState(null);
-  // The archive of dismissed directions, closed. It used to be a row of chips
-  // under the card, permanently on screen for anybody who had ever turned a
-  // suggestion down - which put the discarded directions in front of the user
-  // as often as the live ones, and gave the least important thing on the card
-  // its widest element. Behind a control it is there when wanted and absent
-  // otherwise.
-  const [restoreMenuOpen, setRestoreMenuOpen] = useState(false);
-  const restoreMenuRef = useRef(null);
-  // Which direction is being moved onto the row. The whole menu waits on it
-  // rather than one entry, because the swap re-sorts the row and a second pick
-  // mid-flight would be choosing against a layout that is about to change.
-  const [promotingLensId, setPromotingLensId] = useState(null);
-
-  // Same dismissal the breadcrumb switcher uses: any click outside, or Escape.
-  // A menu left hanging open would float over the tiles while the user is
-  // working on them. Scoped to the trigger and its list together, so clicking
-  // the trigger again closes it through its own handler rather than being
-  // read as an outside click and closed twice.
-  useEffect(() => {
-    if (!restoreMenuOpen) return undefined;
-
-    const handlePointerDown = (event) => {
-      if (restoreMenuRef.current && !restoreMenuRef.current.contains(event.target)) {
-        setRestoreMenuOpen(false);
-      }
-    };
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') setRestoreMenuOpen(false);
-    };
-
-    document.addEventListener('mousedown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [restoreMenuOpen]);
 
  // Job-specific modal state
   const [showJobModal, setShowJobModal] = useState(false);
@@ -450,300 +397,6 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       window.history.replaceState({}, '', '/resume-coach');
     }
   }, []);
-
-  async function startLensCore(lens) {
-    if (buildingCore) return;
-    setBuildingCore(true);
-    setBuildCoreError(null);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const { resumeId } = await fetchJSON('/api/profile-lenses/build-core', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ lensId: lens.id })
-      });
-      if (!resumeId) throw new Error('No resume returned');
-      // The modal stays up through the navigation rather than flashing the hub
-      // on the way out.
-      router.push(`/resume/${resumeId}`);
-    } catch (err) {
-      console.error('Build lens core failed:', err);
-      // The limit is a fact about their account, not a failure, and the route
-      // words it. Saying "please try again" to somebody holding three cores
-      // would send them round the same refusal.
-      setBuildCoreError(
-        err?.code === 'CORE_LIMIT'
-          ? err.message
-          : "We couldn't start this core resume. Please try again."
-      );
-      setBuildingCore(false);
-    }
-  }
-
-  // Dismissing and restoring are one move in two directions, so they are one
-  // function. Optimistic either way: the status flips now and goes back if the
-  // write does not land.
-  //
-  // The status is changed rather than the row removed. It used to be filtered
-  // out of the list entirely, which was right while dismissed rows never
-  // reached this page - now they do, and dropping it would take the direction
-  // off the row without putting it in the section that offers it back, until a
-  // reload put it there.
-  async function setLensDismissed(lens, dismissed) {
-    setConfirmingLensId(null);
-
-    const previous = data?.profileLenses || [];
-    const next = dismissed ? 'dismissed' : 'suggested';
-    setData(prev => prev ? {
-      ...prev,
-      profileLenses: (prev.profileLenses || []).map(l => (
-        l.id === lens.id ? { ...l, status: next } : l
-      ))
-    } : prev);
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`/api/profile-lenses/${dismissed ? 'dismiss' : 'restore'}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ lensId: lens.id })
-      });
-      if (!res.ok) throw new Error(dismissed ? 'Dismiss failed' : 'Restore failed');
-    } catch (err) {
-      console.error(dismissed ? 'Lens dismiss failed:' : 'Lens restore failed:', err);
-      setData(prev => prev ? { ...prev, profileLenses: previous } : prev);
-      setErrorToast(dismissed
-        ? "We couldn't remove that suggestion. Please try again."
-        : "We couldn't bring that suggestion back. Please try again.");
-    }
-  }
-
-  const dismissLens = (lens) => setLensDismissed(lens, true);
-
-  // Bringing one back out of the menu. Not the inverse of dismissing and not
-  // built from it: dismissing changes a status, this takes a place on the row,
-  // and the direction being picked may never have been dismissed at all - it
-  // may just have come fourth.
-  //
-  // Not optimistic either. Dismissing flips one field and the tile leaves the
-  // row; this swaps two ranks and re-sorts the row around them, and guessing
-  // that locally means duplicating the slot arithmetic in two places that would
-  // then have to agree forever. The reload is one request and the row is small.
-  // A direction the owner names themselves. The refusal is shown inside the
-  // menu rather than as a toast: it is information about their own career
-  // data, and it has to stay next to the box they typed into.
-  const [customOpen, setCustomOpen] = useState(false);
-  const [customName, setCustomName] = useState('');
-  const [customBusy, setCustomBusy] = useState(false);
-  const [customNote, setCustomNote] = useState(null);
-  const [customRenaming, setCustomRenaming] = useState(false);
-  const [customRewriting, setCustomRewriting] = useState(false);
-
-  // The same offer the Career Profile settings drawer makes, against the same
-  // generate route, so the tier gate is the one that already applies.
-  async function acceptCustomRewrite(offer) {
-    if (!offer?.lensId || customRewriting) return;
-    setCustomRewriting(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/career-profile/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-        body: JSON.stringify({ lensId: offer.lensId })
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(
-          payload?.error === 'PRO_REQUIRED'
-            ? 'Rewriting a Career Direction is a Pro feature.'
-            : "We couldn't rewrite that Career Direction just now. Please try again."
-        );
-      }
-      setCustomNote(null);
-      await loadData();
-    } catch (err) {
-      // The note stays: the rename stands, and only the offer failed.
-      console.error('Lens rewrite failed:', err);
-      setErrorToast(err?.message || "We couldn't rewrite that Career Direction. Please try again.");
-    } finally {
-      setCustomRewriting(false);
-    }
-  }
-
-  // The same offer the Career Profile settings drawer makes, against the same
-  // route: call the direction they already have by the name they just typed.
-  async function acceptCustomRename(offer) {
-    const wanted = customName.trim();
-    if (!offer?.lensId || !wanted || customRenaming) return;
-    setCustomRenaming(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/profile-lenses/rename', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-        body: JSON.stringify({ lensId: offer.lensId, newName: wanted, intent: 'resolve-duplicate' })
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload?.error || "We couldn't rename that Career Direction. Please try again.");
-      // Refused again: the name is taken by a third direction.
-      if (payload?.ok === false) {
-        setCustomNote(lensRefusalNote(payload, wanted));
-        return;
-      }
-      setCustomName('');
-      // Renamed, and the prose underneath still describes the old name.
-      setCustomNote(
-        payload?.hasContent && payload?.previousName
-          ? rewriteOfferNote({
-              newName: payload.lens?.name || wanted,
-              oldName: payload.previousName,
-              lensId: offer.lensId
-            })
-          : null
-      );
-      // The tile, the menu and the core resume label all read the name from
-      // this load.
-      await loadData();
-    } catch (err) {
-      console.error('Lens rename failed:', err);
-      setErrorToast(err?.message || "We couldn't rename that Career Direction. Please try again.");
-    } finally {
-      setCustomRenaming(false);
-    }
-  }
-
-  async function createCustomLens() {
-    const name = customName.trim();
-    if (!name || customBusy) return;
-    setCustomBusy(true);
-    setCustomNote(null);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/profile-lenses/create-custom', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-        body: JSON.stringify({ name })
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setCustomNote({ title: null, body: payload?.error || "We couldn't create that Career Direction. Please try again." });
-        return;
-      }
-      // An answer of "no" is an ordinary result, not a failure: the request
-      // worked, the career data did not reach. The words come from
-      // lib/lensRefusal, which is also what the Career Profile settings
-      // drawer says: this is one feature on two pages and it should not read
-      // as two. It did, until now - this surface rendered the route's own
-      // sentence, which still listed the account's strongest directions in
-      // prose above a menu that was already listing them.
-      if (payload?.ok === false) {
-        setCustomNote(lensRefusalNote(payload, name));
-        return;
-      }
-      setCustomName('');
-      setCustomOpen(false);
-      setRestoreMenuOpen(false);
-
-      // With a slot free the new direction lands in it on its own: every
-      // coreless direction is on the row, so ranking last still means a tile.
-      // With the row full it has to take someone's place, and the one it takes
-      // is the lowest-ranked suggestion - never a built core, never the
-      // primary, which is what displaceable already excludes.
-      const displaced = hasFreeSlot ? null : (displaceable[displaceable.length - 1] || null);
-      if (payload?.lens?.id && displaced) {
-        // promoteLens reloads once the swap lands, so there is no second read.
-        await promoteLens(payload.lens, displaced);
-      } else {
-        await loadData();
-      }
-    } catch (err) {
-      console.error('Custom lens create failed:', err);
-      setCustomNote({ title: null, body: "We couldn't create that Career Direction. Please try again." });
-    } finally {
-      setCustomBusy(false);
-    }
-  }
-
-  async function promoteLens(lens, displaced) {
-    if (promotingLensId) return;
-    setPromotingLensId(lens.id);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/profile-lenses/promote', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          lensId: lens.id,
-          ...(displaced ? { displacedLensId: displaced.id } : {})
-        })
-      });
-      if (!res.ok) throw new Error('Promote failed');
-      await loadData();
-    } catch (err) {
-      console.error('Lens promote failed:', err);
-      setErrorToast("We couldn't show that Career Direction. Please try again.");
-    } finally {
-      setPromotingLensId(null);
-    }
-  }
-
-  async function commitLensRename(lens) {
-    if (cancelLensRenameRef.current) {
-      cancelLensRenameRef.current = false;
-      return;
-    }
-    const nextName = editingLensName.trim();
-    setEditingLensId(null);
-    if (!nextName || nextName === lens.name) return;
-
-    const previousName = lens.name;
-    setLensRenameError(null);
-
-    // Optimistic: the tile carries the new name while the request is in flight,
-    // and goes back to the old one if it does not land.
-    setData(prev => prev ? {
-      ...prev,
-      profileLenses: (prev.profileLenses || []).map(l => l.id === lens.id ? { ...l, name: nextName } : l)
-    } : prev);
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/profile-lenses/rename', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ lensId: lens.id, newName: nextName })
-      });
-      if (!res.ok) throw new Error('Rename failed');
-
-      // The server owns the slug, so take its row rather than assuming.
-      const { lens: saved } = await res.json();
-      if (saved) {
-        setData(prev => prev ? {
-          ...prev,
-          profileLenses: (prev.profileLenses || []).map(l => l.id === saved.id ? { ...l, ...saved } : l)
-        } : prev);
-      }
-    } catch (err) {
-      console.error('Lens rename failed:', err);
-      setData(prev => prev ? {
-        ...prev,
-        profileLenses: (prev.profileLenses || []).map(l => l.id === lens.id ? { ...l, name: previousName } : l)
-      } : prev);
-      setLensRenameError(lens.id);
-    }
-  }
 
   async function loadData() {
     try {
@@ -905,6 +558,18 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         setCreatingChat(false);
         return;
       }
+      // ---- ONE CORE RESUME ----
+      // This only renders from the empty state, and the empty state asks
+      // whether there is a real core - so an account holding nothing but
+      // abandoned chat rows reaches it and would write another one. Asked
+      // again here, against the database rather than against the payload the
+      // page loaded, which is also what stops a second tab doing it.
+      if (await hasRealCore(supabase, chatUser.id)) {
+        setErrorToast(ONE_CORE_MESSAGE);
+        setCreatingChat(false);
+        await loadData();
+        return;
+      }
       const { data: newResume, error } = await supabase
         .from('resumes')
         .insert({
@@ -942,6 +607,18 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     setUploading(true);
 
     try {
+      // ---- ONE CORE RESUME ----
+      // Before the file is uploaded and parsed, not after: the two API calls
+      // below cost real time and money, and there is no point spending either
+      // on a resume this will refuse to save. See handleStartResumeChat for
+      // why the empty state is not a sufficient guard on its own.
+      if (await hasRealCore(supabase, user.id)) {
+        setUploadError(ONE_CORE_MESSAGE);
+        setUploading(false);
+        await loadData();
+        return;
+      }
+
       // Validate file type
       const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
       if (!allowedTypes.includes(file.type)) {
@@ -1164,33 +841,11 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         .eq('user_id', user.id);
       if (error) throw error;
 
-      // Let go of the direction this resume was standing for, if it was
-      // standing for one. Deleting a core is the only way to unlock a
-      // direction on the Career Profile, so without this the lens keeps
-      // pointing at an archived resume and stays locked to a page that no
-      // longer lists it.
-      //
-      // After the archive, never before: releasing first and then failing to
-      // archive would leave a direction offering to build a core it already
-      // has. This order's failure is the older one, which a re-delete or the
-      // reconcile script can still clear.
-      //
-      // Not fatal to the delete. The resume is gone either way, and a lens
-      // still holding the id is recoverable; refusing to close the dialog over
-      // it would only make the user delete it twice.
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        await fetch('/api/profile-lenses/release', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({ resumeId })
-        });
-      } catch (releaseErr) {
-        console.error('Lens release failed (non-blocking):', releaseErr);
-      }
+      // Nothing to release. A Career Direction used to take the id of the core
+      // built for it, so archiving one left a direction pointing at a resume
+      // that no longer existed and had to be told to let go. No direction owns
+      // a resume now - every one of them reads the account's single core - so
+      // archiving a core says nothing about any direction.
 
       setConfirmDeleteId(null);
       await loadData();
@@ -1479,10 +1134,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   };
 
   const handleStartCoaching = async () => {
-    if (!selectedCore) return;
+    if (!coreResume) return;
     
-    const journeyStep = selectedCore.journey_step || 'review';
-    const resumeId = selectedCore.id;
+    const journeyStep = coreResume.journey_step || 'review';
+    const resumeId = coreResume.id;
     
     // Special case: If journey is "save", trigger download instead of navigating
     if (journeyStep === 'save') {
@@ -1596,9 +1251,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   }
 
   const activeChatResume = data?.activeChatResume || null;
-  // The card reads this, never data.coreResume directly. An id that no longer
-  // matches a core (one just deleted, say) falls back to the route's own pick.
-  const selectedCore = (data?.coreResumes || []).find(c => c.id === selectedCoreId) || data?.coreResume || null;
+  // The one core resume this account has. There used to be up to three, one
+  // per Career Direction, and this read a selected id out of a list the tile
+  // strip below switched between. There is one, so the card reads it.
+  const coreResume = data?.coreResume || null;
   const isPro = data?.userTier === TIERS.PRO;
   // ---- TWO QUESTIONS, NOT ONE ----
   // mayCreate is "may this account build something new" and is Pro. mayAccess
@@ -1608,148 +1264,34 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   // had no route at all to the job-specific resumes it had paid to keep.
   const mayCreate = canCreateResumes(data?.userTier);
   const mayAccess = canAccessBuiltWork(data?.userTier);
-  // The one core a free account keeps, decided by the route so the hub, the
-  // resume page and the PDF route all lock the same one.
-  const openCoreId = data?.accessibleCoreId ?? data?.coreResume?.id ?? null;
-  const coreLocked = (id) => !mayAccess && id !== openCoreId;
+  // Which core a free account keeps is still read, by `lockedResume` above,
+  // because a lapsed Pro account may hold archived extras it can restore. The
+  // tile row that used to read it here - and grey out the cores this account
+  // may not open - is gone with the rest of the multi-core surface.
   const clLimitReached = !isPro && (data?.userProfile?.cl_count ?? 0) >= 3;
   const jmsLimitReached = !isPro && (data?.userProfile?.jms_count ?? 0) >= 3;
-  const profileLenses = data?.profileLenses || [];
-  // A lens with a core behind it is one to switch to. One without is still an
-  // offer. What splits them is the core, not the status: a direction can be
-  // 'suggested' and already have a resume built for it, and offering to build
-  // that one again is how the same core came to appear twice in this row.
+
+  // ---- THE CAREER PROFILE INVITATION ----
+  // Shown once there is something to show: a coached core resume, which is
+  // what the profile is written out of, and a Career Profile row to send them
+  // to. Either one missing and the card would point at an empty page.
   //
-  // The opening core has its own tile above these, so a lens pointing at it is
-  // dropped rather than rendered a second time under the same name.
-  //
-  // A lens pointing at something the switcher cannot select - a job-specific
-  // resume, or a core still being coached - is dropped too. The tile would
-  // render, the click would find nothing, and the card would silently stay on
-  // whatever was already showing.
-  const switchableCoreIds = new Set([
-    ...(data?.coreResumes || []).map(c => c.id),
-    ...(data?.coreResume ? [data.coreResume.id] : [])
-  ]);
-  // ---- RANK ----
-  // Which directions get the three tiles, and which are offered from the menu
-  // instead. sort_order is dense and unique per account now, so it is a real
-  // ordering rather than a column of zeroes broken by whatever created_at
-  // happened to be - which is what it was, and why there was no way to put a
-  // chosen direction into a chosen slot.
-  //
-  // The created_at fallback stays as a floor. Two rows can share a rank for as
-  // long as it takes the second half of a swap to land, and the row should
-  // render in a stable order rather than flicker while it does.
-  const rankOf = (l) => (Number.isFinite(l?.sort_order) ? l.sort_order : Number.MAX_SAFE_INTEGER);
-  const byRank = (a, b) =>
-    rankOf(a) - rankOf(b) || String(a?.created_at || '').localeCompare(String(b?.created_at || ''));
+  // This is where the core-resume selector used to be - three tiles, one per
+  // Career Direction, each either a core to switch to or a core to build.
+  // Directions live on the Career Profile now, and this card is the way
+  // across rather than a second place to manage them.
+  const showCareerProfileCard = Boolean(coreResume?.coaching_complete) && data?.hasCareerProfile === true;
 
-  const builtLenses = profileLenses.filter(l =>
-    l.core_resume_id &&
-    l.core_resume_id !== data?.coreResume?.id &&
-    switchableCoreIds.has(l.core_resume_id)
-  ).sort(byRank);
-  // A direction with no core behind it needs one built, and that is true
-  // whether it is merely suggested or already on the profile. Testing for
-  // 'suggested' left a hole exactly the size of the difference: a lens turned
-  // on from the profile has no resume yet, so it matched neither this list nor
-  // the one above, and rendered no tile at all - present on the public page,
-  // absent from the hub, with no way to build the core it was missing.
-  //
-  // Dismissed is still excluded by name. A direction somebody threw away must
-  // not come back on the row as an offer; it belongs in the menu, which is the
-  // one place it is offered back.
-  const suggestedLenses = profileLenses
-    .filter(l => l.status !== 'dismissed' && !l.core_resume_id)
-    .sort(byRank);
-
-  // The ones they turned down, kept because dismissing never deleted them.
-  // They rank last, which is what the dismiss route does to them, so they sit
-  // under the overflow in the menu rather than among it.
-  const dismissedLenses = profileLenses
-    .filter(l => l.status === 'dismissed' && !l.core_resume_id)
-    .sort(byRank);
-
-  // Whether there is a tile row at all, which is a question about tiles and not
-  // about rows in the table. It used to count profileLenses, and that was the
-  // same thing until dismissed ones started travelling in the payload: an
-  // account whose only direction had been thrown away would have opened a
-  // selector card holding nothing but the core it already had.
-  //
-  // Dismissed ones count now, and only because the way back moved. The archive
-  // used to be its own row under the card and rendered whether or not the card
-  // did; it is in the card's corner now, so an account that had dismissed
-  // everything would have had nowhere to restore from - the recovery would go
-  // missing in exactly the case it exists for.
-  const hasLensCard = builtLenses.length > 0 || suggestedLenses.length > 0 || dismissedLenses.length > 0;
-
-  // ---- THE THREE SLOTS ----
-  // The row is three tiles wide and never scrolls. The core on screen holds the
-  // first, cores the user has built claim what is left because those already
-  // exist, and coreless directions fill whatever remains, by rank.
-  const LENS_TILE_SLOTS = 3;
-  const coreTileCount = data?.coreResume ? 1 : 0;
-  const visibleBuiltLenses = builtLenses.slice(0, LENS_TILE_SLOTS - coreTileCount);
-  const visibleSuggestedLenses = suggestedLenses
-    .slice(0, LENS_TILE_SLOTS - coreTileCount - visibleBuiltLenses.length);
-
-  // Every slot holding a resume. Three of them means there is nothing on the
-  // row to trade: no tile can be dismissed, nothing can be swapped in, and the
-  // only way to change what is here is to delete a core from its thumbnail.
-  const builtTileCount = coreTileCount + visibleBuiltLenses.length;
-  const allSlotsBuilt = builtTileCount >= LENS_TILE_SLOTS;
-
-  // ---- ADDITIONAL SUGGESTIONS ----
-  // Every direction with no resume that is not on the row: the ones past the
-  // third slot, and the ones dismissed off it. They are the same offer from
-  // here, which is the point - a direction the user turned down and one that
-  // merely came fourth are both just directions they are not looking at, and
-  // neither is gone.
-  //
-  // The last coreless tile is what a pick from the menu trades places with. A
-  // built core is never it, and neither is the primary: the row keeps the
-  // direction the whole Career Profile is written around.
-  const tiledSuggestionIds = new Set(visibleSuggestedLenses.map(l => l.id));
-  const additionalSuggestions = [
-    ...suggestedLenses.filter(l => !tiledSuggestionIds.has(l.id)),
-    ...dismissedLenses
-  ];
-  const displaceable = visibleSuggestedLenses.filter(
-    l => !(l.source === 'user' && l.sort_order === 0)
-  );
-  const hasFreeSlot = visibleBuiltLenses.length + visibleSuggestedLenses.length
-    < LENS_TILE_SLOTS - coreTileCount;
-  // Offered only when it can do something. With every slot built there is
-  // nowhere to put a pick, and a menu that opens onto a choice that cannot be
-  // honoured is worse than no menu.
-  const canSwapIn = hasFreeSlot || displaceable.length > 0;
-  // The menu holds two things now: directions already suggested, and the way
-  // to name one that was not. The second needs no suggestions to exist, so
-  // requiring one hid the control in exactly the case it is for - an account
-  // that has worked through every suggestion and wants a direction of its own.
-  // What it still needs is somewhere to put the result, which is what
-  // canSwapIn asks.
-  const showAdditional = !allSlotsBuilt && canSwapIn;
-
-  // Caption for the core-resume selector. builtCount counts the priority core plus
-  // every lens core built from it, so all three lines are reachable: nothing left to
-  // build, more than one core in hand, or suggestions still waiting.
-  function lensCaptionFor({ builtCount, suggestionCount, allSlotsBuilt }) {
-    // Three cores is the ceiling, so this row is finished. Said plainly,
-    // because the alternative is an owner hunting for the control that would
-    // add a fourth.
-    if (allSlotsBuilt) return `Switch between your ${LENS_TILE_SLOTS} Core Resumes. Delete one to build a different Career Direction.`;
-    // One core and nothing suggested is a state the card only reaches now that
-    // dismissed directions open it, and "switch between" is the wrong thing to
-    // say about a single resume.
-    if (suggestionCount === 0 && builtCount === 1) return 'Restore a Career Direction you set aside earlier.';
-    if (suggestionCount === 0) return 'Switch between your Core Resumes.';
-    if (builtCount > 1) return 'Switch between your Core Resumes, or build the next one.';
-    return 'Coach identified multiple Career Directions. Create Core Resumes for any paths you want to pursue.';
-  }
-  const score = selectedCore?.current_score || null;
-  const journeyStep = selectedCore?.journey_step || 'review';
+  // What to call a job-specific resume in a list. The job title, which is what
+  // every one of these is made from and named after - except the ones that are
+  // not. A resume converted out of the old per-direction core carries a name
+  // and no job, because it was never made for a posting, and showing the title
+  // alone left those rows blank with a score beside them. The stored name is
+  // the next best answer and is always there.
+  const versionTitle = (version) =>
+    version?.job_title || version?.version_name || 'Untitled Resume';
+  const score = coreResume?.current_score || null;
+  const journeyStep = coreResume?.journey_step || 'review';
   const displayStep = (journeyStep === 'assess' && score) ? 'coach' : journeyStep;
 
   // Show placeholder scores in review OR assess steps (before assessment runs) OR when no score exists
@@ -1783,10 +1325,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 
                 {/* Core Resume Card (8 cols) */}
                 <div className="col-span-1 md:col-span-8 md:flex md:flex-col md:min-h-0">
-                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 ${hasLensCard ? 'md:py-3' : 'md:py-4'}`}>
+                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 ${showCareerProfileCard ? "md:py-3" : "md:py-4"}`}>
                    <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2 min-w-0">
-                        <h2 className="text-lg font-semibold text-gray-900 truncate">{selectedCore?.display_name || 'Core Resume'}</h2>
+                        <h2 className="text-lg font-semibold text-gray-900 truncate">{coreResume?.display_name || 'Core Resume'}</h2>
                         <TourReplayButton
                           storageKey={HUB_TOUR_KEY}
                           onReplay={() => setShowHubTour(true)}
@@ -1794,28 +1336,28 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       </div>
                       <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Writer</span>
                     </div>
-                    {!hasLensCard && (
+                    {!showCareerProfileCard && (
                       <p className="text-sm text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
                     )}
                     
                     {/* Mobile: 3 action buttons */}
                     <div className="flex md:hidden gap-2 mb-4">
                       <button
-                        onClick={() => router.push(`/resume/${selectedCore.id}`)}
+                        onClick={() => router.push(`/resume/${coreResume.id}`)}
                         className="flex-1 py-2 px-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors"
                       >
                         View Resume
                       </button>
                       <button
-                        onClick={() => handleDownloadResume(selectedCore.id)}
-                        disabled={downloadingResumeId === selectedCore.id}
+                        onClick={() => handleDownloadResume(coreResume.id)}
+                        disabled={downloadingResumeId === coreResume.id}
                         className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
                       >
-                        {downloadingResumeId === selectedCore.id ? '...' : '⬇️ Download'}
+                        {downloadingResumeId === coreResume.id ? '...' : '⬇️ Download'}
                       </button>
                       {isPro && (
                       <button
-                        onClick={() => setConfirmDeleteId(selectedCore.id)}
+                        onClick={() => setConfirmDeleteId(coreResume.id)}
                         className="flex-1 py-2 border border-red-200 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
                       >
                         🗑 Delete
@@ -1830,14 +1372,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <div className={"hidden md:block md:col-span-4"}>
                         <div className="relative">
                           <div
-                            onClick={() => router.push(`/resume/${selectedCore.id}`)}
+                            onClick={() => router.push(`/resume/${coreResume.id}`)}
                             className="w-full group cursor-pointer"
                           >
                             <div className="relative bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200" style={{ aspectRatio: '8.5/11' }}>
-                              {selectedCore.resume_data ? (
+                              {coreResume.resume_data ? (
                                 <div style={{ transform: 'scale(0.22)', transformOrigin: 'top left', width: '816px', pointerEvents: 'none', position: 'absolute', top: 0, left: 0 }}>
                                   <ResumeContent
-                                    resumeData={selectedCore.resume_data}
+                                    resumeData={coreResume.resume_data}
                                     onUpdate={() => {}}
                                     isUndoingRef={{ current: false }}
                                     formatDate={(d) => d || ''}
@@ -1863,7 +1405,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 <button 
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleOpenResume(selectedCore.id);
+                                    handleOpenResume(coreResume.id);
                                   }}
                                   className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition-colors"
                                   title="Open resume"
@@ -1877,7 +1419,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 <button 
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleCopyToJobSpecific(selectedCore.id);
+                                    handleCopyToJobSpecific(coreResume.id);
                                   }}
                                   className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition-colors"
                                   title="Create job-specific resume"
@@ -1890,13 +1432,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 <button 
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleDownloadResume(selectedCore.id);
+                                    handleDownloadResume(coreResume.id);
                                   }}
-                                  disabled={downloadingResumeId === selectedCore.id}
+                                  disabled={downloadingResumeId === coreResume.id}
                                   className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                   title="Download PDF"
                                 >
-                                  {downloadingResumeId === selectedCore.id ? (
+                                  {downloadingResumeId === coreResume.id ? (
                                     <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -1912,7 +1454,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setConfirmDeleteId(selectedCore.id);
+                                    setConfirmDeleteId(coreResume.id);
                                   }}
                                   className="w-9 h-9 rounded-full bg-[#e57373] hover:bg-[#c62828] flex items-center justify-center text-white transition-colors"
                                   title="Delete resume"
@@ -1928,7 +1470,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           
                           {/* Single-line footer - subtle */}
                           <div className="mt-2 text-center text-xs text-gray-500">
-                            {selectedCore.resume_data?.fullName || 'Resume'} • Edited {formatDate(selectedCore.updated_at).split(',')[0]}
+                            {coreResume.resume_data?.fullName || 'Resume'} • Edited {formatDate(coreResume.updated_at).split(',')[0]}
                           </div>
                         </div>
                       </div>
@@ -1989,7 +1531,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className={"text-2xl font-bold mb-0.5"}>
                               {!showPlaceholder ? (
                                 <>
-                                  <span className="text-gray-900">{selectedCore.score_breakdown?.impact ?? '--'}</span>
+                                  <span className="text-gray-900">{coreResume.score_breakdown?.impact ?? '--'}</span>
                                   <span className="text-sm text-gray-400">/50</span>
                                 </>
                               ) : (
@@ -2003,9 +1545,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                            <div className={"text-xs md:text-[10px] text-gray-600 uppercase tracking-wide mb-0.5"}>Impact</div>
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(selectedCore.score_breakdown?.impact ?? 0, 50).color }}></span>
-                                <span className={`text-xs md:text-[10px] font-medium ${getBreakdownLabel(selectedCore.score_breakdown?.impact ?? 0, 50).text}`}>
-                                  {getBreakdownLabel(selectedCore.score_breakdown?.impact ?? 0, 50).label}
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(coreResume.score_breakdown?.impact ?? 0, 50).color }}></span>
+                                <span className={`text-xs md:text-[10px] font-medium ${getBreakdownLabel(coreResume.score_breakdown?.impact ?? 0, 50).text}`}>
+                                  {getBreakdownLabel(coreResume.score_breakdown?.impact ?? 0, 50).label}
                                 </span>
                               </div>
                             ) : (
@@ -2020,7 +1562,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className={"text-2xl font-bold mb-0.5"}>
                               {!showPlaceholder ? (
                                 <>
-                                  <span className="text-gray-900">{selectedCore.score_breakdown?.clarity ?? '--'}</span>
+                                  <span className="text-gray-900">{coreResume.score_breakdown?.clarity ?? '--'}</span>
                                   <span className="text-sm text-gray-400">/30</span>
                                 </>
                               ) : (
@@ -2034,9 +1576,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className={"text-xs md:text-[10px] text-gray-600 uppercase tracking-wide mb-0.5"}>Clarity</div>
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(selectedCore.score_breakdown?.clarity ?? 0, 30).color }}></span>
-                                <span className={`text-xs md:text-[10px] font-medium ${getBreakdownLabel(selectedCore.score_breakdown?.clarity ?? 0, 30).text}`}>
-                                  {getBreakdownLabel(selectedCore.score_breakdown?.clarity ?? 0, 30).label}
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(coreResume.score_breakdown?.clarity ?? 0, 30).color }}></span>
+                                <span className={`text-xs md:text-[10px] font-medium ${getBreakdownLabel(coreResume.score_breakdown?.clarity ?? 0, 30).text}`}>
+                                  {getBreakdownLabel(coreResume.score_breakdown?.clarity ?? 0, 30).label}
                                 </span>
                               </div>
                             ) : (
@@ -2051,7 +1593,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className={"text-2xl font-bold mb-0.5"}>
                               {!showPlaceholder ? (
                                 <>
-                                  <span className="text-gray-900">{selectedCore.score_breakdown?.keywords ?? '--'}</span>
+                                  <span className="text-gray-900">{coreResume.score_breakdown?.keywords ?? '--'}</span>
                                   <span className="text-sm text-gray-400">/20</span>
                                 </>
                               ) : (
@@ -2065,9 +1607,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className={"text-xs md:text-[10px] text-gray-600 uppercase tracking-wide mb-0.5"}>Keywords</div>
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(selectedCore.score_breakdown?.keywords ?? 0, 20).color }}></span>
-                                <span className={`text-xs md:text-[10px] font-medium ${getBreakdownLabel(selectedCore.score_breakdown?.keywords ?? 0, 20).text}`}>
-                                  {getBreakdownLabel(selectedCore.score_breakdown?.keywords ?? 0, 20).label}
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(coreResume.score_breakdown?.keywords ?? 0, 20).color }}></span>
+                                <span className={`text-xs md:text-[10px] font-medium ${getBreakdownLabel(coreResume.score_breakdown?.keywords ?? 0, 20).text}`}>
+                                  {getBreakdownLabel(coreResume.score_breakdown?.keywords ?? 0, 20).label}
                                 </span>
                               </div>
                             ) : (
@@ -2132,11 +1674,11 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       </div>
                       <button 
                         onClick={handleStartCoaching}
-                        disabled={isDownloading && (selectedCore.journey_step === 'save')}
-                        className={`text-white px-4 py-2 rounded-lg transition-opacity font-medium text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${(selectedCore.journey_step || 'review') === 'review' ? 'animate-pulse hover:animate-none' : ''}`}
+                        disabled={isDownloading && (coreResume.journey_step === 'save')}
+                        className={`text-white px-4 py-2 rounded-lg transition-opacity font-medium text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${(coreResume.journey_step || 'review') === 'review' ? 'animate-pulse hover:animate-none' : ''}`}
                         style={{background:'linear-gradient(to right, #667eea, #764ba2)'}}
                       >
-                        {isDownloading && (selectedCore.journey_step === 'save') ? (
+                        {isDownloading && (coreResume.journey_step === 'save') ? (
                           <>
                             <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -2146,406 +1688,38 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           </>
                         ) : (
                           <>
-                            {displayStep === 'coach' && selectedCore?.has_coaching_conversation ? 'Continue Coaching' : getButtonText(displayStep)} {displayStep !== 'save' && '→'}
+                            {displayStep === 'coach' && coreResume?.has_coaching_conversation ? 'Continue Coaching' : getButtonText(displayStep)} {displayStep !== 'save' && '→'}
                           </>
                         )}
                       </button>
                     </div>
                   </div>
 
-                  {/* Core resume selector — only when Coach found other directions.
-                      Sizes to its own content; the card above tightens its padding
-                      and spacing when this one is present rather than both cards
-                      splitting a fixed total. */}
-                  {hasLensCard && (
-                    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 ${hasLensCard ? 'mt-2' : 'mt-4'}`}>
-                     
-                      {/* The caption and the way back, on one line. The menu is
-                          right-aligned in the card's top corner: it is the only
-                          thing here that is not about the directions in front of
-                          you, and the corner is where a card keeps what it
-                          offers rather than what it is showing. */}
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <p className="text-sm text-gray-500">{lensCaptionFor({ builtCount: builtTileCount, suggestionCount: visibleSuggestedLenses.length, allSlotsBuilt })}</p>
+                  {/* ---- THE CAREER PROFILE INVITATION ----
+                      Where the core-resume selector used to be: three tiles,
+                      one per Career Direction, each either a core to switch to
+                      or a core to build. There is one core resume now and
+                      directions live on the Career Profile, so this card is
+                      the way across rather than a second place to manage them.
 
-                        {/* Nothing waiting, or nowhere to put it, and there is
-                            no control. An account whose directions all fit on
-                            the row never learns the menu exists, and one whose
-                            three slots all hold resumes is shown no offer it
-                            could not honour. */}
-                        {showAdditional && (
-                          <div className="relative flex-shrink-0" ref={restoreMenuRef}>
-                            <button
-                              type="button"
-                              onClick={() => setRestoreMenuOpen(open => !open)}
-                              aria-haspopup="true"
-                              aria-expanded={restoreMenuOpen}
-                              className="inline-flex items-center gap-1 text-xs md:text-[11px] font-semibold text-gray-500 hover:text-purple-600 transition-colors whitespace-nowrap"
-                            >
-                              Additional suggestions
-                              <span
-                                aria-hidden="true"
-                                className={`text-sm leading-none transition-transform ${restoreMenuOpen ? 'rotate-180' : ''}`}
-                              >
-                                ▾
-                              </span>
-                            </button>
-
-                            {/* Hung from the right edge so it opens inward. On a
-                                narrow screen the trigger is already against the
-                                card's right margin, and a menu anchored left
-                                would run off the side of it; the width cap is
-                                the viewport less the page gutters, so a long
-                                direction name wraps the box rather than widening
-                                it past the screen.
-
-                                Upward, because the trigger sits low in the card
-                                and a menu dropped from it put its last entries
-                                under the fold - reachable only by scrolling the
-                                page the menu is floating over. The button does
-                                not move; the list grows off its top edge. */}
-                            {restoreMenuOpen && (
-                              <div className="absolute right-0 bottom-full mb-1 z-50 min-w-[11rem] max-w-[min(18rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-md shadow-lg py-1">
-                                {additionalSuggestions.map((lens) => (
-                                  <button
-                                    key={lens.id}
-                                    type="button"
-                                    // The last coreless tile is the one that
-                                    // gives up its place, and only when there is
-                                    // no empty one to take instead. It is not
-                                    // dismissed for it - it trades ranks and
-                                    // lands in this menu, where the direction
-                                    // being picked has been sitting.
-                                    onClick={() => {
-                                      setRestoreMenuOpen(false);
-                                      promoteLens(lens, hasFreeSlot ? null : displaceable[displaceable.length - 1]);
-                                    }}
-                                    disabled={Boolean(promotingLensId)}
-                                    title={`Show ${lens.name} on the row`}
-                                    className="block w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 hover:text-purple-600 truncate disabled:opacity-50"
-                                  >
-                                    {lens.name}
-                                  </button>
-                                ))}
-
-                                {/* ---- A direction of their own ----
-                                    At the foot, under whatever was suggested,
-                                    because it is the answer to having read
-                                    those and not found the one they wanted. */}
-                                {additionalSuggestions.length > 0 && (
-                                  <div className="border-t border-gray-100 my-1" />
-                                )}
-
-                                {customOpen ? (
-                                  <div className="px-3 py-2">
-                                    <input
-                                      type="text"
-                                      autoFocus
-                                      value={customName}
-                                      maxLength={60}
-                                      disabled={customBusy}
-                                      placeholder="Type a Career Direction name..."
-                                      onChange={e => { setCustomName(e.target.value); setCustomNote(null); }}
-                                      onKeyDown={e => {
-                                        if (e.key === 'Enter') { e.preventDefault(); createCustomLens(); }
-                                        if (e.key === 'Escape') { setCustomOpen(false); setCustomNote(null); }
-                                      }}
-                                      className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-60"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={createCustomLens}
-                                      disabled={customBusy || !customName.trim()}
-                                      className="mt-2 w-full rounded px-2 py-1 text-xs font-semibold text-white disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
-                                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-                                    >
-                                      {customBusy && (
-                                        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent" />
-                                      )}
-                                      {customBusy ? 'Building…' : 'Create Career Direction'}
-                                    </button>
-                                    {customBusy && (
-                                      <p className="mt-2 text-[11px] leading-snug text-gray-500">
-                                        Reading your career data and writing the Career Direction. This takes a few seconds.
-                                      </p>
-                                    )}
-                                    {customNote && !customBusy && (
-                                      <div className="mt-2 flex items-start gap-2 text-[11px] leading-snug text-gray-600 border-l-2 border-purple-400 pl-2">
-                                        <span className="min-w-0">
-                                          {customNote.title ? (
-                                            <span className="block font-semibold text-gray-900">{customNote.title}</span>
-                                          ) : null}
-                                          <span className="block">{customNote.body}</span>
-                                          {customNote.rename ? (
-                                            <button
-                                              type="button"
-                                              onClick={() => acceptCustomRename(customNote.rename)}
-                                              disabled={customRenaming}
-                                              className="mt-1.5 inline-block text-[11px] font-semibold text-purple-600 hover:text-purple-800 disabled:opacity-50"
-                                            >
-                                              {customRenaming ? 'Renaming…' : customNote.rename.label}
-                                            </button>
-                                          ) : null}
-                                          {customNote.rewrite ? (
-                                            <span className="mt-1.5 flex items-center gap-3">
-                                              <button
-                                                type="button"
-                                                onClick={() => acceptCustomRewrite(customNote.rewrite)}
-                                                disabled={customRewriting}
-                                                className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-purple-600 hover:text-purple-800 disabled:opacity-50"
-                                              >
-                                                {customRewriting && (
-                                                  <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent" />
-                                                )}
-                                                {customRewriting ? 'Rewriting…' : REWRITE_OFFER.confirmLabel}
-                                              </button>
-                                              <button
-                                                type="button"
-                                                onClick={() => setCustomNote(null)}
-                                                disabled={customRewriting}
-                                                className="text-[11px] font-semibold text-gray-500 hover:text-gray-700 disabled:opacity-50"
-                                              >
-                                                {REWRITE_OFFER.dismissLabel}
-                                              </button>
-                                            </span>
-                                          ) : null}
-                                        </span>
-                                        <button
-                                          type="button"
-                                          onClick={() => { setCustomNote(null); setCustomName(''); }}
-                                          aria-label="Dismiss message"
-                                          className="ml-auto shrink-0 px-0.5 text-sm leading-none text-gray-400 hover:text-gray-700"
-                                        >
-                                          ×
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => { setCustomOpen(true); setCustomNote(null); }}
-                                    className="block w-full text-left px-3 py-1.5 text-xs font-semibold text-purple-600 hover:bg-gray-50"
-                                  >
-                                    Create your own
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex flex-col md:flex-row gap-2">
-
-                        {/* The core the route opens with. Selecting a tile swaps the
-                            card above rather than navigating, so this one is a tab
-                            like the rest and reads as selected by default. */}
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setSelectedCoreId(data.coreResume.id)}
-                          title="Show your core resume"
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-purple-300 transition-colors flex-1 min-w-0 text-left ${selectedCore?.id === data.coreResume.id ? 'bg-purple-50' : 'bg-white hover:bg-purple-50 hover:border-purple-400'}`}
-                        >
-                          <svg className="w-5 h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <div className="min-w-0">
-                            {/* The direction alone, the way every other tile in
-                                this row already names itself. The row is three
-                                tiles wide and the full "Core Resume - Athletic
-                                Coaching" clips in it; the card above, which has
-                                the width, carries the whole name. A core with no
-                                direction falls back to the label it has. */}
-                            <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{directionFromLabel(data.coreResume.display_name) || data.coreResume.display_name || 'Your Core Resume'}</div>
-                            <div className="text-xs md:text-[10px] text-purple-600">{selectedCore?.id === data.coreResume.id ? 'Current core' : 'Switch to this core'}</div>
-                          </div>
+                      Same card and same button as the rest of the hub, sized
+                      to its own content under the resume card above it. */}
+                  {showCareerProfileCard && (
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 mt-2">
+                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h2 className="text-base font-semibold text-gray-900">Your Career Profile is ready.</h2>
+                          <p className="text-sm text-gray-500 leading-snug">
+                            We built it from your resume coaching. A resume is one snapshot of your career. Your Career Profile brings the whole gallery into view.
+                          </p>
                         </div>
-
-                        {/* Cores already built from a lens. Same tab behaviour as the
-                            tile above: the card swaps, the page stays. */}
-                        {visibleBuiltLenses.map((lens) => (
-                          <div
-                            key={lens.id}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => {
-                              if (coreLocked(lens.core_resume_id)) {
-                                setVaultPrompt({
-                                  title: 'Your other core resumes are still here.',
-                                  message: LOCK_COPY.extra_core,
-                                });
-                                return;
-                              }
-                              setSelectedCoreId(lens.core_resume_id);
-                            }}
-                            title={coreLocked(lens.core_resume_id)
-                              ? 'This core resume is part of Vault and Pro'
-                              : `Show your ${lens.name} core resume`}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-purple-300 transition-colors flex-1 min-w-0 text-left ${selectedCore?.id === lens.core_resume_id ? 'bg-purple-50' : 'bg-white hover:bg-purple-50 hover:border-purple-400'}`}
-                          >
-                            <svg className="w-5 h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <div className="min-w-0">
-                              <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{lens.name}</div>
-                              <div className={`text-xs md:text-[10px] ${coreLocked(lens.core_resume_id) ? 'text-gray-400' : 'text-purple-600'}`}>
-                                {coreLocked(lens.core_resume_id)
-                                  ? '🔒 Part of Vault'
-                                  : selectedCore?.id === lens.core_resume_id ? 'Current core' : 'Switch to this core'}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-
-                        {visibleSuggestedLenses.map((lens) => {
-                          const isEditing = editingLensId === lens.id;
-                          const failed = lensRenameError === lens.id;
-                          const isConfirming = confirmingLensId === lens.id;
-                          // Whether this tile's two small controls have a route
-                          // that will take them, asked separately because the
-                          // two routes no longer accept the same thing.
-                          //
-                          // Every tile in this row used to be a suggestion, so
-                          // the controls needed no test at all. They stopped
-                          // being one when the row started offering a core for
-                          // any direction that lacks one: a direction turned on
-                          // from the profile is active and has no resume yet,
-                          // and a hidden one is off the profile with its resume
-                          // intact. Both belong here; neither is a suggestion.
-                          //
-                          // Dismiss takes any coreless direction on this row,
-                          // whatever its status - suggested, hidden, or turned
-                          // on from the Career Profile. Every tile here is an
-                          // offer to build, and an offer you cannot decline is
-                          // not one. What it costs differs by status and the
-                          // status already says so: an active direction comes
-                          // off the public page with it. Nothing is lost either
-                          // way; it moves to the menu above and can be picked
-                          // back out of it.
-                          //
-                          // Rename does not follow. It exists to name a
-                          // suggestion before a core is built from it, and a
-                          // direction already on the profile is past that.
-                          //
-                          // Both still require the coaching extraction to have
-                          // written it, which is also what keeps them off the
-                          // primary: the direction the whole Career Profile is
-                          // written around is not this row's to retire.
-                          const fromCoaching = lens.source === 'coaching_extraction';
-                          const canRetire = fromCoaching && !lens.core_resume_id;
-                          const canRename = fromCoaching && lens.status === 'suggested';
-                          // Dashed and greyed: a suggestion is an offer, not a core. Only
-                          // the sub-label carries colour, so it reads as the call to action.
-                          // Hover fills the tile in for a Pro user, who can actually build
-                          // it. For a free user it stays grey: the click opens the upgrade
-                          // modal, and a tile that lights up would promise otherwise.
-                          return (
-                          <div
-                            key={lens.id}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => { if (isEditing || isConfirming) return; if (!isPro) { setShowUpgradeModal(true); return; } setBuildCoreError(null); setBuildLens(lens); }}
-                            title={isEditing ? undefined : (isPro ? `Build your ${lens.name} core resume` : 'Upgrade to Pro to build this core')}
-                            className={`group relative flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed transition-colors flex-1 min-w-0 text-left cursor-pointer ${failed ? 'border-red-300 bg-white' : `border-gray-300 bg-gray-50 ${isPro ? 'hover:border-solid hover:border-purple-400 hover:bg-purple-50' : ''}`}`}
-                          >
-                            {/* Only a suggestion can be dismissed, so this lives here
-                                and not on the core tile or a built one. */}
-                            {canRetire && !isEditing && !isConfirming && (
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); setConfirmingLensId(lens.id); }}
-                                title="Remove this suggestion"
-                                aria-label={`Remove the ${lens.name} suggestion`}
-                                className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-400 opacity-100 transition-opacity hover:border-gray-400 hover:text-gray-600 md:opacity-0 md:group-hover:opacity-100"
-                              >
-                                <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            )}
-                            {/* The question replaces the tile's own content, inside the
-                                same borders. Both layers stay mounted so one fades out
-                                as the other fades in. */}
-                            {isConfirming && (
-                              <div className="absolute inset-0 z-10 flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-3">
-                                <span className="text-sm font-semibold text-gray-700">Remove?</span>
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); dismissLens(lens); }}
-                                    title="Remove this suggestion"
-                                    aria-label={`Remove the ${lens.name} suggestion`}
-                                    className="flex h-5 w-5 items-center justify-center rounded-full text-purple-600 transition-colors hover:bg-purple-100"
-                                  >
-                                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); setConfirmingLensId(null); }}
-                                    title="Keep this suggestion"
-                                    aria-label="Keep this suggestion"
-                                    className="flex h-5 w-5 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600"
-                                  >
-                                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                            <svg className={`w-5 h-5 text-gray-400 transition-opacity transition-colors flex-shrink-0 ${isConfirming ? 'opacity-0' : 'opacity-100'} ${isPro ? 'group-hover:text-purple-600' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <div className={`min-w-0 flex-1 transition-opacity ${isConfirming ? 'opacity-0' : 'opacity-100'}`}>
-                              {isEditing ? (
-                                <input
-                                  autoFocus
-                                  value={editingLensName}
-                                  maxLength={40}
-                                  onClick={(e) => e.stopPropagation()}
-                                  onChange={(e) => setEditingLensName(e.target.value)}
-                                  onBlur={() => commitLensRename(lens)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); }
-                                    if (e.key === 'Escape') { e.preventDefault(); cancelLensRenameRef.current = true; setEditingLensId(null); }
-                                  }}
-                                  className="w-full text-sm font-semibold text-gray-900 bg-white border border-purple-300 rounded px-1 focus:outline-none focus:border-purple-500"
-                                />
-                              ) : (
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  <div className="text-sm md:text-xs font-semibold text-gray-500 group-hover:text-gray-900 transition-colors truncate">{lens.name}</div>
-                                  {/* Same badge MainNav uses, so "Pro" reads the same
-                                      everywhere. Only here: a built core is already
-                                      theirs, and this tile is the one thing on the row
-                                      a free account cannot have. */}
-                                  {!isPro && (
-                                    <span className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full flex-shrink-0">PRO</span>
-                                  )}
-                                </div>
-                              )}
-                              <div className={`text-xs md:text-[10px] ${failed ? 'text-red-500' : 'text-purple-600'}`}>
-                                {failed ? "Couldn't rename" : 'Build this core'}
-                              </div>
-                            </div>
-                            {canRename && !isEditing && !isConfirming && (
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); setLensRenameError(null); setEditingLensName(lens.name); setEditingLensId(lens.id); }}
-                                title="Rename"
-                                className="flex-shrink-0 text-gray-400 hover:text-purple-600 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              </button>
-                            )}
-                          </div>
-                          );
-                        })}
-
+                        <button
+                          onClick={() => router.push('/career-profile')}
+                          className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-medium text-sm whitespace-nowrap flex-shrink-0"
+                          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                        >
+                          View your Career Profile
+                        </button>
                       </div>
                     </div>
                   )}
@@ -2588,7 +1762,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 >
                                   <div className="flex items-center justify-between">
                                     <div className="flex-1 min-w-0">
-                                      <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{version.job_title}</div>
+                                      <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{versionTitle(version)}</div>
                                       <div className="text-xs md:text-[10px] text-gray-500 truncate">{version.job_company}</div>
                                     </div>
                                     <div className="flex items-center gap-1 ml-2 flex-shrink-0">
@@ -2671,7 +1845,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                   >
                                     <div className="flex items-center justify-between w-full">
                                       <div className="flex-1 min-w-0">
-                                        <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{version.job_title}</div>
+                                        <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{versionTitle(version)}</div>
                                         <div className="text-xs md:text-[10px] text-gray-500 truncate">{version.job_company}</div>
                                       </div>
                                       <div className="flex items-center gap-1 ml-2 flex-shrink-0 ml-auto">
@@ -3612,7 +2786,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     onClick={() => { setShowOlderJSModal(false); router.push(`/resume/${version.id}`); }}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-gray-900 truncate">{version.job_title}</p>
+                      <p className="text-sm font-bold text-gray-900 truncate">{versionTitle(version)}</p>
                       <p className="text-xs text-gray-500 truncate">{version.job_company}</p>
                     </div>
                     <div className="flex items-center gap-2 ml-3 flex-shrink-0">
@@ -3741,67 +2915,6 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       )}
 
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
-
-      {buildLens && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(15, 10, 30, 0.75)' }}
-          onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
-          onMouseUp={(e) => { if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop' && !buildingCore) { setBuildLens(null); } }}
-        >
-          <div
-            className="bg-white shadow-2xl flex flex-col"
-            style={{ borderRadius: '8px', border: '1px solid #e5e7eb', width: '364px' }}
-            onMouseDown={e => e.stopPropagation()}
-          >
-            <div
-              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
-              className="px-5 py-4 flex items-center justify-between"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">⚡</span>
-                <h2 className="text-base font-bold text-white">Build your {buildLens.name} core resume</h2>
-              </div>
-              <button
-                onClick={() => { if (!buildingCore) setBuildLens(null); }}
-                className="text-white hover:text-gray-200 text-2xl leading-none font-light"
-              >×</button>
-            </div>
-
-            <div className="p-5">
-              <p className="text-sm text-gray-700 leading-snug mb-3">
-                During your core resume coaching, we noticed strong experience that could support a separate {buildLens.name} resume.
-              </p>
-              <p className="text-sm text-gray-600 leading-snug mb-4">
-                This core keeps your experience but reframes it for {buildLens.name} roles. Different emphasis, different story, same truth. You&apos;ll coach it with me briefly, then it&apos;s ready to use for any job in this direction.
-              </p>
-
-              {buildCoreError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
-                  <p className="text-xs text-red-700">{buildCoreError}</p>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => { if (!buildingCore) setBuildLens(null); }}
-                  disabled={buildingCore}
-                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 disabled:opacity-50"
-                >Cancel</button>
-                <button
-                  onClick={() => startLensCore(buildLens)}
-                  disabled={buildingCore}
-                  className="text-white rounded-lg px-4 py-2 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 flex items-center gap-2"
-                  style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-                >
-                  {buildingCore && <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>}
-                  {buildingCore ? 'Starting...' : 'Start Coaching'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <VaultUpgradeModal
         isOpen={Boolean(vaultPrompt)}

@@ -8,6 +8,7 @@ import ErrorToast from '../components/ErrorToast';
 import { canAccessBuiltWork } from '@/lib/tiers';
 import { fetchJSON } from '@/lib/fetchJSON';
 import { afterSignIn, safeReturnPath } from '@/lib/returnPath';
+import { hasRealCore, ONE_CORE_MESSAGE } from '@/lib/coreResumes';
 
 // ── Module-level components (no hooks inside render functions) ──
 
@@ -333,6 +334,16 @@ function DashboardContent() {
     setUploadError(null);
     setUploading(true);
     try {
+      // ---- ONE CORE RESUME ----
+      // Before the upload and the two API calls that parse it, so nothing is
+      // spent on a resume this will refuse to save. The tour modal this sits
+      // in only opens when there is no core, but that question is asked of
+      // the page's own state and this one is asked of the database.
+      if (await hasRealCore(supabase, user.id)) {
+        setUploadError(ONE_CORE_MESSAGE);
+        setUploading(false);
+        return;
+      }
       const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
       if (!allowedTypes.includes(file.type)) throw new Error('Please upload a PDF or DOCX file.');
       if (file.size > 10 * 1024 * 1024) throw new Error('File is too large. Maximum size is 10MB.');
@@ -362,6 +373,13 @@ function DashboardContent() {
   const handleDashboardChat = async () => {
     setCreatingChat(true);
     try {
+      // One core resume per account. See handleDashboardUpload above.
+      if (await hasRealCore(supabase, user.id)) {
+        setToast(ONE_CORE_MESSAGE);
+        setCreatingChat(false);
+        setShowTourModal(false);
+        return;
+      }
       const { data: newResume, error } = await supabase.from('resumes').insert({ user_id: user.id, resume_type: 'core', display_name: 'Core Resume', resume_data: {}, journey_step: 'chat', created_via: 'resume_chat' }).select().single();
       if (error || !newResume) { setCreatingChat(false); return; }
       try { await fetch('/api/loops/mark-has-resume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }) } catch (e) {}

@@ -7,12 +7,10 @@ import { createClient } from '@/utils/supabase/client'
 import MainNav from '@/app/components/MainNav'
 import UpgradeModal from '@/app/components/UpgradeModal'
 import { canOpenResume, lockReason, LOCK_COPY } from '@/lib/resumeAccess'
-import { isRealCore } from '@/lib/coreResumes'
 import { UPGRADE_HREF, UPGRADE_LABEL } from '@/lib/tiers'
 import { getTemplateStyles } from '../../templates/getTemplateStyles'
 import Breadcrumb from '@/app/components/Breadcrumb'
 import ResumeContent from '../../components/ResumeContent'
-import { coreResumeLabel } from '@/lib/resumeLabel'
 import ErrorToast from '../../components/ErrorToast'
 import SuccessToast from '../../components/SuccessToast'
 import CaptureCounter from '../../components/CaptureCounter'
@@ -143,13 +141,6 @@ export default function ResumePage() {
   const [ownedCores, setOwnedCores] = useState(null)
   const [siblingResumes, setSiblingResumes] = useState([])
   const [linkedCoverLetter, setLinkedCoverLetter] = useState(null)
-  const [coreResumes, setCoreResumes] = useState([])
-  // What this account's cores are called. The lens rows name them and the count
-  // decides whether the account's direction can mean one particular document;
-  // both are read here so the title matches the hub rather than being computed
-  // from a different set of facts on each page.
-  const [namingLenses, setNamingLenses] = useState([])
-  const [activeCoreCount, setActiveCoreCount] = useState(null)
   const [history, setHistory] = useState([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -1141,70 +1132,14 @@ if (data.ai_analysis) {
   }
 
   // Breadcrumb dropdown targets. A job-specific resume points at the user's other
-  // job-specific resumes and at this job's cover letter. A core resume points at
-  // the user's other cores, so a lens core and the one it was cloned from can
-  // switch between each other without a trip back to the hub.
+  // job-specific resumes and at this job's cover letter.
+  //
+  // A core resume used to point at the account's other cores, so that a core
+  // built for one Career Direction and the one it was cloned from could switch
+  // between each other. There is one core resume per account now, so there is
+  // nothing to switch to and the crumb is a plain label.
   async function loadBreadcrumbLinks(resumeRow, userId) {
     try {
-      if (resumeRow?.resume_type === 'core') {
-        // Every active core, narrowed below to the ones the hub would let you
-        // land on. It used to ask for coaching_complete cores only, on the rule
-        // that a core still being coached is not a destination yet - but the hub
-        // opens on exactly such a core whenever it is the priority one, so the
-        // breadcrumb was refusing to list a resume the user had just arrived
-        // from. Twelve of the thirteen accounts holding more than one core had
-        // no switcher at all because of it.
-        //
-        // The lens rows and the total are for the titles rather than the list.
-        const [{ data: cores }, { data: lenses }, { count: coreTotal }] = await Promise.all([
-          supabase
-            .from('resumes')
-            // created_via as well as coaching_complete: isRealCore reads both,
-            // and without it every abandoned chat attempt would pass the test
-            // by having an undefined column that is not 'resume_chat'.
-            .select('id, display_name, coaching_complete, created_via, is_priority_core')
-            .eq('user_id', userId)
-            .eq('resume_type', 'core')
-            .eq('is_active', true)
-            .order('is_priority_core', { ascending: false })
-            .order('created_at', { ascending: true }),
-          supabase
-            .from('profile_lenses')
-            .select('name, source, sort_order, status, core_resume_id')
-            .eq('user_id', userId),
-          supabase
-            .from('resumes')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', userId)
-            .eq('resume_type', 'core')
-            .eq('is_active', true)
-        ])
-
-        // The hub's own rule for which cores it will switch between: the
-        // real ones, plus the one it opens on. isRealCore is that test, and
-        // it lives in lib/coreResumes so this and the hub cannot drift -
-        // they were both written as coaching_complete === true, which left
-        // an uploaded core nobody had coached out of both lists.
-        //
-        // Keeping the two in step means a core you can reach from the hub is
-        // a core the breadcrumb will list, and one it will not is one you
-        // cannot land on there either.
-        //
-        // The opening core is the flagged priority core where there is one and
-        // the newest otherwise, which is what the ordering above already puts
-        // first, so it is simply the head of the list.
-        const all = cores || []
-        const opening = all[0] || null
-        const switchable = all.filter(
-          c => isRealCore(c) || (opening && c.id === opening.id)
-        )
-
-        setCoreResumes(switchable)
-        setNamingLenses(lenses || [])
-        setActiveCoreCount(typeof coreTotal === 'number' ? coreTotal : null)
-        return
-      }
-
       if (resumeRow?.resume_type !== 'job_specific') return
 
       const [{ data: versions }, { data: coverLetters }] = await Promise.all([
@@ -1444,23 +1379,21 @@ if (data.ai_analysis) {
   const journeyStep = resume?.journey_step || 'start'
   const score = resume?.current_score || null
 
-  // The title for one resume row. Only a core is named after a direction; a
-  // job-specific resume is already called after the job it is for, which is a
-  // better name than any direction would be, so it passes straight through.
+  // The title for one resume row. A core resume is called "Core Resume": there
+  // is one per account and it covers a whole career, so it is not named after
+  // any one Career Direction. It used to be, through lib/resumeLabel, back
+  // when a direction could own a core of its own.
   //
-  // The switcher passes rows carrying only id and display_name, which is all
-  // the rule needs: a lens points at a resume by id.
+  // A job-specific resume is already called after the job it is for, which is
+  // a better name than anything that could be derived, so it passes through -
+  // falling back to the stored name for the ones that were never made from a
+  // posting.
   const labelForCore = (row) => {
     if (!row) return 'Core Resume'
     if (row.resume_type && row.resume_type !== 'core') {
       return row.display_name || row.job_title || 'Untitled Resume'
     }
-    return coreResumeLabel({
-      resume: row,
-      lenses: namingLenses,
-      currentLensName: careerContext?.current_lens_name || null,
-      coreCount: activeCoreCount
-    })
+    return 'Core Resume'
   }
 
   // The modal shows at most five items, in the order the model ranked them.
@@ -1512,17 +1445,10 @@ if (data.ai_analysis) {
             : [
                 { label: 'Resume Writer', path: '/resume-coach' },
                 {
-                  label: labelForCore(resume),
-                  // One core is the ordinary case and stays a plain label. The menu
-                  // lists every core including this one, checked, so the user can see
-                  // which of them they are looking at.
-                  options: coreResumes.length > 1
-                    ? coreResumes.map(r => ({
-                        label: labelForCore(r),
-                        path: `/resume/${r.id}`,
-                        current: r.id === resume.id
-                      }))
-                    : []
+                  // One core resume per account, so the crumb is a plain
+                  // label. It used to carry a menu of the account's other
+                  // cores, which there are no longer any of.
+                  label: labelForCore(resume)
                 }
               ]
         } />
@@ -2551,7 +2477,18 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
   // direction. That core was already reviewed and scored, so this one skips Review
   // and Assess and opens straight into coaching, the way a brb build does. Improve
   // takes the conversational branch for the same reason: there is no before-score.
-  const isLensCore = resume?.created_via === 'lens_core'
+  //
+  // Nothing creates one any more - there is one core resume per account - but
+  // rows written that way are still on file, archived and restorable from the
+  // Vault, so the journey they need is still here.
+  //
+  // Guarded on resume_type as well as created_via. One of those rows was
+  // converted into a job-specific resume by the one-core migration and kept
+  // the created_via it was written with, which records where a row came from
+  // rather than what it now is. Without the guard it would open at Coach with
+  // no Assess step and take the conversational Improve path, which is not how
+  // any other job-specific resume behaves.
+  const isLensCore = !isJobSpecific && resume?.created_via === 'lens_core'
   const skippedCoaching = isJobSpecific && resume?.coaching_complete === true && (!resume?.coaching_conversation || resume.coaching_conversation.length === 0)
   const steps = isJobSpecific
     ? (userTier === 'free'
@@ -4010,7 +3947,12 @@ const getMessageText = (msg) => {
       // analysis it ever gets. It is persisted the way the brb build persists its
       // own, because both land on the same Improve step and that step reads the
       // breakdown out of ai_analysis.
-      const isLensCore = resume?.created_via === 'lens_core'
+      //
+      // Not for a job-specific resume, whatever created_via says: that one has
+      // been through Assess and its ai_analysis is the job match, which this
+      // would overwrite with a quality score. Same guard, same reason, as the
+      // isLensCore at the top of the page.
+      const isLensCore = !isJobSpecific && resume?.created_via === 'lens_core'
       const lensAnalysisFields = isLensCore
         ? {
             ai_analysis: scoreCheckData?.analysis || null,

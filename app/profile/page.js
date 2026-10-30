@@ -911,7 +911,7 @@ export default function Profile() {
                     {tier === TIERS.PRO && (
                       <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 12, lineHeight: 1.8 }}>
                         <li>Unlimited coaching and resume generation</li>
-                        <li>Up to 3 core resumes and Career Directions</li>
+                        <li>Up to 3 Career Directions</li>
                         <li>Unlimited job-specific resumes and cover letters</li>
                         <li>Career Profile with recruiter tools</li>
                         <li>Unlimited interview practice</li>
@@ -1204,7 +1204,6 @@ export default function Profile() {
                   <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>On Free, you&apos;ll lose access to:</p>
                   <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 14, lineHeight: 1.8 }}>
                     <li>Job-specific resumes locked (visible but can&apos;t open)</li>
-                    <li>Additional core resumes locked</li>
                     <li>Career Profile limited to one Career Direction, read-only</li>
                     <li>No testimonials, evidence, portfolio, or IMOW editing</li>
                     <li>No win logging</li>

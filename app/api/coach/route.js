@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { apiError } from '@/lib/apiError'
 import { normalizeSkillCategories } from '@/lib/resumeText'
-import { isRealCore, MAX_CORES } from '@/lib/coreResumes'
+import { isRealCore } from '@/lib/coreResumes'
 import { canCreateResumes } from '@/lib/tiers'
 
 // ─────────────────────────────────────────────
@@ -1266,11 +1266,14 @@ export async function POST(request) {
     //
     //   free   one core, no job-specific resumes
     //   vault  neither - Vault keeps a career, it does not grow one
-    //   pro    job-specific freely, and up to MAX_CORES cores
+    //   pro    job-specific freely, and the same one core as everybody else
     //
-    // The Pro ceiling was enforced only in /api/profile-lenses/build-core,
-    // which is one of two ways to get a core; this is the other one, and it
-    // counted nothing.
+    // ONE CORE ON EVERY PLAN
+    // Pro used to get three, one per Career Direction. It gets one now, and
+    // the rule is the same rule on every plan, so there is a single branch
+    // rather than a paid ceiling and a free one that could drift apart. What
+    // the plan still decides is job-specific resumes, which is the branch
+    // above.
     const isRecoach = tier === 'conversational_fix' || tier === 'targeted'
     if (authenticatedUserId && !isRecoach) {
       const { data: profile } = await supabase
@@ -1285,26 +1288,12 @@ export async function POST(request) {
         if (!canCreateResumes(accountTier)) {
           return NextResponse.json({ error: 'UPGRADE_REQUIRED', code: 'UPGRADE_REQUIRED' }, { status: 403 })
         }
-      } else if (!canCreateResumes(accountTier)) {
-        // Below Pro the allowance is the one core they already keep. A free
-        // account with none yet is starting it; one with a finished core is
-        // asking for a second.
-        const { data: completedCore } = await supabase
-          .from('resumes')
-          .select('id')
-          .eq('user_id', authenticatedUserId)
-          .eq('resume_type', 'core')
-          .eq('is_active', true)
-          .eq('coaching_complete', true)
-          .limit(1)
-          .maybeSingle()
-
-        if (completedCore) {
-          return NextResponse.json({ error: 'CORE_LIMIT_REACHED' }, { status: 403 })
-        }
       } else {
-        // Pro. Counted with isRealCore, the same test build-core uses, so an
-        // abandoned chat attempt does not spend one of the three.
+        // The allowance is one core resume. An account with none yet is
+        // starting it; one that already holds a real core is asking for a
+        // second. Counted with isRealCore rather than coaching_complete,
+        // because most people's core is an upload nobody has coached and
+        // asking about the flag alone would let them start another.
         const { data: cores } = await supabase
           .from('resumes')
           .select('id, created_via, coaching_complete')
@@ -1313,14 +1302,11 @@ export async function POST(request) {
           .eq('is_active', true)
 
         const real = (cores || []).filter(isRealCore)
-        // The session may be a recoach of a core that already exists, which
-        // is not a new one however many there are.
+        // The session may be a recoach of the core that already exists, which
+        // is not a new one.
         const existing = resumeId && real.some(c => c.id === resumeId)
-        if (!existing && real.length >= MAX_CORES) {
-          return NextResponse.json(
-            { error: `You can keep ${MAX_CORES} core resumes. Delete one to build another.`, code: 'CORE_LIMIT' },
-            { status: 403 }
-          )
+        if (!existing && real.length > 0) {
+          return NextResponse.json({ error: 'CORE_LIMIT_REACHED' }, { status: 403 })
         }
       }
     }

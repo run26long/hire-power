@@ -11,9 +11,9 @@ import SuccessToast from '../components/SuccessToast';
 import VaultUpgradeModal from '../components/VaultUpgradeModal';
 import UpgradeModal from '../components/UpgradeModal';
 import { fetchJSON } from '@/lib/fetchJSON';
-import { coreResumeLabel } from '@/lib/resumeLabel';
 import { canLogWins, canUseReviewPrep, canCreateResumes, canAccessBuiltWork, canCustomiseProfile } from '@/lib/tiers';
 import { canOpenResume, LOCK_COPY, lockReason } from '@/lib/resumeAccess';
+import { hasRealCore } from '@/lib/coreResumes';
 
 // ---- LOGGING A WIN ----
 // Through the route rather than straight into the table. The insert used to
@@ -181,11 +181,6 @@ export default function CareerVaultPage() {
  const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [resumeCount, setResumeCount] = useState(0);
   const [activeResumes, setActiveResumes] = useState([]);
-  // What this account's cores are called, read the same way the hub and the
-  // resume page read it so one resume does not carry two names across screens.
-  const [namingLenses, setNamingLenses] = useState([]);
-  const [currentLensName, setCurrentLensName] = useState(null);
-  const [activeCoreCount, setActiveCoreCount] = useState(null);
   const [showResumeListModal, setShowResumeListModal] = useState(false);
   const [confirmArchiveResume, setConfirmArchiveResume] = useState(null);
   const [archivingResumeId, setArchivingResumeId] = useState(null);
@@ -400,25 +395,10 @@ export default function CareerVaultPage() {
         setActiveResumes(sortedResumes);
         setResumeCount(sortedResumes.length);
 
-        // What to call the cores. The lens rows name them, career_context is the
-        // fallback for an account with no profile yet, and the count of active
-        // cores decides whether the account's direction can mean one particular
-        // document. Failing here costs the direction in the name and nothing
-        // else, so it is read alongside rather than guarded against.
-        const [{ data: lensRows }, { data: contextRow }] = await Promise.all([
-          supabase
-            .from('profile_lenses')
-            .select('name, source, sort_order, status, core_resume_id')
-            .eq('user_id', user.id),
-          supabase
-            .from('career_context')
-            .select('current_lens_name')
-            .eq('user_id', user.id)
-            .maybeSingle()
-        ]);
-        setNamingLenses(lensRows || []);
-        setCurrentLensName(contextRow?.current_lens_name || null);
-        setActiveCoreCount(sortedResumes.filter(r => r.resume_type === 'core').length);
+        // The Career Direction rows and career_context used to be read here, to
+        // name a core resume after the direction a lens bound it to. Nothing
+        // binds one now and a core resume is called "Core Resume", so the two
+        // queries went with the name.
 
         // Load archived job cards
         const { data: archivedApps, error: archivedError } = await supabase
@@ -667,34 +647,31 @@ export default function CareerVaultPage() {
   async function handleRestoreCore(resumeId) {
     setArchiveActionLoading(true);
     try {
+      // ---- ONE CORE RESUME ----
+      // An account holds one, so restoring an archived core when there is
+      // already a live one would make two. Refused before the write, and
+      // refused with the way out rather than just a no: the resume is not
+      // going anywhere and archiving the current one brings this one back.
+      //
+      // Asked against the database rather than against `activeResumes`, which
+      // is this page's own state and could be a tab or two behind.
+      if (await hasRealCore(supabase, user.id)) {
+        setErrorToast('You already have a Core Resume. Archive it first to restore this one.');
+        setArchiveActionLoading(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('resumes')
         .update({ is_active: true })
-        .eq('id', resumeId);
+        .eq('id', resumeId)
+        .eq('user_id', user.id);
       if (error) throw error;
 
-      // Put it back with the direction it was standing for, where that
-      // direction still exists, has not been thrown away, and has not taken
-      // another core since. The route decides all three; this only asks.
-      //
-      // After the restore, because the route refuses a resume that is not
-      // active: an unarchived core is not one a direction can point at.
-      //
-      // Not fatal. A resume that comes back unlinked is a state the hub
-      // already renders, and the owner can rebuild from the direction's tile.
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        await fetch('/api/profile-lenses/relink', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({ resumeId })
-        });
-      } catch (relinkErr) {
-        console.error('Lens relink failed (non-blocking):', relinkErr);
-      }
+      // Nothing to relink. Archiving a core used to write the id of the Career
+      // Direction it was standing for onto the row, so that restoring it could
+      // put the pair back together. No direction owns a resume now, so there
+      // is no pair to restore.
 
       router.push(`/resume/${resumeId}`);
     } catch (err) {
@@ -718,29 +695,11 @@ export default function CareerVaultPage() {
         .eq('user_id', user.id);
       if (error) throw error;
 
-      // Let go of the direction this resume was standing for, if it was
-      // standing for one. The same call the Resume Writer hub makes when it
-      // deletes a core, for the same reason.
-      //
-      // After the archive, never before: releasing first and then failing to
-      // archive would leave a direction offering to build a core it already
-      // has. Not fatal to the archive either - the resume is away either way,
-      // and a lens still holding the id is recoverable.
-      if (resume.resume_type === 'core') {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          await fetch('/api/profile-lenses/release', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`
-            },
-            body: JSON.stringify({ resumeId: resume.id })
-          });
-        } catch (releaseErr) {
-          console.error('Lens release failed (non-blocking):', releaseErr);
-        }
-      }
+      // Nothing to release. A Career Direction used to hold the id of the core
+      // built for it, so archiving one left a direction pointing at a resume
+      // that no longer existed. No direction owns a resume now - they all read
+      // the account's one core - so archiving it says nothing about any of
+      // them.
 
       // Update local state
       setActiveResumes(prev => prev.filter(r => r.id !== resume.id));
@@ -2561,12 +2520,7 @@ export default function CareerVaultPage() {
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <p className="text-sm font-semibold text-gray-900 truncate">
                           {resume.resume_type === 'core'
-                            ? coreResumeLabel({
-                                resume,
-                                lenses: namingLenses,
-                                currentLensName,
-                                coreCount: activeCoreCount
-                              })
+                            ? 'Core Resume'
                             : (resume.display_name || `${resume.job_title || 'Untitled'}${resume.job_company ? ' at ' + resume.job_company : ''}`)
                           }
                         </p>
@@ -2636,12 +2590,7 @@ export default function CareerVaultPage() {
                 <h2 className="text-base font-bold text-white">Move to Archive?</h2>
                 <p className="text-purple-100 text-xs">
                   {confirmArchiveResume.resume_type === 'core'
-                    ? coreResumeLabel({
-                        resume: confirmArchiveResume,
-                        lenses: namingLenses,
-                        currentLensName,
-                        coreCount: activeCoreCount
-                      })
+                    ? 'Core Resume'
                     : `${confirmArchiveResume.job_title || 'Untitled'}${confirmArchiveResume.job_company ? ' at ' + confirmArchiveResume.job_company : ''}`
                   }
                 </p>

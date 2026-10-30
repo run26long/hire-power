@@ -373,9 +373,6 @@ async function writeUser({ detect, generateLensContent, userId, displayName, pri
   await detect.saveSuggestedLenses(supabase, {
     userId,
     profileId,
-    // A suggestion is not tied to a resume. build-core sets core_resume_id when
-    // the user turns one into an actual core.
-    coreResumeId: null,
     lenses
   })
 

@@ -8,16 +8,15 @@ import { apiError } from '@/lib/apiError'
 // POST { lensId }    delete it
 //
 // Removes one career direction the owner named themselves. Not a suggestion,
-// not the primary, not one with a resume behind it, and not one that is
-// currently on the profile.
+// not the primary, and not one that is currently on the profile.
 //
-// WHY THIS IS A DELETE AND ./dismiss IS NOT
-// A suggestion is something the model proposed, and dismissing it has to be
+// WHY ONLY A DIRECTION SOMEBODY TYPED
+// A suggestion is something the model proposed, and throwing it away has to be
 // remembered or the next evaluation proposes it again. There is nothing to
 // remember about a direction somebody typed and then changed their mind
 // about: nothing will ever suggest it back, so there is nothing for a
-// tombstone to prevent. ./dismiss refuses user_created rows for exactly this
-// reason, and this route is the other half of that sentence.
+// tombstone to prevent. source 'user_created' is that distinction, and it is
+// why this route deletes rather than marks.
 //
 // WHAT IT TAKES WITH IT
 // The direction's own written content, and by foreign key the rows that say
@@ -112,6 +111,14 @@ async function orphansOf(supabase, profileId, lensId) {
 
 // The same eligibility the delete enforces, asked as a read. A direction the
 // owner may not delete has nothing to preview.
+//
+// It used to require core_resume_id to be empty, and the delete was preceded
+// by a check for a resume carrying this direction's id in resumes.lens_id. Both
+// existed because a direction could own a core resume and the foreign key is
+// ON DELETE SET NULL, so deleting the direction would silently detach the
+// resume rather than refuse. Nothing writes either column now - there is one
+// core resume per account and every direction reads it - so there is no resume
+// a delete could detach.
 async function eligible(supabase, userId, lensId) {
   const { data } = await supabase
     .from('profile_lenses')
@@ -120,25 +127,9 @@ async function eligible(supabase, userId, lensId) {
     .eq('user_id', userId)
     .eq('source', 'user_created')
     .eq('status', 'hidden')
-    .is('core_resume_id', null)
     .neq('sort_order', 0)
     .maybeSingle()
   return data || null
-}
-
-// A resume standing for this direction is a reason to stop, whatever its
-// state. The foreign key is ON DELETE SET NULL, so deleting the direction
-// would quietly detach the resume rather than refuse - which is the worse
-// outcome of the two, because nothing would say it had happened.
-async function heldByResume(supabase, userId, lensId) {
-  const { data } = await supabase
-    .from('resumes')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('lens_id', lensId)
-    .eq('is_active', true)
-    .limit(1)
-  return (data || []).length > 0
 }
 
 export async function GET(request) {
@@ -174,13 +165,10 @@ export async function POST(request) {
       return Response.json({ error: 'lensId is required' }, { status: 400 })
     }
 
-    if (await heldByResume(supabase, userId, lensId)) {
-      return Response.json({ error: 'LENS_IN_USE', code: 'LENS_IN_USE' }, { status: 409 })
-    }
-
     // Ownership and every rule ride on the delete itself. A suggestion, the
-    // primary, a direction still on the profile, or one with a core behind it
-    // matches nothing here and comes back as not found.
+    // primary, or a direction still on the profile matches nothing here and
+    // comes back as not found. "Or one with a core behind it" used to be in
+    // that list; see the note on `eligible` for why it no longer can be.
     //
     // Placement rows, skill proofs and collective impacts go with it through
     // their own foreign keys, which already cascade. Nothing is deleted by
@@ -193,7 +181,6 @@ export async function POST(request) {
       .eq('user_id', userId)
       .eq('source', 'user_created')
       .eq('status', 'hidden')
-      .is('core_resume_id', null)
       .neq('sort_order', 0)
       .select('id, name')
       .maybeSingle()

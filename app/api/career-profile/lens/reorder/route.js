@@ -23,12 +23,12 @@ import { requireCustomise } from '../../_lib/requireCustomise'
 // neither person chose.
 //
 // WHAT PRIMARY IS, AND WHY THIS ROUTE HAS TO KNOW
-// `source: 'user'` at `sort_order: 0`. Eight places read that pair - the
-// visibility route, the Resume Writer hub, resumeLabel, ensurePrimaryLens and
-// three maintenance scripts - and one of them is dangerous if it is broken:
-// ensurePrimaryLens looks the primary up by exactly that pair and INSERTS a
-// new one when it finds nothing. A reorder that left no row matching both
-// would grow a duplicate primary on the account's next coaching run.
+// `source: 'user'` at `sort_order: 0`. Several places read that pair - the
+// visibility route, ensurePrimaryLens and the maintenance scripts - and one of
+// them is dangerous if it is broken: ensurePrimaryLens looks the primary up by
+// exactly that pair and INSERTS a new one when it finds nothing. A reorder that
+// left no row matching both would grow a duplicate primary on the account's
+// next coaching run.
 //
 // So the invariant this route maintains is: exactly one row at sort_order 0,
 // and that row carries source 'user'. The new first direction is granted
@@ -36,17 +36,16 @@ import { requireCustomise } from '../../_lib/requireCustomise'
 // revoked, because the pair is a conjunction - a demoted row with source
 // 'user' and sort_order 3 is not the primary and does not read as one.
 //
-// The one consequence worth knowing: `source` is also how the dismiss and
-// rename routes decide what they may touch, and both require
-// 'coaching_extraction'. A direction that has been primary can no longer be
-// dismissed or renamed from the hub. That is the right answer for a direction
-// somebody chose to lead with, and it is a real change to those two routes'
-// reach, so it is written down here rather than discovered.
+// The one consequence worth knowing: `source` is also how the rename route
+// decides what it may touch, and it requires 'coaching_extraction'. A
+// direction that has been primary can no longer be renamed. That is the right
+// answer for a direction somebody chose to lead with, and it is a real change
+// to that route's reach, so it is written down here rather than discovered.
 //
-// ONE ORDER, TWO PAGES
-// sort_order is also the Resume Writer hub's tile ranking. Dragging here
-// reorders the tiles there, deliberately: the two pages are showing the same
-// directions and disagreeing about their order would be the bug.
+// sort_order used to rank the Resume Writer hub's Career Direction tiles as
+// well, so dragging here reordered them there. The hub no longer shows
+// directions at all - they live on this page and its settings drawer - so this
+// order is the profile's own.
 // ============================================================================
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

@@ -9,6 +9,7 @@ import Breadcrumb from '../components/Breadcrumb';
 import UpgradeModal from '../components/UpgradeModal';
 import { track } from '../utils/analytics';
 import { fetchJSON } from '@/lib/fetchJSON';
+import { hasRealCore, ONE_CORE_MESSAGE } from '@/lib/coreResumes';
 
 export default function MyCareerPage() {
   const router = useRouter();
@@ -97,6 +98,16 @@ export default function MyCareerPage() {
     setUploading(true);
     setUploadError(null);
     try {
+      // ---- ONE CORE RESUME ----
+      // Before the upload and the two API calls that parse it, so nothing is
+      // spent on a resume this will refuse to save. This page offers "continue
+      // with the one you have" alongside the upload, so somebody who lands
+      // here with a core already has somewhere to go.
+      if (await hasRealCore(supabase, user.id)) {
+        setUploadError(ONE_CORE_MESSAGE);
+        setUploading(false);
+        return;
+      }
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
@@ -156,6 +167,11 @@ export default function MyCareerPage() {
     try {
       const { data: { user: chatUser } } = await supabase.auth.getUser();
       if (!chatUser) return;
+      // One core resume per account. See handleFileUpload above.
+      if (await hasRealCore(supabase, chatUser.id)) {
+        setUploadError(ONE_CORE_MESSAGE);
+        return;
+      }
       const { data: newResume, error } = await supabase
         .from('resumes')
         .insert({
