@@ -509,6 +509,8 @@ export function EvidenceEditPane({ item, lensId, onBack, guard }) {
 
   return (
     <div className="hp-manage-pane">
+      {/* Everything above the footer, and the only part that scrolls. */}
+      <div className="hp-manage-scroll">
       <PaneHead title={item.title || 'Untitled'} />
 
       {/* Two rows, one subject. Where it appears, then who can see it, each
@@ -675,10 +677,19 @@ export function EvidenceEditPane({ item, lensId, onBack, guard }) {
         onChange={e => setDraft(d => ({ ...d, url: e.target.value }))}
       />
 
-      {/* Over the footer rather than in place of it: that footer carries
-          controls about the item, and a bar that swallowed them would take
-          away the delete somebody may have come for. Built once in
-          ./ManageShell. */}
+      </div>
+
+      {/* ---- ONE ROW OF CONTROLS AT A TIME ----
+          The footer is pinned to the bottom of the modal and the form above
+          it scrolls, the same way every Manage panel works - see
+          .hp-manage-scroll in sections.css, which is the same scroller.
+
+          The bar REPLACES this footer rather than standing over it. Two rows
+          of buttons at once put Save in one and Discard in the other with no
+          order between them - and where the footer also carries Delete or
+          Replace file, it left those still offered underneath a question about
+          leaving. Keep editing brings the whole footer back, every control on
+          it included. */}
       {guard?.asking ? (
         <UnsavedBar
           onKeep={guard.keepEditing}
@@ -688,42 +699,42 @@ export function EvidenceEditPane({ item, lensId, onBack, guard }) {
           // and a third button that did nothing would be worse than two.
           onSave={canSave ? guard.saveAndClose : undefined}
         />
-      ) : null}
+      ) : (
+        /* Replace file and Delete on the left: the two things this pane does to
+           the item itself rather than to a field of it. Cancel and Save on the
+           right, Cancel first, so the control that commits the edit is the last
+           thing on the bar. */
+        <div className="hp-ed-editor-bar">
+          <span className="hp-ed-foot-left">
+            {canReplace ? <ReplaceFile item={item} disabled={Boolean(busy)} /> : null}
 
-      {/* Replace file and Delete on the left: the two things this pane does to
-          the item itself rather than to a field of it. Cancel and Save on the
-          right, Cancel first, so the control that commits the edit is the last
-          thing on the bar. */}
-      <div className="hp-ed-editor-bar">
-        <span className="hp-ed-foot-left">
-          {canReplace ? <ReplaceFile item={item} disabled={Boolean(busy)} /> : null}
+            {del.available ? (
+              <button
+                type="button"
+                className="hp-ed-action hp-ed-danger"
+                disabled={Boolean(busy) || Boolean(del.deletingId)}
+                onClick={() => del.ask(item)}
+              >
+                {del.deletingId ? 'Deleting…' : 'Delete'}
+              </button>
+            ) : null}
+          </span>
 
-          {del.available ? (
-            <button
-              type="button"
-              className="hp-ed-action hp-ed-danger"
-              disabled={Boolean(busy) || Boolean(del.deletingId)}
-              onClick={() => del.ask(item)}
-            >
-              {del.deletingId ? 'Deleting…' : 'Delete'}
+          <span className="hp-ed-foot-right">
+            <button type="button" className="hp-ed-action" onClick={leave} disabled={Boolean(busy)}>
+              Cancel
             </button>
-          ) : null}
-        </span>
 
-        <span className="hp-ed-foot-right">
-          <button type="button" className="hp-ed-action" onClick={leave} disabled={Boolean(busy)}>
-            Cancel
-          </button>
-
-          <button
-            type="button" className="hp-ed-action" data-primary="true"
-            disabled={!canSave}
-            onClick={save}
-          >
-            {busy === 'save' ? 'Saving…' : 'Save'}
-          </button>
-        </span>
-      </div>
+            <button
+              type="button" className="hp-ed-action" data-primary="true"
+              disabled={!canSave}
+              onClick={save}
+            >
+              {busy === 'save' ? 'Saving…' : 'Save'}
+            </button>
+          </span>
+        </div>
+      )}
 
       {/* The question, its dialog and the delete behind it all live in the
           hook, so the row delete in the Manage list asks it exactly the same
@@ -798,6 +809,8 @@ export function TestimonialEditPane({ item, onBack, guard }) {
 
   return (
     <div className="hp-manage-pane">
+      {/* Everything above the footer, and the only part that scrolls. */}
+      <div className="hp-manage-scroll">
       <PaneHead
         title={item.recipient_name || 'A referee'}
         note={[item.recipient_title, item.relationship].filter(Boolean).join(' · ') || null}
@@ -893,10 +906,19 @@ export function TestimonialEditPane({ item, onBack, guard }) {
         </div>
       ) : null}
 
-      {/* Over the footer rather than in place of it: that footer carries
-          controls about the item, and a bar that swallowed them would take
-          away the delete somebody may have come for. Built once in
-          ./ManageShell. */}
+      </div>
+
+      {/* ---- ONE ROW OF CONTROLS AT A TIME ----
+          The footer is pinned to the bottom of the modal and the form above
+          it scrolls, the same way every Manage panel works - see
+          .hp-manage-scroll in sections.css, which is the same scroller.
+
+          The bar REPLACES this footer rather than standing over it. Two rows
+          of buttons at once put Save in one and Discard in the other with no
+          order between them - and where the footer also carries Delete or
+          Replace file, it left those still offered underneath a question about
+          leaving. Keep editing brings the whole footer back, every control on
+          it included. */}
       {guard?.asking ? (
         <UnsavedBar
           onKeep={guard.keepEditing}
@@ -906,44 +928,44 @@ export function TestimonialEditPane({ item, onBack, guard }) {
           // and a third button that did nothing would be worse than two.
           onSave={!busy ? guard.saveAndClose : undefined}
         />
-      ) : null}
+      ) : (
+        /* Delete alone on the left - the one irreversible control here - and
+           the way out and the way on together on the right. Withdrawing a
+           request and deleting an answer are the same delete underneath: the
+           token lives on the row, so a withdrawn one left in place would leave
+           its referee a working link. The dialog says which of the two is
+           happening. */
+        <div className="hp-ed-editor-bar">
+          <span className="hp-ed-foot-left">
+            {del.available ? (
+              <button
+                type="button"
+                className="hp-ed-action hp-ed-danger"
+                disabled={Boolean(busy) || Boolean(del.deletingId)}
+                onClick={() => del.ask({ id: item.id, title: item.recipient_name, answered })}
+              >
+                {del.deletingId ? 'Deleting…' : answered ? 'Delete' : 'Cancel request'}
+              </button>
+            ) : null}
+          </span>
 
-      {/* Delete alone on the left - the one irreversible control here - and
-          the way out and the way on together on the right. Withdrawing a
-          request and deleting an answer are the same delete underneath: the
-          token lives on the row, so a withdrawn one left in place would leave
-          its referee a working link. The dialog says which of the two is
-          happening. */}
-      <div className="hp-ed-editor-bar">
-        <span className="hp-ed-foot-left">
-          {del.available ? (
+          <span className="hp-ed-foot-right">
+            <button type="button" className="hp-ed-action" onClick={leave} disabled={Boolean(busy)}>
+              Cancel
+            </button>
+
             <button
               type="button"
-              className="hp-ed-action hp-ed-danger"
-              disabled={Boolean(busy) || Boolean(del.deletingId)}
-              onClick={() => del.ask({ id: item.id, title: item.recipient_name, answered })}
+              className="hp-ed-action"
+              data-primary="true"
+              disabled={Boolean(busy)}
+              onClick={save}
             >
-              {del.deletingId ? 'Deleting…' : answered ? 'Delete' : 'Cancel request'}
+              {busy === 'save' ? 'Saving…' : 'Save'}
             </button>
-          ) : null}
-        </span>
-
-        <span className="hp-ed-foot-right">
-          <button type="button" className="hp-ed-action" onClick={leave} disabled={Boolean(busy)}>
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            className="hp-ed-action"
-            data-primary="true"
-            disabled={Boolean(busy)}
-            onClick={save}
-          >
-            {busy === 'save' ? 'Saving…' : 'Save'}
-          </button>
-        </span>
-      </div>
+          </span>
+        </div>
+      )}
 
       {del.modal}
     </div>
@@ -1012,6 +1034,8 @@ export function TestimonialRequestPane({ onBack, onSent, guard }) {
 
   return (
     <div className="hp-manage-pane">
+      {/* Everything above the footer, and the only part that scrolls. */}
+      <div className="hp-manage-scroll">
       <PaneHead title="Who should we ask?" />
 
       <div className="hp-ed-add-grid">
@@ -1053,10 +1077,19 @@ export function TestimonialRequestPane({ onBack, onSent, guard }) {
         whether it appears on your profile.
       </p>
 
-      {/* Over the footer rather than in place of it: that footer carries
-          controls about the item, and a bar that swallowed them would take
-          away the delete somebody may have come for. Built once in
-          ./ManageShell. */}
+      </div>
+
+      {/* ---- ONE ROW OF CONTROLS AT A TIME ----
+          The footer is pinned to the bottom of the modal and the form above
+          it scrolls, the same way every Manage panel works - see
+          .hp-manage-scroll in sections.css, which is the same scroller.
+
+          The bar REPLACES this footer rather than standing over it. Two rows
+          of buttons at once put Save in one and Discard in the other with no
+          order between them - and where the footer also carries Delete or
+          Replace file, it left those still offered underneath a question about
+          leaving. Keep editing brings the whole footer back, every control on
+          it included. */}
       {guard?.asking ? (
         <UnsavedBar
           onKeep={guard.keepEditing}
@@ -1066,19 +1099,19 @@ export function TestimonialRequestPane({ onBack, onSent, guard }) {
           // and a third button that did nothing would be worse than two.
           onSave={canSend ? guard.saveAndClose : undefined}
         />
-      ) : null}
-
-      {/* One group, on the right, with the primary furthest right. */}
-      <div className="hp-ed-editor-bar">
-        <span className="hp-ed-foot-right">
-          <button type="button" className="hp-ed-action" onClick={leave} disabled={sending}>
-            Cancel
-          </button>
-          <button type="button" className="hp-ed-action" data-primary="true" onClick={send} disabled={!canSend}>
-            {sending ? 'Sending…' : 'Send the request'}
-          </button>
-        </span>
-      </div>
+      ) : (
+        /* One group, on the right, with the primary furthest right. */
+        <div className="hp-ed-editor-bar">
+          <span className="hp-ed-foot-right">
+            <button type="button" className="hp-ed-action" onClick={leave} disabled={sending}>
+              Cancel
+            </button>
+            <button type="button" className="hp-ed-action" data-primary="true" onClick={send} disabled={!canSend}>
+              {sending ? 'Sending…' : 'Send the request'}
+            </button>
+          </span>
+        </div>
+      )}
     </div>
   )
 }

@@ -72,6 +72,20 @@ const ACCEPT = 'video/mp4,video/webm'
 // are deciding what to put there.
 export const VIDEO_HELP = 'Landscape or portrait, MP4 or WebM, up to 50MB.'
 
+// And what that line says while the frame picker is in the middle, which is
+// the one state where the owner has something to do inside the box rather
+// than a decision to make about it. The specs stay: the file is still not
+// uploaded and still has to satisfy them.
+//
+// This is where the picker's own help sentence went. It used to be a third
+// line inside the picker, under the button, and the picker is the dialog's
+// middle now - a box with one fixed height and no room for a paragraph in it.
+// So it moved out to the line that was already there, which is also where
+// somebody looking at the box would read it. See the `compact` prop on
+// VideoFramePicker.
+export const FRAME_HELP =
+  'Drag the slider to the frame you want as your thumbnail, then click Use this frame.'
+
 const humanSize = (bytes) => {
   if (!Number.isFinite(bytes) || bytes <= 0) return null
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`

@@ -1432,6 +1432,24 @@ html:has(.hp-ed) {
   flex-wrap: wrap;
 }
 
+/* ---- The same bar, pinned to the bottom of an edit pane ----
+   An edit pane's footer is now outside the part of it that scrolls, so it
+   needs the line and the air the Manage panels' footer has: with a form
+   moving underneath it, a row of buttons with nothing above it reads as the
+   last thing in the form rather than as the frame around it. These are
+   .hp-manage-foot's own values, for .hp-manage-foot's own reason.
+
+   Written here rather than beside .hp-manage-pane in sections.css, and that
+   is not a filing decision. It is (0,2,0), exactly like the rule above it,
+   and a tie between equal selectors is settled by source order - which for
+   two different stylesheets is the build's to choose. In this file, directly
+   after the rule it has to beat, it is settled. */
+.hp-manage-pane > .hp-ed-editor-bar {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--profile-line);
+}
+
 /* ---- ONE LAYOUT FOR EVERY FIELD EDITOR'S BUTTONS ----------------------
    The headline, the bio, the Open To tags and In My Own Words. Cancel at the
    far left; the AI control and Save grouped at the right with Save the filled
@@ -2752,20 +2770,6 @@ html:has(.hp-ed) {
   background: var(--ed-error-ground);
   border-color: var(--ed-error-edge);
   color: var(--ed-error-ink);
-}
-
-/* A control in this footer that the plan does not include: shown, disabled,
-   and wearing the lock every other gate on this page wears. The disabled
-   weight comes from the Manage buttons' own rule in sections.css; all this
-   adds is the room the mark needs beside the label.
-
-   Shown rather than hidden, for the reason the whole page gives: a control
-   that vanishes never tells anybody there is something to upgrade for, and
-   the line under it says what it would do. */
-:is(.hp-profile, .hp-ed-portal) .hp-manage-secondary[data-locked="true"] {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
 }
 
 /* Choosing a file wears the footer's own buttons, so the control that opens

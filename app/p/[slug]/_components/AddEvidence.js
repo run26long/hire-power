@@ -5,6 +5,7 @@ import DirectionPicker from './DirectionPicker'
 import BrandSelect from './BrandSelect'
 import { useProfileEdit, useNotify } from '../_lib/editContext'
 import { EVIDENCE_TYPES, FAMILY_LABELS, familyForType } from '@/lib/evidenceTypes'
+import { titleFromFileName } from '@/lib/fileTitles'
 import {
   ACCEPT_ATTRIBUTE, VISUAL_ACCEPT_ATTRIBUTE, MAX_UPLOAD_BYTES, humanSize, uploadTypeFor
 } from '@/lib/evidenceUploads'
@@ -209,10 +210,14 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
       return
     }
     setFile(picked)
-    // A filename is the best guess at a title anybody has, and it is only a
-    // starting point: the extension goes, and the owner edits it like any
-    // other field.
-    setForm(f => ({ ...f, title: f.title || picked.name.replace(/\.[^.]+$/, '') }))
+    // A filename is the best guess at a title anybody has - for a file
+    // somebody named. For one the camera named it is worse than nothing, and
+    // IMG_4312 in the Title field is an answer the owner has to delete before
+    // they can write theirs. titleFromFileName returns '' for those, which
+    // leaves the placeholder to do its job; everything else arrives with its
+    // extension removed, as before, and is edited like any other field. The
+    // rule is written out in lib/fileTitles.
+    setForm(f => ({ ...f, title: f.title || titleFromFileName(picked.name) }))
     setStep('form')
   }
 
@@ -298,48 +303,75 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
   // kind of thing is being saved is already the heading above it.
   const title = visualOnly ? 'Add a photo or video' : 'Add evidence'
 
-  // Back on the left, the way out and the way on together on the right. The
-  // footer is pinned by the dialog, so on the long form the way out of it is
-  // still on screen at the bottom of a scroll.
+  // ---- WHERE THIS STEP GOES BACK TO ----
+  //
+  // The form was reached either from the chooser, by picking a file, or from
+  // the link step, by giving an address; it goes back to whichever of the two
+  // it came from. The link step came from the chooser. The chooser is the
+  // first screen and the finished screen is the last, so neither has a Back.
+  const backTo = step === 'form'
+    ? (file ? 'choose' : 'link')
+    : step === 'link' ? 'choose' : null
+
+  // ---- THE FOOTER ----
+  //
+  // Back at the far left, then the ways out and the way on grouped at the
+  // right with the primary furthest right. It is the house row, and the house
+  // row is what every other footer on this profile now carries: the edit
+  // panes, the Manage panels, the field editors.
+  //
+  // Back stood in that right-hand group until now, on the reasoning that it
+  // was one of three ways out of the step rather than a separate decision.
+  // That reasoning does not survive the comparison: going back keeps
+  // everything typed so far and Cancel throws the whole flow away, which makes
+  // them opposites, and putting opposites side by side is how somebody loses
+  // four fields to the wrong press. The far left is where this profile puts
+  // the control that costs something - Delete in the edit panes, Decline in
+  // the review - and it is where Back belongs for the same reason: far from
+  // the thumb heading for the primary.
+  //
+  // The buttons are the Manage panels' own, .hp-manage-secondary and
+  // .hp-manage-done, rather than .hp-ed-action's near-identical pair. The two
+  // groups are .hp-ed-foot-left and .hp-ed-foot-right, which is the split the
+  // dialog footer already lays out; the footer itself is pinned by the dialog,
+  // so on the long form the way out is still on screen at the bottom of a
+  // scroll.
   const foot = (
     <>
-      {/* One group, on the right, with the primary furthest right. Back used
-          to stand alone on the left, which reads as a second decision rather
-          than as the first of the three ways out of this step. */}
-      <span className="hp-ed-foot-right">
-        {step === 'form' ? (
+      {backTo ? (
+        <span className="hp-ed-foot-left">
           <button
             type="button"
-            className="hp-ed-action"
-            onClick={() => setStep(file ? 'choose' : 'link')}
+            className="hp-manage-secondary"
+            onClick={() => setStep(backTo)}
             disabled={saving}
           >
             Back
           </button>
-        ) : null}
-        {step === 'link' ? (
-          <button type="button" className="hp-ed-action" onClick={() => setStep('choose')}>
-            Back
-          </button>
-        ) : null}
+        </span>
+      ) : null}
 
+      <span className="hp-ed-foot-right">
         {/* Once something has been added, the way on is the secondary act and
             finishing is the primary one, so Add another stands to the left of
             Done rather than taking the weight off it. */}
         {step === 'done' ? (
           <button
             type="button"
-            className="hp-ed-action"
+            className="hp-manage-secondary"
             onClick={() => { setSaved(null); setStep('choose') }}
           >
             Add another
           </button>
         ) : null}
 
+        {/* The one button that is here on every step. On the finished screen
+            it is the primary, because leaving with what you came for is what
+            that screen is for; everywhere else it is the way out of a step
+            that has a primary of its own. */}
         <button
           type="button"
-          className="hp-ed-action"
-          data-primary={step === 'done' ? 'true' : undefined}
+          className={step === 'done' ? 'hp-manage-done' : 'hp-manage-secondary'}
           onClick={reset}
           disabled={saving}
         >
@@ -349,8 +381,7 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
         {step === 'link' ? (
           <button
             type="button"
-            className="hp-ed-action"
-            data-primary="true"
+            className="hp-manage-done"
             onClick={lookUp}
             disabled={!form.url.trim() || looking}
           >
@@ -362,8 +393,7 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
         {step === 'form' ? (
           <button
             type="button"
-            className="hp-ed-action"
-            data-primary="true"
+            className="hp-manage-done"
             onClick={save}
             disabled={!canSave}
           >

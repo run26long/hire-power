@@ -5221,19 +5221,29 @@
 
    THE HOSTS HAND OVER THEIR HEIGHT
    Each of those four puts the panel in a box that was itself the scroller.
-   The two rules below turn that box into a plain flex column of a fixed
-   height and let the panel do the scrolling instead, which is the whole
-   mechanism: :has(> .hp-manage) so it applies to a Manage panel and to
-   nothing else those same boxes hold - an evidence viewer, a gallery, an edit
-   pane - every one of which still scrolls exactly as it did. */
+   The rules below turn that box into a plain flex column of a fixed height
+   and let the panel do the scrolling instead, which is the whole mechanism:
+   :has(> ...) so it applies to a panel or an edit pane and to nothing else
+   those same boxes hold - an evidence viewer, a gallery - every one of which
+   still scrolls exactly as it did.
+
+   AND TO AN EDIT PANE, WHICH IS THE SAME PROBLEM
+   .hp-manage-pane is the form behind a Manage list: editing one piece of
+   evidence, one testimonial, or writing a request. It had the fault the
+   panels had - a footer at the bottom of the content, so Save and Delete sat
+   below the fold on a laptop - and it is fixed the same way rather than a
+   second way. Two hosts, two shapes of body, one mechanism. */
 .hp-rt-answer-body:has(> .hp-manage),
-.hp-pf-box-gallery:has(> .hp-manage) {
+.hp-rt-answer-body:has(> .hp-manage-pane),
+.hp-pf-box-gallery:has(> .hp-manage),
+.hp-pf-box-gallery:has(> .hp-manage-pane) {
   display: flex;
   flex-direction: column;
   overflow-y: hidden;
 }
 
-.hp-manage {
+.hp-manage,
+.hp-manage-pane {
   flex: 1 1 auto;
   min-height: 0;
 }
@@ -5257,11 +5267,14 @@
   background: rgb(var(--profile-accent-rgb) / 0.6);
 }
 
-/* Whatever a panel ends with, it does not give way. .hp-ed-editor-bar is the
-   testimonial review's footer; the other three use .hp-manage-foot. */
+/* Whatever a panel or a pane ends with, it does not give way.
+   .hp-ed-editor-bar is the testimonial review's footer and all three edit
+   panes'; the other three panels use .hp-manage-foot. */
 .hp-manage > .hp-manage-foot,
 .hp-manage > .hp-ed-editor-bar,
-.hp-manage > .hp-manage-unsaved { flex: 0 0 auto; }
+.hp-manage > .hp-manage-unsaved,
+.hp-manage-pane > .hp-ed-editor-bar,
+.hp-manage-pane > .hp-manage-unsaved { flex: 0 0 auto; }
 
 /* ---- The question asked before anything is thrown away ----------------
    Inside the panel and in the footer's own place, so the changes it is about
@@ -5333,11 +5346,25 @@
    Named through :is(...) at (0,2,0) for the reason half this file is: the
    Profile's reset is `.hp-profile button, .hp-ev-backdrop button,
    .hp-rt-backdrop button` at (0,1,1), which out-ranks a bare class and would
-   flatten the border, the padding and the colour straight off it. */
-:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-field-bar, .hp-manage-unsaved) .hp-manage-add,
-:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-field-bar, .hp-manage-unsaved) .hp-manage-secondary,
-:is(.hp-manage, .hp-manage-pane, .hp-ed-field-bar, .hp-manage-unsaved) .hp-manage-done {
+   flatten the border, the padding and the colour straight off it.
+
+   .hp-ed-foot-left and .hp-ed-foot-right are the two groups a dialog footer
+   splits into, which is how the multi-step add flows reach these buttons: Back
+   on the left, Cancel and the step's primary on the right. Named here rather
+   than given a pair of their own, because a second outlined button with its
+   own values is a second thing to keep level with the first.
+
+   inline-flex, because several of these carry a spinner or a lock mark beside
+   their label. A button that is inline-block stacks that mark above the words
+   and grows to two lines mid-press, which is what the footers' Save, Continue
+   and the writing dialog's AI control all did. */
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-field-bar, .hp-ed-foot-left, .hp-ed-foot-right, .hp-manage-unsaved) .hp-manage-add,
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-field-bar, .hp-ed-foot-left, .hp-ed-foot-right, .hp-manage-unsaved) .hp-manage-secondary,
+:is(.hp-manage, .hp-manage-pane, .hp-ed-field-bar, .hp-ed-foot-left, .hp-ed-foot-right, .hp-manage-unsaved) .hp-manage-done {
   appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font: inherit;
   font-size: 13px;
   font-weight: 500;
@@ -5351,31 +5378,31 @@
    footer is for: leaving, with what you came for. Adding opens another dialog
    over this one and the reference sheet is a download, so both of those are
    outlined and stand to the left of it. */
-:is(.hp-manage, .hp-manage-pane, .hp-ed-field-bar, .hp-manage-unsaved) .hp-manage-done {
+:is(.hp-manage, .hp-manage-pane, .hp-ed-field-bar, .hp-ed-foot-left, .hp-ed-foot-right, .hp-manage-unsaved) .hp-manage-done {
   border: 1px solid transparent;
   background: var(--profile-primary-fill);
   color: var(--profile-on-action);
 }
 
-:is(.hp-manage, .hp-manage-pane, .hp-ed-field-bar, .hp-manage-unsaved) .hp-manage-done:hover { opacity: 0.9; }
+:is(.hp-manage, .hp-manage-pane, .hp-ed-field-bar, .hp-ed-foot-left, .hp-ed-foot-right, .hp-manage-unsaved) .hp-manage-done:hover { opacity: 0.9; }
 
 /* The dialog's buttons can be refused where the panels' cannot: Save is off
    until something has changed, and Polish is off while it is running. */
-:is(.hp-manage, .hp-manage-pane, .hp-ed-field-bar) .hp-manage-done:disabled,
-:is(.hp-manage, .hp-manage-pane, .hp-ed-field-bar) .hp-manage-secondary:disabled {
+:is(.hp-manage, .hp-manage-pane, .hp-ed-field-bar, .hp-ed-foot-left, .hp-ed-foot-right) .hp-manage-done:disabled,
+:is(.hp-manage, .hp-manage-pane, .hp-ed-field-bar, .hp-ed-foot-left, .hp-ed-foot-right) .hp-manage-secondary:disabled {
   opacity: 0.45;
   cursor: default;
 }
 
-:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-field-bar, .hp-manage-unsaved) .hp-manage-secondary,
-:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-field-bar) .hp-manage-add {
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-field-bar, .hp-ed-foot-left, .hp-ed-foot-right, .hp-manage-unsaved) .hp-manage-secondary,
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-field-bar, .hp-ed-foot-left, .hp-ed-foot-right) .hp-manage-add {
   border: 1px solid var(--profile-line-strong);
   background: transparent;
   color: var(--profile-body);
 }
 
-:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-field-bar, .hp-manage-unsaved) .hp-manage-secondary:hover:not(:disabled),
-:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-field-bar) .hp-manage-add:hover { color: var(--profile-text); border-color: var(--profile-accent-edge); }
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-field-bar, .hp-ed-foot-left, .hp-ed-foot-right, .hp-manage-unsaved) .hp-manage-secondary:hover:not(:disabled),
+:is(.hp-manage, .hp-manage-pane, .hp-ev-head-acts, .hp-pf-box-acts, .hp-ed-field-bar, .hp-ed-foot-left, .hp-ed-foot-right) .hp-manage-add:hover { color: var(--profile-text); border-color: var(--profile-accent-edge); }
 
 /* The reference sheet stands on its own, at the other end. It is the only
    control here that neither adds to the collection nor closes the panel - it
@@ -5529,8 +5556,15 @@
    opt-out is gone and the title can be the thing that is slightly apart. */
 .hp-manage { width: 100%; }
 
+/* THE MEASURE IS THE LIST'S, NOT THE SCROLLER'S
+   Written as a child of .hp-manage rather than of .hp-manage-scroll, because
+   the edit panes use that same scroller now and they take no measure: their
+   fields are a form, laid out full width by .hp-ed-add-grid, and holding them
+   to 600px in a 634px dialog would inset the whole form by 17px for no
+   reason. The panel's scroller is a direct child of .hp-manage, so this
+   reaches exactly what it did before. */
 .hp-manage > *,
-.hp-manage-scroll > * {
+.hp-manage > .hp-manage-scroll > * {
   width: 100%;
   max-width: 600px;
   margin-inline: auto;

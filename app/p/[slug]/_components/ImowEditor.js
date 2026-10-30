@@ -4,7 +4,13 @@ import { useEffect, useRef, useState } from 'react'
 import { useProfileEdit, useFieldEditor, useCanEditField } from '../_lib/editContext'
 import { LockIcon, UpgradeNote } from './EditAffordance'
 import { FieldEditorBar } from './EditFields'
-import { ImowVideoBody, ImowVideoChoose, VIDEO_HELP, useImowVideo } from './ImowVideoField'
+import {
+  FRAME_HELP,
+  ImowVideoBody,
+  ImowVideoChoose,
+  VIDEO_HELP,
+  useImowVideo
+} from './ImowVideoField'
 import { UnsavedBar, useUnsavedGuard } from './ManageShell'
 import ProfileModal from './ProfileModal'
 import { LIMITS } from '@/lib/textLimits'
@@ -664,8 +670,18 @@ export default function ImowEditor({ value }) {
           <ImowVideoBody video={video} />
 
           {/* Under the middle, where the written tab puts its count. Both are
-              one line about the frame above. */}
-          <p className="hp-ed-proof-note">{VIDEO_HELP}</p>
+              one line about the frame above - and while the frame picker is
+              that frame, this is also where its instruction is said, because
+              the picker has no room for a sentence of its own. The specs stay
+              in front of it: the file is not uploaded yet and still has to
+              satisfy them.
+
+              The box above does not change size for the extra line. Its height
+              is the frame's and is set in CSS; what gives is the dialog, which
+              has the room - see the budget beside --ed-imow-middle. */}
+          <p className="hp-ed-proof-note">
+            {video.pending ? `${VIDEO_HELP} ${FRAME_HELP}` : VIDEO_HELP}
+          </p>
         </>
       ) : (
         <>
