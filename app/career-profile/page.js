@@ -1298,23 +1298,24 @@ export default function CareerProfileEditorPage() {
 
           <span className="hp-ed-bar-gap" />
 
-          {/* A draft has an address but not a working one, and offering to copy
-              or open it is offering a link that answers nobody. So the address
-              stays - it is what the owner is about to publish at, and seeing it
-              is the point - but it goes quiet and says what would make it real.
-              The actions come back with publication, and Open is named for what
-              it does once there is something live to open. */}
-          {publicUrl ? (
-            <span className="hp-ed-link" data-live={String(published)}>{publicUrl}</span>
-          ) : null}
+          {/* A draft has an address but not a working one, so there is nothing
+              here to copy or open and the two actions are absent. This is the
+              one thing in the bar that says why - the status pill beside the
+              mode switch says Draft, which is the state, not the consequence.
 
+              The address itself used to stand here, monospaced and quiet. It
+              is gone: it never changed when the owner moved between Career
+              Directions, so it sat beside a sentence about per-direction
+              links contradicting it, and Copy link, View live and the
+              Profile link row in Settings each do more than reading it. */}
           {publicUrl && !published ? (
             <span className="hp-ed-link-note">Publish to share</span>
           ) : null}
 
-          {/* What Copy link will actually copy. The address in the bar is the
-              profile's; the one on the clipboard is the direction on screen,
-              and nothing else here would say so. */}
+          {/* What Copy link will actually copy, which is the direction on
+              screen rather than the profile in general. It has the middle of
+              the bar to itself now that the address has gone, which is what
+              lets it sit on one line without being held to one. */}
           {published && publicUrl ? (
             <span className="hp-ed-link-note" data-share="true">
               Select a Career Direction to share a link that opens directly to it.
