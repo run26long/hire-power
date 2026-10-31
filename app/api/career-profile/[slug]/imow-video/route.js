@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { canUseProTools } from '@/lib/tiers'
 
 // ============================================================================
 // GET /api/career-profile/[slug]/imow-video
@@ -101,6 +102,28 @@ export async function GET(request, { params }) {
     // - and nothing guarantees that a profile claiming video has a file. A row
     // that says one and not the other is not a video.
     if (profile.imow_type !== 'video' || !profile.imow_video_path) return notFound()
+
+    // ---- AND THE PLAN, FOR EVERYBODY BUT THE OWNER ----
+    //
+    // The document route stopped sending the video on a free profile, and
+    // this is the other way to the same object: it is addressed by slug and
+    // signs on its own, so a reader who kept the URL - or simply called it -
+    // would still be handed the file the page had stopped offering. The two
+    // have to agree, so this asks the same question.
+    //
+    // The owner is excepted on purpose, and unlike in the document route it
+    // matters here: In My Own Words keeps both halves, the editor shows the
+    // owner the video they uploaded whatever their plan is, and the only way
+    // it can play it is for this to sign it. imow_type is untouched by the
+    // plan, so a lapsed account still reads as the video half here.
+    if (!isOwner) {
+      const { data: account } = await supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', profile.user_id)
+        .maybeSingle()
+      if (!canUseProTools(account?.subscription_tier)) return notFound()
+    }
 
     const { data: signed, error: signError } = await supabase.storage
       .from(BUCKET)

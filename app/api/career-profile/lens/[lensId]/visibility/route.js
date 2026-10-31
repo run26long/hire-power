@@ -152,7 +152,7 @@ export async function PATCH(request, { params }) {
     if (!canShowAllDirections(account?.subscription_tier)) {
       return Response.json(
         {
-          error: 'Your Career Profile shows your primary Career Direction. The others stay saved and come back with Pro.',
+          error: 'Your Career Profile shows your primary Career Direction. Upgrade to Pro to show up to three.',
           code: 'PRO_REQUIRED'
         },
         { status: 403 }
@@ -169,16 +169,12 @@ export async function PATCH(request, { params }) {
       )
     }
 
-    // A direction the owner dismissed is not hidden, it is put away, and
-    // turning it back on is a different decision than un-hiding one. Refused
-    // rather than quietly promoted, so nothing reappears that somebody
-    // deliberately got rid of.
-    if (lens.status === 'dismissed') {
-      return Response.json(
-        { error: 'That Career Direction was dismissed. Restore it from your suggestions first.', code: 'DISMISSED' },
-        { status: 400 }
-      )
-    }
+    // A 'dismissed' direction used to be refused here and sent to the Resume
+    // Writer hub to be restored from its suggestions menu. The hub no longer
+    // shows directions, nothing can dismiss one, and the rows that carried
+    // that status were converted to 'hidden' - which is the same thing said
+    // in the vocabulary the drawer already renders, and which the switch below
+    // turns back on. There is no state left for that refusal to describe.
 
     // Counted excluding this one, so re-activating something already active
     // cannot refuse itself, and so the count is of what would be on the page

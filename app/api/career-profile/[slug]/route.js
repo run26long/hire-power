@@ -3,6 +3,7 @@ import { apiError } from '@/lib/apiError'
 import { canUseProTools } from '@/lib/tiers'
 import { lensesShownBy } from '../_lib/directions'
 import { onDirection, rowsForDirection } from '@/app/p/[slug]/_lib/profileData'
+import { createHash } from 'crypto'
 
 // ============================================================================
 // GET /api/career-profile/[slug]
@@ -42,7 +43,7 @@ const PROFILE_FULL = `${PROFILE_BASE}, template, color_mode, accent, imow_text, 
 // losing the template, the accent and In My Own Words along with it. Tried
 // first, then PROFILE_FULL, then PROFILE_BASE, so each missing generation of
 // columns costs only itself.
-const PROFILE_SHAPE = `${PROFILE_FULL}, imow_video_width, imow_video_height, imow_poster_path`
+const PROFILE_SHAPE = `${PROFILE_FULL}, imow_video_width, imow_video_height, imow_poster_path, contact_enabled`
 
 // sort_order and created_at are read to order the directions and are not sent;
 // see publicLens below. evidence_summary and ready_for_next are not read at
@@ -390,6 +391,30 @@ export async function GET(request, { params }) {
     // headline out of the response with it. None of it reaches the browser.
     const visibleLenses = lensesShownBy(lenses, personRes.data?.subscription_tier)
 
+    // ---- AND WHICH SECTIONS THIS PLAN PUTS ON THE PAGE ----
+    //
+    // The same shape as the cut above, one level up: evidence, the
+    // portfolio, the testimonials and the Collective Impact synthesis are
+    // part of Pro and Vault, so on a free profile they are not in this
+    // response at all. Not hidden on the page - absent from it, the way a
+    // direction lensesShownBy drops is absent.
+    //
+    // Asked of the tier on every read, for the same reason that one is:
+    // nothing is written onto the account when a plan moves, so a profile
+    // is correct the moment the tier changes and there is nothing to run
+    // at a downgrade or undo at an upgrade. Nothing is deleted either -
+    // every row stays where it is and comes back with the plan.
+    //
+    // ...EXCEPT FOR THE OWNER, AND ONLY FOR THEM
+    // This endpoint is also what the management page reads, with the
+    // owner's token, because the owner has to be shown everything they
+    // hold in order to add to it. Preview is the same read, so Preview
+    // cannot be told apart here and does its hiding on the page - see
+    // hideProOnly in /career-profile. A link holder is never the owner,
+    // so the public page is decided entirely here.
+    const showsProSections = canUseProTools(personRes.data?.subscription_tier)
+    const sendsProSections = showsProSections || isOwner
+
     // ---- LENS RESUMES ----
     // One query for all of them rather than one per lens.
     const lensResumeIds = [...new Set(visibleLenses.map(l => l.core_resume_id).filter(Boolean))]
@@ -642,9 +667,29 @@ export async function GET(request, { params }) {
     // Asked of both columns rather than of the type alone: imow_type accepts
     // any string, so a row that says video without a file is a row that says
     // nothing.
-    const showsVideo = profile.imow_type === 'video' && Boolean(profile.imow_video_path)
+    //
+    // AND THE PLAN IS THE THIRD GUARD
+    // The video is part of Pro and Vault. A free profile serves the
+    // written version whatever imow_type says, and serves nothing at all
+    // where nothing was ever written - which is what the two expressions
+    // below already do for a profile that holds no video. The file stays
+    // where it is and comes back with the plan.
+    //
+    // showsProSections, not sendsProSections: the owner is not excepted
+    // here the way they are for the sections above, because the editor
+    // reads In My Own Words off the management record rather than out of
+    // this response. There is nothing for an exception to give them.
+    const showsVideo = profile.imow_type === 'video'
+      && Boolean(profile.imow_video_path)
+      && showsProSections
 
     // A stored pixel count, or null. Bounded rather than trusted: the numbers
+    // A stable, opaque token for whichever poster object is current. Twelve
+    // hex characters is far more than enough to tell one path from the next,
+    // and it is one-way, so publishing it publishes nothing.
+    const posterVersion = (path) =>
+      createHash('sha256').update(String(path)).digest('hex').slice(0, 12)
+
     // were read by a browser and the column may not exist at all yet.
     const shapeOf = (value) => {
       const n = Number(value)
@@ -656,26 +701,29 @@ export async function GET(request, { params }) {
     // public page should not tell a visitor what its owner declined to buy.
     const recruiterToolsEnabled = canUseProTools(personRes.data?.subscription_tier)
 
-    // ---- WHICH ADDRESS THE CONTACT BUTTON OPENS ----
+    // ---- WHETHER THE CONTACT BUTTON IS THERE, AND WHICH ADDRESS IT OPENS
     //
-    // Three states on one column, and the difference between two of them is
-    // the whole behaviour:
+    // Two columns, one question each, which is what they were split into:
+    // contact_enabled says whether the owner wants the button at all, and
+    // contact_email says which address it opens - their own, or empty for
+    // the account address the page falls back to.
     //
-    //   null        never set. The account address stands in, so a profile
-    //               somebody has just published can be answered without their
-    //               having found a settings drawer first.
-    //   ''          cleared on purpose. No button. This is the only way to
-    //               switch it off, and it is something the owner has to do.
-    //   an address  the owner's own choice, which wins over both.
+    // They were one column with three states and the middle one meant both
+    // things at once, so an owner could not switch the button off without
+    // throwing away the address they had typed.
     //
-    // A missing column is a fourth case and is not one of the three: it means
-    // the reduced select above ran and this column was never read, so there is
-    // nothing to fall back from and the button is withheld. Testing for null
-    // rather than for falsiness is what keeps that apart from a cleared field.
-    const storedContact = profile.contact_email
-    const contactEmail = storedContact === null
-      ? (personRes.data?.email || null)
-      : (storedContact || null)
+    // `!== false`, not `=== true`: on a deployment whose column is not there
+    // yet the field reads undefined, and the right answer then is the
+    // behaviour every profile already had. A button that quietly disappears
+    // is the worse way for this to fail.
+    const contactOn = profile.contact_enabled !== false
+
+    // Trimmed to nothing is nothing. The write route stores it trimmed, so
+    // this is for rows that predate it.
+    const ownAddress = String(profile.contact_email || '').trim()
+    const contactEmail = contactOn
+      ? (ownAddress || personRes.data?.email || null)
+      : null
 
     return Response.json({
       isOwner,
@@ -718,6 +766,21 @@ export async function GET(request, { params }) {
         imow_video_height: showsVideo ? (shapeOf(profile.imow_video_height) ?? null) : null,
         // The fact of a poster, never its path. Same rule as the video.
         imow_has_poster: showsVideo && Boolean(profile.imow_poster_path),
+        // ---- WHICH POSTER, WITHOUT SAYING WHERE IT IS ----
+        //
+        // The card signs its own poster URL and had nothing to tell it when
+        // that poster was replaced: slug, width and height do not move, and
+        // imow_has_poster was already true. So it signed once on mount and
+        // kept the old still until the page was reloaded.
+        //
+        // This is the thing that changes. A short digest of the path rather
+        // than the path, because the rule two fields up holds - a link holder
+        // is told whether there is a poster, never where it is - and a hash is
+        // not a location. It is derived rather than counted so it needs no
+        // column of its own and cannot drift from what is actually stored.
+        imow_poster_version: showsVideo && profile.imow_poster_path
+          ? posterVersion(profile.imow_poster_path)
+          : null,
         // The one field on this table that is somebody's address rather than a
         // styling choice, so it is the one field with a condition on it. Sent
         // only for a published profile, and only to its owner otherwise: a
@@ -747,11 +810,15 @@ export async function GET(request, { params }) {
         Object.entries(lensResumes).map(([id, row]) => [id, publicResume(row)])
       ),
       resumeSections,
-      testimonials,
-      evidence,
-      evidencePlacements,
-      testimonialPlacements,
-      collectiveImpact,
+      // The five that the plan decides. Emptied rather than omitted: the
+      // page reads all five and an absent key and an empty one are the
+      // same thing to it, while a shape that changes with the plan is one
+      // more thing for a reader of this route to hold in their head.
+      testimonials: sendsProSections ? testimonials : [],
+      evidence: sendsProSections ? evidence : [],
+      evidencePlacements: sendsProSections ? evidencePlacements : [],
+      testimonialPlacements: sendsProSections ? testimonialPlacements : [],
+      collectiveImpact: sendsProSections ? collectiveImpact : null,
       skillProofs
     })
 

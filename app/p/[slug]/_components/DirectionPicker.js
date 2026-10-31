@@ -31,9 +31,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 //
 // WHICH DIRECTIONS ARE LISTED
 // Active and hidden. A hidden direction is one the owner has turned off and
-// can turn back on, so placing something there now is reasonable. A dismissed
-// one is in the bin, and offering it would be offering to file something
-// somewhere nobody is going to look.
+// can turn back on, so placing something there now is reasonable. A suggested
+// one has never been on the profile and may never be, and offering it would be
+// offering to file something somewhere nobody is going to look.
 // ============================================================================
 
 // Exported because the manage panels write the same membership through the

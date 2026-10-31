@@ -154,6 +154,56 @@ async function mayRecord(supabase, userId) {
 }
 
 // ---------------------------------------------------------------------------
+// A POSTER PATH NOTHING HAS USED BEFORE
+//
+// Only for a poster replacing another on a video that is staying put. The
+// upload and replace flows do not need this: their video path is new, so the
+// poster beside it is new with it.
+//
+// WHY A NEW PATH RATHER THAN OVERWRITING
+// Two reasons, and the second is the one that matters.
+//
+// A signed URL carries a token signed over the path, an issued-at and an
+// expiry. Asked twice in the same second for the same path it returns the
+// SAME string - verified - so a URL is not a dependable cache key for an
+// object that was replaced underneath it. Different second, different URL;
+// same second, identical. That is an intermittent wrong-image bug for any
+// reader whose browser or proxy still holds the old bytes.
+//
+// And it gives the page something that changes. The In My Own Words card
+// signs its poster once and has nothing in its inputs to tell it the poster
+// moved, which is the whole reason the card went stale - see
+// imow_poster_version in the public route and posterVersion in ImowVideo.
+//
+// Kept inside the video's own folder so a video and its stills stay
+// together, which is what the delete path walks.
+// ---------------------------------------------------------------------------
+// HOW FAR INTO THE VIDEO THE FRAME CAME FROM
+//
+// Seconds, as a fraction, from the picker that captured it. Null for
+// anything that did not send one, which is the honest record for every
+// poster taken before this was stored.
+//
+// Bounded to the same range the column checks, so a number this rejects is
+// stored as "not recorded" rather than reaching the database and failing the
+// constraint. A thumbnail is not worth a 500.
+// ---------------------------------------------------------------------------
+const POSTER_AT_MAX = 86400
+
+function posterAt(body) {
+  const at = Number(body?.poster_at)
+  if (!Number.isFinite(at) || at < 0 || at >= POSTER_AT_MAX) return null
+  return at
+}
+
+// ---------------------------------------------------------------------------
+function uniquePosterPath(videoPath) {
+  const dir = videoPath.includes('/') ? videoPath.slice(0, videoPath.lastIndexOf('/')) : ''
+  const name = `${crypto.randomUUID()}-poster.webp`
+  return dir ? `${dir}/${name}` : name
+}
+
+// ---------------------------------------------------------------------------
 // The frame a browser chose, turned into a still this server made.
 //
 // The same shape as the evidence upload's posterThumbnail, and deliberately
@@ -171,7 +221,7 @@ async function mayRecord(supabase, userId) {
 // The re-encoded object is named for the video, so the pair is removed
 // together when the video is replaced or taken down.
 // ---------------------------------------------------------------------------
-async function storePoster(supabase, body, userId, videoPath) {
+async function storePoster(supabase, body, userId, videoPath, outPath = null) {
   const rawPath = typeof body?.poster_path === 'string' ? body.poster_path : ''
   if (!rawPath) return null
 
@@ -192,7 +242,11 @@ async function storePoster(supabase, body, userId, videoPath) {
     const { data: blob, error } = await supabase.storage.from(BUCKET).download(rawPath)
     if (error || !blob) return null
 
-    const posterPath = `${videoPath.replace(/\.[^.]+$/, '')}-poster.webp`
+    // Beside the video by default, which is unique already because the video
+    // path is new on every upload and every replacement. A caller that is
+    // NOT claiming a new video has to say where to put it - see the
+    // poster-only branch in PUT, and the note on uniquePosterPath.
+    const posterPath = outPath || `${videoPath.replace(/\.[^.]+$/, '')}-poster.webp`
     return await storeImage(supabase, Buffer.from(await blob.arrayBuffer()), posterPath)
   } catch (error) {
     console.error('[career-profile] IMOW poster handling failed (non-fatal):', error)
@@ -218,6 +272,47 @@ export async function POST(request) {
       body = await request.json()
     } catch {
       return Response.json({ error: 'Invalid request.' }, { status: 400 })
+    }
+
+
+    // ---- A POSTER ON ITS OWN, WITH NO NEW VIDEO ----
+    //
+    // Changing the thumbnail of a video that is already stored. There is no
+    // file to upload and nothing about the video changes, so none of the video
+    // checks below apply - what this mints is a place to put one still.
+    //
+    // The object is named against the STORED video path, exactly as the
+    // upload flow names it against the path it is about to claim. That is what
+    // lets PUT hand it to the same storePoster(), which re-encodes it to
+    // <videoPath>-poster.webp and so overwrites the poster already there.
+    //
+    // A profile with no video has nothing to put a poster on. Answered as a
+    // 404 rather than a 400: from here it is the same shape of mistake as
+    // asking about a video that does not exist.
+    if (body?.poster_only === true) {
+      const posterExt = POSTER_TYPES[String(body?.poster_content_type || '').toLowerCase()]
+      if (!posterExt) {
+        return Response.json({ error: 'Unsupported image type.', code: 'BAD_TYPE' }, { status: 400 })
+      }
+      const stored = ctx.profile?.imow_video_path
+      if (!stored) return Response.json({ error: 'Not found.' }, { status: 404 })
+
+      const posterPath = `${stored.replace(/\.[^.]+$/, '')}-frame.${posterExt}`
+      const { data: posterUpload, error: posterError } = await supabase.storage
+        .from(BUCKET)
+        .createSignedUploadUrl(posterPath)
+      if (posterError || !posterUpload) {
+        console.error('[career-profile] IMOW poster-only upload URL failed:', posterError)
+        return Response.json({ error: "We couldn't start that upload." }, { status: 500 })
+      }
+
+      return Response.json({
+        poster_only: true,
+        poster_path: posterPath,
+        poster_ticket: issueTicket(posterPath, user.id),
+        poster_signed_url: posterUpload.signedUrl,
+        poster_content_type: Object.keys(POSTER_TYPES).find(mime => POSTER_TYPES[mime] === posterExt)
+      })
     }
 
     const kind = videoType(body?.content_type)
@@ -293,6 +388,89 @@ export async function PUT(request) {
       body = await request.json()
     } catch {
       return Response.json({ error: 'Invalid request.' }, { status: 400 })
+    }
+
+
+    // ---- THE SAME THING, FINISHED ----
+    //
+    // The poster-only finalise. It shares storePoster() with the upload flow
+    // and shares nothing else, deliberately: the checks below this are about a
+    // video object that has just arrived, and here no video has arrived. The
+    // video path comes off the row rather than out of the body, so a caller
+    // cannot point a poster at somebody else's film.
+    //
+    // imow_type, imow_video_path and the shape columns are not touched. The
+    // owner changed a thumbnail; they did not choose a half or replace a file.
+    //
+    // WHEN THE FRAME WILL NOT STORE
+    // storePoster answers null for a ticket that does not check out, an object
+    // that is not an image, one that is too large, or a re-encode that fails.
+    // The existing poster is left exactly as it is and the call reports that it
+    // did nothing, which is the behaviour asked for: if the owner does not get
+    // a frame, the current poster stays.
+    if (body?.poster_only === true) {
+      const stored = profile.imow_video_path
+      if (!stored) return Response.json({ error: 'Not found.' }, { status: 404 })
+
+      // A path of its own, so the object the readers already hold is never
+      // written over and the page gets a version that actually changes.
+      const posterPath = await storePoster(supabase, body, user.id, stored, uniquePosterPath(stored))
+      if (!posterPath) {
+        return Response.json(
+          { error: "We couldn't save that frame. Your current thumbnail is unchanged.", code: 'POSTER_FAILED' },
+          { status: 400 }
+        )
+      }
+
+      const previousPosterOnly = profile.imow_poster_path || null
+
+      let { data: posterUpdated, error: posterUpdateError } = await supabase
+        .from('career_profiles')
+        // The offset goes with the path, because it is what makes the still
+        // findable again: a picture does not say what second it is. Bounded
+        // here rather than trusted - it arrived from a browser, and the
+        // column's CHECK would answer a bad one with a 500.
+        .update({ imow_poster_path: posterPath, imow_poster_at: posterAt(body) })
+        .eq('user_id', user.id)
+        .select('imow_type')
+        .maybeSingle()
+
+      if (isMissingColumnError(posterUpdateError)) {
+        // Either column could be the missing one, and only one of them is
+        // load-bearing: without the path there is no thumbnail, without the
+        // offset there is a thumbnail that opens at the start. So the write
+        // is retried without the offset and falls through to the one success
+        // path below, which is what keeps the old poster object from being
+        // orphaned while a migration is outstanding.
+        console.warn(
+          '[career-profile] imow poster columns incomplete. Have'
+          + ' scripts/add-imow-video-shape.sql and scripts/add-imow-poster-at.sql been run?'
+        )
+        ;({ data: posterUpdated, error: posterUpdateError } = await supabase
+          .from('career_profiles')
+          .update({ imow_poster_path: posterPath })
+          .eq('user_id', user.id)
+          .select('imow_type')
+          .maybeSingle())
+      }
+      if (posterUpdateError || !posterUpdated) {
+        console.error('[career-profile] IMOW poster-only update failed:', posterUpdateError)
+        await supabase.storage.from(BUCKET).remove([posterPath]).catch(() => {})
+        return Response.json({ error: "We couldn't save that. Please try again." }, { status: 500 })
+      }
+
+      // After the column, never before. storePoster writes to a derived path,
+      // so on the usual run this IS posterPath and there is nothing to remove;
+      // the guard is for a row whose poster was stored under an older naming.
+      if (previousPosterOnly && previousPosterOnly !== posterPath) {
+        await supabase.storage.from(BUCKET).remove([previousPosterOnly]).catch(() => {})
+      }
+
+      return Response.json({
+        imow_type: posterUpdated.imow_type,
+        imow_has_video: true,
+        has_poster: true
+      })
     }
 
     const path = typeof body?.path === 'string' ? body.path : ''

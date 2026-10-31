@@ -253,6 +253,67 @@ export function useImowVideo({ active = true, onUploaded } = {}) {
     setRound(n => n + 1)
   }, [])
 
+
+  // ---- CHANGING THE THUMBNAIL OF A VIDEO THAT IS ALREADY STORED ----
+  //
+  // The upload flow holds a captured frame in `poster` and sends it with the
+  // file. There is no file here and nothing to wait for, so pressing "Use this
+  // frame" on a stored video is the save: the frame goes up on its own and the
+  // row is repointed at it.
+  //
+  // That is why this is a different callback and not the same `onFrame`. The
+  // picker is the same picker and the button says the same thing; what a
+  // captured frame MEANS differs by what is holding it, and only the holder
+  // knows.
+  //
+  // NOTHING IS RELOADED AFTERWARDS, AND THAT IS THE POINT
+  //
+  // This used to call loadPreview() on the way out, to put the new poster URL
+  // on the player behind the picker. The cost of that was the whole of what
+  // the owner saw: loadPreview signs a fresh URL, previewUrl is the picker's
+  // `src`, and a changed src is a changed `source` - which trips the reset in
+  // VideoFramePicker and re-assigns video.src. So the film jumped back to its
+  // first frame, the scrubber went to zero and the time readout emptied, one
+  // beat after a line saying the frame had been kept. It read as a save that
+  // had not taken.
+  //
+  // There was nothing to gain by it either. The picker is what is on screen
+  // here and it never reads previewPoster - it is a player on the video
+  // itself, and the still is not part of what it shows. The profile card is
+  // what needs the new poster, and it gets there on its own: the save
+  // re-reads the document, imow_poster_version changes, and the card
+  // re-signs. See posterVersion in ./ImowVideo.
+  //
+  // Reopening the dialog signs everything again anyway, through the effect on
+  // `active`, so previewPoster is never stale for longer than this one
+  // dialog session - and for that session it is not read.
+  //
+  // What the owner is left with is the element untouched: paused where they
+  // left it, on the frame they chose, with the scrubber and the time where
+  // they put them.
+  //
+  // A failure leaves the stored poster exactly as it was - the route says so
+  // and so does the toast. Nothing here clears anything on the way.
+  const [savingPoster, setSavingPoster] = useState(false)
+  const [posterSaved, setPosterSaved] = useState(false)
+
+  const saveStoredFrame = useCallback(async (frame) => {
+    if (!frame?.blob || !edit?.onSaveImowPoster || savingPoster) return
+    setSavingPoster(true)
+    setPosterSaved(false)
+    try {
+      await edit.onSaveImowPoster(frame)
+      setPosterSaved(true)
+    } catch (err) {
+      notify({
+        type: 'error',
+        message: err?.message || "We couldn't save that frame. Your current thumbnail is unchanged."
+      })
+    } finally {
+      setSavingPoster(false)
+    }
+  }, [edit, savingPoster, notify])
+
   const askDelete = useCallback(() => setAsking(true), [])
   const cancelDelete = useCallback(() => { if (busy !== 'delete') setAsking(false) }, [busy])
 
@@ -305,6 +366,15 @@ export function useImowVideo({ active = true, onUploaded } = {}) {
     progress,
     previewUrl,
     previewPoster,
+    // Where the stored poster was captured, or null for one taken before
+    // the offset was recorded. The picker opens there.
+    posterAt: edit?.imowPosterAt ?? null,
+    // The stored half of the frame picker: whether this account can change a
+    // thumbnail at all, the action, and the two flags the picker row reads.
+    canSavePoster: Boolean(edit?.onSaveImowPoster),
+    saveStoredFrame,
+    savingPoster,
+    posterSaved,
     round,
     accept: ACCEPT,
     onFrame,
@@ -334,7 +404,12 @@ export function useImowVideo({ active = true, onUploaded } = {}) {
  *
  *   nothing uploaded yet   the area that opens the file picker
  *   a file chosen          the frame picker, on the file in the browser
- *   a video stored         that video, with the still it shows before it plays
+ *   a video stored         that video, in the picker, so the thumbnail can
+ *                          be changed at any time
+ *
+ * The last two are the same picker component. What differs is where the
+ * frame goes when it is captured: into the pending upload, or straight to
+ * the row. See saveStoredFrame in the hook.
  *
  * Its controls are the dialog's footer and are not here. The specs line under
  * it is the dialog's, for the same reason the character count is: it is one
@@ -353,6 +428,41 @@ export function ImowVideoBody({ video }) {
   }
 
   if (video.hasVideo) {
+    // ---- THE STORED VIDEO, AND THE SAME PICKER OVER IT ----
+    //
+    // The picker replaces the plain player rather than standing under it. It
+    // IS a player - the same stage, the same controls - plus a scrubber, Use
+    // this frame and the time, so keeping both would be the film twice in a
+    // box sized for one.
+    //
+    // It is fed the signed URL the player was already using, so nothing extra
+    // is fetched and there is no second request to go wrong. Until that URL
+    // arrives the waiting mat stands where it always did, which is also what
+    // the picker's own "neither" guard would have produced.
+    //
+    // Only where this account can actually save one. Free never reaches here
+    // at all - the locked tab is drawn in ImowEditor - but canSavePoster is
+    // about the op existing on the context, and a picker whose button could
+    // not store anything would be a control that lies.
+    if (video.canSavePoster && video.previewUrl) {
+      return (
+        <div className="hp-ed-vid hp-ed-imow-middle">
+          <VideoFramePicker
+            src={video.previewUrl}
+            onFrame={video.saveStoredFrame}
+            // Nothing is captured until the owner presses the button. See
+            // autoCapture in VideoFramePicker: the frame this hands back is
+            // saved, so an automatic one would replace their poster on open.
+            autoCapture={false}
+            // Opens on the frame behind the stored poster. Null opens at the
+            // start, which is every video from before the offset was kept.
+            startAt={video.posterAt}
+            compact
+          />
+        </div>
+      )
+    }
+
     return (
       <div className="hp-ed-vid hp-ed-imow-middle">
         {video.previewUrl ? (

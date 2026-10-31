@@ -75,7 +75,64 @@ const clock = (seconds) => {
  * here that reports something went wrong, and a frame that would not read is
  * worth a line wherever this is used.
  */
-export default function VideoFramePicker({ file, onFrame, onDuration, compact = false }) {
+/**
+ * TWO WAYS TO BE GIVEN A VIDEO, AND THEY ARE THE SAME PICKER
+ *
+ * `file` is a File in the browser that has not been uploaded. `src` is a URL
+ * for one that has - a signed link from the profile's own signing route. The
+ * second exists so the owner can change the thumbnail of a video they stored
+ * weeks ago, which is the same act on the same control and so is not a second
+ * component.
+ *
+ * Exactly one is expected. `file` wins if both arrive, because a file in hand
+ * is the newer intent.
+ *
+ * WHY src NEEDS crossOrigin
+ * Drawing a video to a canvas taints the canvas when the frames came from
+ * another origin, and a tainted canvas makes toBlob throw SecurityError - so
+ * the capture would fail on exactly the videos this mode exists for. Supabase
+ * storage answers a signed URL with access-control-allow-origin: *, so
+ * crossOrigin="anonymous" makes the response usable rather than opaque and the
+ * canvas stays clean. It is set for both modes: an object URL is same-origin
+ * and the attribute changes nothing there.
+ *
+ * startAt IS WHERE TO OPEN, IN SECONDS
+ * A poster is a picture and a picture does not say what second it is, so a
+ * picker handed a stored video has no way to find the frame behind it. The
+ * offset is recorded when the frame is saved and handed back here, so the
+ * player opens where the owner left it rather than at the start.
+ *
+ * Null means the start, which is what every video uploaded before the offset
+ * was recorded reads as. It is honoured once per video: a seek the owner
+ * performs afterwards is theirs, and this never pulls the playhead back.
+ *
+ * autoCapture IS THE ONE THING THE TWO MODES DO NOT SHARE
+ * A frame is taken a second in, by itself, as soon as the file is readable.
+ * On a file waiting to be uploaded that guarantees a real poster instead of a
+ * blank mat. On a stored video the captured frame is SAVED by the caller, so
+ * taking one automatically would overwrite the poster the owner already chose
+ * the moment they opened the editor. The stored flow passes false; everything
+ * else passes nothing and is unchanged.
+ *
+ * WHAT THE OWNER SEES IS IDENTICAL EITHER WAY
+ * Same stage, same scrubber, same "Use this frame", same time, same wording.
+ * What differs is what the caller does with the frame, which is the caller's
+ * business: the upload flow holds it and sends it with the file, and the
+ * stored flow saves it on its own. The button says what it does in both.
+ */
+export default function VideoFramePicker({
+  file,
+  src = null,
+  onFrame,
+  onDuration,
+  compact = false,
+  autoCapture = true,
+  startAt = null
+}) {
+  // The one video this render is about, whichever way it arrived. Every
+  // reset below keys off it, so a new file and a new URL are the same event
+  // as far as this component is concerned.
+  const source = file || src || null
   const videoRef = useRef(null)
   const [ready, setReady] = useState(false)
   const [duration, setDuration] = useState(null)
@@ -84,30 +141,33 @@ export default function VideoFramePicker({ file, onFrame, onDuration, compact = 
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
 
-  // The file the automatic frame has already been taken for, so it happens
-  // once per file and never fights a frame the owner chose. State rather than
-  // a ref because it is set while deciding what to do about a file, and a ref
-  // written during render is a value React has not been told about.
+  // The video the automatic frame has already been taken for, so it happens
+  // once per video and never fights a frame the owner chose. State rather
+  // than a ref because it is set while deciding what to do about a source,
+  // and a ref written during render is a value React has not been told about.
   const [autoFor, setAutoFor] = useState(null)
 
-  // The player is fed the file directly rather than through a src in state.
-  // An object URL is an external resource with a lifetime, which is what an
-  // effect is for; putting it in state would mean setting state from an effect
-  // and re-rendering the form every time a file is picked, to arrive at markup
-  // that only differs by a string the DOM already has.
+  // The player is fed its source directly rather than through a src in state:
+  // putting it there would mean setting state from an effect and re-rendering
+  // on every pick, to arrive at markup that differs by a string the DOM
+  // already has.
+  // A File becomes an object URL with a lifetime, which is what an effect is
+  // for. A URL that was handed in has no lifetime to manage, so it is only
+  // assigned - and the teardown is shared, because an element left decoding
+  // a file it can no longer reach is a download that outlives its purpose
+  // either way.
   useEffect(() => {
     const video = videoRef.current
-    if (!file || !video) return
-    const url = URL.createObjectURL(file)
+    if (!video) return
+    if (!file && !src) return
+    const url = file ? URL.createObjectURL(file) : src
     video.src = url
     return () => {
-      URL.revokeObjectURL(url)
+      if (file) URL.revokeObjectURL(url)
       video.removeAttribute('src')
-      // Without this the element keeps decoding the file it can no longer
-      // reach, which on a long video is a download that outlives its purpose.
       video.load()
     }
-  }, [file])
+  }, [file, src])
 
   // The captured frame's preview URL, revoked when it is replaced and when
   // this unmounts. Cleanup only - it sets nothing.
@@ -117,9 +177,9 @@ export default function VideoFramePicker({ file, onFrame, onDuration, compact = 
   // an effect, which is the pattern the sections use for a direction change:
   // the reset is part of deciding what to show for this file, not a reaction
   // to having shown the last one.
-  const [shownFile, setShownFile] = useState(file)
-  if (shownFile !== file) {
-    setShownFile(file)
+  const [shownFile, setShownFile] = useState(source)
+  if (shownFile !== source) {
+    setShownFile(source)
     setReady(false)
     setDuration(null)
     setAt(0)
@@ -151,7 +211,11 @@ export default function VideoFramePicker({ file, onFrame, onDuration, compact = 
           // below. Doing it inside the updater would free the new URL instead
           // of the old one the moment React calls the updater twice.
           setPoster({ url: URL.createObjectURL(blob), at: mark })
-          onFrame?.({ blob, contentType: type })
+          // The offset travels with the picture. It is what the thumbnail
+          // IS - the picture is just how it looks - and without it nothing
+          // downstream can reopen on this moment. A caller that does not
+          // want it simply does not read it.
+          onFrame?.({ blob, contentType: type, at: mark })
         },
         PREFERRED_TYPE,
         QUALITY
@@ -172,8 +236,33 @@ export default function VideoFramePicker({ file, onFrame, onDuration, compact = 
     setReady(true)
     onDuration?.(length)
 
-    if (autoFor === file) return
-    setAutoFor(file)
+    // ---- ONCE PER VIDEO, WHATEVER HAPPENS NEXT ----
+    // onLoadedMetadata fires again whenever the element reloads - the error
+    // retry in ImowVideo calls load() for exactly that reason - and neither
+    // branch below should pull the playhead back from wherever the owner has
+    // since put it.
+    if (autoFor === source) return
+    setAutoFor(source)
+
+    // ---- A STORED VIDEO OPENS ON ITS OWN THUMBNAIL ----
+    //
+    // Seek, and nothing else. autoCapture decides whether a frame is TAKEN;
+    // this decides only where the player sits, so a stored video opens on the
+    // frame behind its poster without that poster being re-saved. onSeeked
+    // tests autoCapture first, so the landing draws nothing.
+    //
+    // No offset recorded, or a zero one, and it stays where it loaded - which
+    // is the start, and is what every video from before the offset was
+    // recorded reads as.
+    if (!autoCapture) {
+      const open = Number(startAt)
+      if (!Number.isFinite(open) || open <= 0) return
+      setAt(open)
+      try { video.currentTime = open } catch { /* a seek the file will not take */ }
+      return
+    }
+
+    // ---- A FILE WAITING TO BE UPLOADED TAKES ONE BY ITSELF ----
     const mark = !length || length < MIN_FOR_DEFAULT
       ? (length ? length / 2 : 0)
       : DEFAULT_AT_SECONDS
@@ -189,10 +278,13 @@ export default function VideoFramePicker({ file, onFrame, onDuration, compact = 
     // Only the automatic one draws on its own. After that a frame is taken
     // when the owner says so, or scrubbing would replace their choice every
     // time the playhead moved.
-    if (autoFor === file && !poster) capture(video.currentTime)
+    if (autoCapture && autoFor === source && !poster) capture(video.currentTime)
   }
 
-  if (!file) return null
+  // Neither, and there is nothing to pick a frame from. The upload flow
+  // reaches this before a file is chosen; the stored flow reaches it while
+  // the signing route is still answering.
+  if (!source) return null
 
   return (
     <div className="hp-ed-frame" data-compact={compact ? 'true' : undefined}>
@@ -204,6 +296,7 @@ export default function VideoFramePicker({ file, onFrame, onDuration, compact = 
         <video
           ref={videoRef}
           className="hp-ed-frame-video"
+          crossOrigin="anonymous"
           controls
           playsInline
           preload="metadata"

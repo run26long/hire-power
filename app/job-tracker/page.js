@@ -1434,7 +1434,7 @@ export default function JobTrackerPage() {
                       marginBottom: '36px',
                       maxWidth: '340px',
                     }}>
-                      Upgrade to Vault and we'll track your achievements as they happen — so your next resume writes itself.
+                      Upgrade to Vault, and we'll track your achievements as they happen, so your next resume writes itself.
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                       {/* Billing interval selector */}
@@ -1520,8 +1520,8 @@ export default function JobTrackerPage() {
                         onMouseOut={e => e.target.style.opacity = '1'}
                       >
                         {vaultBillingInterval === 'annual'
-                          ? 'Upgrade to Vault — $49.99/yr →'
-                          : 'Upgrade to Vault — $4.99/mo →'}
+                          ? 'Upgrade to Vault - $49.99/yr →'
+                          : 'Upgrade to Vault - $4.99/mo →'}
                       </button>
                       <button
                         onClick={() => setShowHiredModal(false)}

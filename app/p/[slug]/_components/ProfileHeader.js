@@ -13,14 +13,14 @@ import ProfileMark from './ProfileMark'
 // can never drift apart, and there is no second copy of the behaviour anywhere.
 //
 // Contact is the primary conversion action and carries the filled treatment;
-// Download résumé is a real secondary button beside it, quieter but
+// Download resume is a real secondary button beside it, quieter but
 // unmistakably a control.
 //
 // Both actions are live now. Download builds the PDF on the server from the
 // direction being read; Contact is a mailto: to the address the owner set.
 //
 // Download carries a menu when, and only when, more than one direction has a
-// résumé of its own - see hasOwnResume below. Picking one downloads it and
+// resume of its own - see hasOwnResume below. Picking one downloads it and
 // nothing else: the page stays on the direction the reader was reading,
 // because choosing a file to take away is not the same gesture as changing
 // what you are looking at.
@@ -34,19 +34,19 @@ import ProfileMark from './ProfileMark'
 // for a direction that has not been written yet.
 // ============================================================================
 
-const DOWNLOAD_LABEL = 'Download résumé'
+const DOWNLOAD_LABEL = 'Download resume'
 const CONTACT_LABEL = 'Contact'
 
 function downloadTitleFor(resume, downloading, offersChoice) {
   if (downloading) return 'Building the PDF'
   if (!resume) return 'No resume published yet'
-  return offersChoice ? 'Choose which résumé to download' : 'Download this résumé as a PDF'
+  return offersChoice ? 'Choose which resume to download' : 'Download this resume as a PDF'
 }
 
 // ---------------------------------------------------------------------------
 // WHICH DIRECTIONS THE MENU MAY LIST
 //
-// Only the ones with a résumé of their own. A direction that has never had a
+// Only the ones with a resume of their own. A direction that has never had a
 // core built for it falls back to the priority core, which the download route
 // resolves on its side - so listing it offers the reader a name that hands
 // over somebody else's file.
@@ -65,7 +65,7 @@ function downloadTitleFor(resume, downloading, offersChoice) {
 // resolves to - unchanged, and still the right answer for a reader who never
 // opened a menu.
 //
-// A direction pointing at a résumé that is gone, deactivated or somebody
+// A direction pointing at a resume that is gone, deactivated or somebody
 // else's is not in lensResumes. The route falls back to the priority core for
 // exactly that case, so it is not its own answer here either.
 // ---------------------------------------------------------------------------
@@ -81,12 +81,12 @@ export function ProfileActionButtons({
   downloadError,
   onDownload,
   lenses,
-  // The résumés the server was able to resolve, keyed by id. A direction's
+  // The resumes the server was able to resolve, keyed by id. A direction's
   // own core counts only if it is in here.
   lensResumes,
   selectedLensId
 }) {
-  // Only the directions with a résumé of their own; see the note above. The
+  // Only the directions with a resume of their own; see the note above. The
   // menu is built from this rather than from every direction on the profile.
   const directions = useMemo(
     () => (Array.isArray(lenses) ? lenses : []).filter(lens => hasOwnResume(lens, lensResumes)),
@@ -185,7 +185,7 @@ export function ProfileActionButtons({
               what it is called. */}
           <span className="hp-btn-full">{downloading ? 'Building…' : DOWNLOAD_LABEL}</span>
           <span className="hp-btn-short" aria-hidden="true">
-            {downloading ? '…' : 'Résumé'}
+            {downloading ? '…' : 'Resume'}
           </span>
           {offersChoice && !downloading ? (
             <span className="hp-dl-caret" aria-hidden="true" />
@@ -193,7 +193,7 @@ export function ProfileActionButtons({
         </button>
 
         {offersChoice && menuOpen ? (
-          <div className="hp-dl-menu" role="menu" aria-label="Choose a résumé to download">
+          <div className="hp-dl-menu" role="menu" aria-label="Choose a resume to download">
             {directions.map((lens, index) => {
               const current = lens.id === selectedLensId
               return (

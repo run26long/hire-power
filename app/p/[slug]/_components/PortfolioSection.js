@@ -8,8 +8,8 @@ import PortfolioMat from './PortfolioMat'
 import EvidenceThumb from './EvidenceThumb'
 import AddEvidence from './AddEvidence'
 import { useViewerAuthHeaders } from '../_lib/viewerAuth'
-import { SlotGuide, SlotGhost, UpgradeNote, useEditSlot } from './EditAffordance'
-import { useCanShowEmpty, useCanEdit, useProfileEdit } from '../_lib/editContext'
+import { SlotGuide, SlotGhost, SectionHiddenChip, Lock, useEditSlot } from './EditAffordance'
+import { useCanShowEmpty, useCanEdit, useProfileEdit, useShowUpgradeModal } from '../_lib/editContext'
 import { directionsByItem, rowsForDirection, selectForDirection } from '../_lib/profileData'
 import { PICKABLE } from './DirectionPicker'
 import { PORTFOLIO_PREVIEW_DESKTOP, isPortfolioItem } from '@/lib/portfolio'
@@ -73,6 +73,7 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
 
   const canShowEmpty = useCanShowEmpty()
   const canEdit = useCanEdit()
+  const showUpgrade = useShowUpgradeModal()
   const slot = useEditSlot()
 
   // ---- THE ARRANGEMENT AS THE OWNER JUST LEFT IT ----
@@ -290,7 +291,7 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
   return (
     <div className="hp-practice-part hp-pf-section">
         <Reveal enabled={animate} className="hp-pf-intro">
-          <h3 className="hp-practice-sub">Portfolio</h3>
+          <h3 className="hp-practice-sub">Portfolio<SectionHiddenChip /></h3>
           <p className="hp-practice-line">The work, in frame and in motion.</p>
         </Reveal>
 
@@ -298,27 +299,27 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
             the gallery the section already had. Adding is in there too: a
             second button out here was the owner being asked the same question
             in two places. */}
-        {canEdit ? (
+        {canShowEmpty ? (
           <div className="hp-ed-manage-row">
             {/* Beside Manage rather than under it, and only where the grid
                 has no slot left to ask in: below that count the next mat
                 carries the invitation, and a second control saying the same
                 thing would be the owner asked the same question twice. The
-                row renders only for an owner in Edit mode, so neither Preview
-                nor the public page has either control. */}
+                row renders for an owner in Edit mode on every plan, and a
+                gated press opens the Pro modal rather than the panel. */}
             {shown.length >= PORTFOLIO_PREVIEW_DESKTOP ? (
               <button
                 type="button"
                 className="hp-ed-action"
                 data-primary="true"
-                onClick={() => setOpenAdd(n => n + 1)}
+                onClick={canEdit ? () => setOpenAdd(n => n + 1) : showUpgrade}
               >
-                + Add to portfolio
+                {canEdit ? null : <Lock />}+ Add to portfolio
               </button>
             ) : null}
 
-            <button type="button" className="hp-ed-manage" onClick={openManage} aria-haspopup="dialog">
-              Manage portfolio
+            <button type="button" className="hp-ed-manage" onClick={canEdit ? openManage : showUpgrade} aria-haspopup="dialog">
+              {canEdit ? null : <Lock />}Manage portfolio
             </button>
           </div>
         ) : null}
@@ -344,7 +345,7 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
                     feature="portfolio"
                     onAction={() => setOpenAdd(n => n + 1)}
                   >
-                    A résumé can only describe the work. Your Career Profile lets
+                    A resume can only describe the work. Your Career Profile lets
                     people see it. Add photos or video of what you built, led,
                     improved, or delivered.
                   </SlotGuide>
@@ -445,7 +446,7 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
             the Manage row opens it, the same way the guidance mat does. */}
         {canEdit
           ? <AddEvidence only="visual" openSignal={openAdd} trigger={false} />
-          : ordered.length > 0 ? <UpgradeNote feature="portfolio" /> : null}
+          : null}
 
       <PortfolioLightbox
         key={`${directionKey}:${visit}`}
@@ -463,7 +464,7 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
         // the grid can never offer a way into a panel this account does not
         // get. Absent outside Edit mode, which is how Preview and the public
         // page end up with no button at all.
-        onManage={canEdit ? openManage : undefined}
+        onManage={canShowEmpty ? (canEdit ? openManage : showUpgrade) : undefined}
         manageTitle={editingItem ? 'Edit work' : 'Manage portfolio'}
         manageCount={editingItem ? undefined : manageItems.length}
         manageBody={editingItem ? (

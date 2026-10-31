@@ -182,9 +182,6 @@ export async function PATCH(request, { params }) {
       await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Naming a direction is writing on the profile.
-    const gate = await requireCustomise(user.id)
-    if (gate) return gate
 
     let body
     try {
@@ -212,6 +209,26 @@ export async function PATCH(request, { params }) {
 
     if (Object.keys(patch).length === 0) {
       return Response.json({ error: 'Nothing to save.', code: 'EMPTY' }, { status: 400 })
+    }
+
+    // ---- WHO MAY WRITE WHAT ----
+    //
+    // This gated the whole route, which is what kept a free account from
+    // typing its own headline, About, proof points and Open to tags. Those
+    // four are the owner's own words about their own career and are writable
+    // on every plan now - see FREE_WRITABLE in _lib/editContext, which is the
+    // same list said on the other side.
+    //
+    // ready_for_next is not one of them, and it travels through this same
+    // route, so the question is asked per field rather than per request. A
+    // body carrying only free-writable keys goes through; one that also
+    // carries ready_for_next is refused whole rather than partly applied,
+    // because a partial save of a form somebody filled in is worse than a
+    // refusal they can see.
+    const FREE_FIELDS = new Set(['headline', 'bio', 'proof_points', 'ready_tags'])
+    if (Object.keys(patch).some(key => !FREE_FIELDS.has(key))) {
+      const gate = await requireCustomise(user.id)
+      if (gate) return gate
     }
 
     patch.updated_at = new Date().toISOString()

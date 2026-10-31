@@ -12,6 +12,8 @@ import PDFViewer from '@/app/components/PDFViewer'
 import { fetchJSON } from '@/lib/fetchJSON'
 import CoachReviseModal from '@/app/components/CoachReviseModal'
 import UpgradeModal from '@/app/components/UpgradeModal'
+import { canAccessBuiltWork, UPGRADE_HREF, UPGRADE_LABEL } from '@/lib/tiers'
+import { ALLOWANCE_TIERS } from '@/lib/allowance'
 
 // Mirrors the display_name convention job-specific resumes are created with,
 // so a job reads the same whichever document you are looking at.
@@ -617,6 +619,67 @@ export default function CoverLetterPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    )
+  }
+
+  // ---- LOCKED ----
+  //
+  // A cover letter written on Pro stays the owner's, and on Vault it opens and
+  // downloads as it always did. On Free it does not: writing it was part of
+  // what Pro paid for, and this page is where a direct link lands.
+  //
+  // The shape canOpenResume has, said about a cover letter: paid plans open
+  // everything, and a free account opens what it made on its own allowance.
+  // created_tier is what distinguishes the two, stamped on insert by a trigger
+  // rather than by the application - see
+  // scripts/add-created-tier-and-subscription-events.sql. A row carrying no
+  // stamp at all is treated as the account's own, because refusing somebody
+  // their own letter over a missing column is the worse of the two mistakes.
+  //
+  // Rendered instead of the editor rather than over it: an editor behind a
+  // dialog is still an editor, and the save handlers underneath it would still
+  // work. A profile that has not loaded is not permission, so this waits for
+  // one rather than assuming the strict answer.
+  const letterTier = coverLetter?.created_tier || null
+  const letterIsLocked = Boolean(coverLetter)
+    && Boolean(userProfile)
+    && !canAccessBuiltWork(userProfile?.subscription_tier)
+    && letterTier !== null
+    && !ALLOWANCE_TIERS.has(letterTier)
+
+  if (letterIsLocked) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <MainNav currentPage="resume-coach" userProfile={userProfile} />
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="bg-white rounded-2xl border border-[#ece9f6] max-w-md w-full p-7 text-center"
+            style={{ boxShadow: '0 18px 40px -28px rgba(76,49,150,0.28)' }}>
+            <div className="text-3xl mb-3">&#128274;</div>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#7c3aed' }}>
+              Part of Vault
+            </p>
+            <h1 style={{ marginTop: 10, fontSize: 21, fontWeight: 650, letterSpacing: '-0.02em', color: '#17132a' }}>
+              {coverLetter.job_title ? `Your ${coverLetter.job_title} letter` : 'This cover letter'} is still here.
+            </h1>
+            <p style={{ marginTop: 8, fontSize: 14, lineHeight: 1.55, color: '#5f5a72' }}>
+              Cover letters you wrote on Pro are part of Vault and Pro. Nothing has been deleted, and it opens again the moment you upgrade.
+            </p>
+            <button
+              onClick={() => router.push(UPGRADE_HREF)}
+              className="w-full text-white rounded-lg py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
+              style={{ marginTop: 20, background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+            >
+              {UPGRADE_LABEL} for $4.99/mo
+            </button>
+            <button
+              onClick={() => router.push('/resume-coach')}
+              className="w-full mt-2 py-2.5 rounded-lg text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              Back to Resume Writer
+            </button>
+          </div>
+        </div>
       </div>
     )
   }

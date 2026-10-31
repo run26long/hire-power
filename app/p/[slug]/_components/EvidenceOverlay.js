@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-
+import { Lock } from './EditAffordance'
+import { useIsGated } from '../_lib/editContext'
 
 import EvidenceThumb from './EvidenceThumb'
 import { EvidenceStage, EvidenceFoot, metaLine } from './EvidenceViewer'
@@ -60,6 +61,11 @@ export default function EvidenceOverlay({
   manageCount,
   manageBody
 }) {
+  // The same question the section's own Manage control asks, asked here
+  // rather than passed in: these portal onto the body but are still children
+  // of the document in the React tree, so the edit context reaches them.
+  const manageLocked = useIsGated()
+
   const [family, setFamily] = useState('all')
 
   // One identity for every card in the grid, so a gallery of twenty does not
@@ -263,7 +269,7 @@ export default function EvidenceOverlay({
                   onClick={onManage}
                   aria-haspopup="dialog"
                 >
-                  Manage
+                  {manageLocked ? <Lock /> : null}Manage
                 </button>
               ) : null}
               <button type="button" className="hp-ev-close" ref={closeRef} aria-label="Close" onClick={onClose}>

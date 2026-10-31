@@ -277,8 +277,8 @@ export async function POST(request) {
       support = await assessSupport({
         name,
         knowledge: entries,
-        // Every direction they hold, whatever its status. A hidden or
-        // dismissed one is still one they have: offering to build a second
+        // Every direction they hold, whatever its status. One they have
+        // switched off is still one they have: offering to build a second
         // copy of something sitting in their own list would be the worst kind
         // of duplicate, because the first one is invisible to them.
         existingNames: (existing || []).map(l => l.name).filter(Boolean)

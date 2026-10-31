@@ -380,7 +380,7 @@ export default function CareerVaultPage() {
           // core a free account keeps is decided by the flag first and the
           // newest second, and without the flag this list would lock a
           // different core than the hub does.
-          .select('id, display_name, current_score, resume_type, job_title, job_company, updated_at, created_at, is_priority_core')
+          .select('id, display_name, current_score, resume_type, job_title, job_company, updated_at, created_at, is_priority_core, created_tier')
           .eq('user_id', user.id)
           .eq('is_active', true)
           .order('updated_at', { ascending: false });
@@ -921,12 +921,12 @@ export default function CareerVaultPage() {
       num: '01',
       eyebrow: 'Profile',
       title: 'Build your Career Profile',
-      desc: 'Add the story, context, and perspective a résumé can’t hold.',
+      desc: 'Add the story, context, and perspective a resume can’t hold.',
       locked: !mayCustomiseProfile,
       onClick: () => (mayCustomiseProfile
         ? router.push('/career-profile')
         : promptUpgrade(
-            'Build the profile a résumé cannot hold.',
+            'Build the profile a resume cannot hold.',
             'Your Career Profile carries the story, context and perspective behind the work. Writing your own is part of Vault and Pro.'
           )),
     },
@@ -1034,8 +1034,8 @@ export default function CareerVaultPage() {
     },
     {
       icon: '📄',
-      title: 'Your résumés',
-      desc: 'Return to the résumés you’ve created.',
+      title: 'Your resumes',
+      desc: 'Return to the resumes you’ve created.',
       onClick: () => (resumeCount > 0 ? setShowResumeListModal(true) : router.push('/resume-coach')),
     },
     {
@@ -1047,14 +1047,14 @@ export default function CareerVaultPage() {
         ? setShowArchiveModal(true)
         : promptUpgrade(
             'Nothing you built is thrown away.',
-            'Every résumé and job card you have archived stays here, ready to reopen. Reaching back into it is part of Vault and Pro.'
+            'Every resume and job card you have archived stays here, ready to reopen. Reaching back into it is part of Vault and Pro.'
           )),
     },
   ];
 
-  // ---- WHERE "START MY NEXT RÉSUMÉ" GOES ----
+  // ---- WHERE "START MY NEXT RESUME" GOES ----
   // The Resume Writer, which is where every other route into resume building
-  // in this file already goes. The Vault-to-résumé workflow this button is
+  // in this file already goes. The Vault-to-resume workflow this button is
   // eventually for has not been built; when it is, this function is the only
   // thing that changes.
   const startNextResume = () => router.push('/resume-coach');
@@ -1068,20 +1068,20 @@ export default function CareerVaultPage() {
   // addressed to a plan you are not on is worse read aloud than seen.
   //
   // Pro can build, so it is offered the build. Vault and maintenance have
-  // everything saved and need the plan that turns it into a résumé. Free has
+  // everything saved and need the plan that turns it into a resume. Free has
   // not started keeping it yet, so the offer is the Vault, not Pro: the
   // cheaper plan is the honest answer to "your career data is already here".
   const searchModule = mayStartNewSearch
     ? {
         title: 'Ready to search again?',
-        body: 'Everything in your Vault is ready to work for you. Turn what Hire Power has learned into your next résumé and job search.',
-        cta: 'Start my next résumé →',
+        body: 'Everything in your Vault is ready to work for you. Turn what Hire Power has learned into your next resume and job search.',
+        cta: 'Start my next resume →',
         onClick: startNextResume,
       }
     : isKeepingRatherThanBuilding
     ? {
         title: 'Ready to search again?',
-        body: 'Everything you’ve saved is ready to work for you. Restart with Pro and turn your Vault into your next résumé, applications, and interview prep.',
+        body: 'Everything you’ve saved is ready to work for you. Restart with Pro and turn your Vault into your next resume, applications, and interview prep.',
         cta: 'Restart with Pro →',
         // The Pro upgrade this page already carries, which is also how a
         // lapsed subscription is restarted: one checkout, one price, and no
@@ -1152,7 +1152,7 @@ export default function CareerVaultPage() {
               {
                 num: '1',
                 title: 'Hire Power remembers for you',
-                desc: 'Coaching, interviews, résumés, testimonials, and evidence all add to your Vault.',
+                desc: 'Coaching, interviews, resumes, testimonials, and evidence all add to your Vault.',
               },
               {
                 num: '2',
@@ -1167,12 +1167,12 @@ export default function CareerVaultPage() {
               {
                 num: '4',
                 title: 'Build the bigger picture',
-                desc: 'Add evidence, collect testimonials, and expand your Career Profile beyond the résumé.',
+                desc: 'Add evidence, collect testimonials, and expand your Career Profile beyond the resume.',
               },
               {
                 num: '5',
                 title: 'Use it when it matters',
-                desc: 'Everything in your Vault makes future résumés, interviews, reviews, and negotiations easier.',
+                desc: 'Everything in your Vault makes future resumes, interviews, reviews, and negotiations easier.',
               },
               {
                 num: '6',
@@ -1329,7 +1329,7 @@ export default function CareerVaultPage() {
                       Your career, remembered.
                     </h1>
                     <p style={{ marginTop: 12, fontSize: 15, lineHeight: 1.55, color: '#665E73', maxWidth: 610 }}>
-                      Hire Power has been paying attention. Everything it learns about you makes the next résumé, interview, and job search easier.
+                      Hire Power has been paying attention. Everything it learns about you makes the next resume, interview, and job search easier.
                     </p>
 
                     {sinceLastVisit > 0 && (
@@ -1501,7 +1501,7 @@ export default function CareerVaultPage() {
                         {accomplishments.length > 4 && (
                           <button
                             onClick={() => setShowOlderWinsModal(true)}
-                            className="w-full text-center pt-4 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                            className="w-full text-center pt-4 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors cursor-pointer"
                           >
                             See {accomplishments.length - 4} more win{accomplishments.length - 4 > 1 ? 's' : ''} →
                           </button>
@@ -1863,7 +1863,7 @@ export default function CareerVaultPage() {
                 <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
                 <div>
                   <h2 className="text-xl font-bold text-white">Job Archive</h2>
-                  <p className="text-purple-100 text-xs">{archivedCards.length + archivedCoreResumes.length} archived items — resumes and history preserved</p>
+                  <p className="text-purple-100 text-xs">{archivedCards.length + archivedCoreResumes.length} archived items. Resumes and history preserved.</p>
                 </div>
               </div>
             </div>
@@ -2548,10 +2548,15 @@ export default function CareerVaultPage() {
                       <button
                         onClick={() => (openable
                           ? (() => { setShowResumeListModal(false); router.push(`/resume/${resume.id}`); })()
-                          : promptUpgrade('Your résumés stay yours.', LOCK_COPY[lockReason(resume)]))}
+                          : promptUpgrade('Your resumes stay yours.', LOCK_COPY[lockReason(resume)]))}
                         className="text-[10px] text-purple-600 font-semibold hover:text-purple-700"
                       >{openable ? 'View' : 'Unlock'}</button>
-                      {resume.resume_type !== 'core' && (
+                      {/* Pro only. Outside it, a job-specific resume counts
+                          against an allowance that never resets, so taking it
+                          off the list would spend the slot and return nothing.
+                          A core resume has no such cost and keeps its own
+                          archive control elsewhere on this page. */}
+                      {resume.resume_type !== 'core' && canCreateResumes(tier) && (
                         <button
                           onClick={() => setConfirmArchiveResume(resume)}
                           className="text-[10px] text-gray-500 font-semibold hover:text-gray-700"

@@ -1,6 +1,6 @@
 'use client'
 
-import { EditPencil, SlotGuide, SlotGhost, GhostText, useEditSlot, UpgradeNote } from './EditAffordance'
+import { EditPencil, SlotGuide, SlotGhost, GhostText, useEditSlot } from './EditAffordance'
 import { ProseEditor } from './EditFields'
 import ProofPointsManage from './ProofPointsManage'
 import { useFieldEditor, useCanShowEmpty } from '../_lib/editContext'
@@ -211,11 +211,6 @@ export default function IdentityAct({
               )}
             </div>
           )}
-
-          {/* The public page closes this region when a direction has no
-              figures. In edit mode it stays open, because an absence the
-              owner cannot see is an absence they cannot fill. */}
-          <UpgradeNote feature="identity" />
 
           {/* The public proof composition, empty: the lead figure with its
               rotated caption and the two supporting figures beside it, in the

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { Lock } from './EditAffordance'
+import { useIsGated } from '../_lib/editContext'
 
 // ============================================================================
 // EVERY FIRSTHAND ACCOUNT, WHEN THERE ARE MORE THAN THE PAGE SHOWS
@@ -34,6 +36,11 @@ const FOCUSABLE = [
 // modes of one, so it closes this and opens that - which is the same thing
 // from the reader's side and still never two dialogs at once.
 export default function TestimonialsAll({ items, onClose, onManage }) {
+  // The same question the section's own Manage control asks, asked here
+  // rather than passed in: these portal onto the body but are still children
+  // of the document in the React tree, so the edit context reaches them.
+  const manageLocked = useIsGated()
+
   const surfaceRef = useRef(null)
   const closeRef = useRef(null)
   const returnTo = useRef(null)
@@ -126,7 +133,7 @@ export default function TestimonialsAll({ items, onClose, onManage }) {
                 onClick={onManage}
                 aria-haspopup="dialog"
               >
-                Manage
+                {manageLocked ? <Lock /> : null}Manage
               </button>
             ) : null}
 

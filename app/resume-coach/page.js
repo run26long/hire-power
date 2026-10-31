@@ -12,9 +12,12 @@ import ErrorToast from '../components/ErrorToast';
 import { getJobSources } from '../utils/getJobSources';
 import { track } from '../utils/analytics';
 import { TIERS } from '@/lib/subscription';
-import { canAccessBuiltWork, canCreateResumes } from '@/lib/tiers';
+import { canAccessBuiltWork, canCreateResumes, UPGRADE_HREF } from '@/lib/tiers';
 import { LOCK_COPY } from '@/lib/resumeAccess';
-import { hasRealCore, ONE_CORE_MESSAGE } from '@/lib/coreResumes';
+import { hasRealCore, ONE_CORE_MESSAGE, CORE_COACHING_USED_MESSAGE } from '@/lib/coreResumes';
+import MiniProfileCard, { BOLT } from '../components/MiniProfileCard';
+import Popover from '../components/Popover';
+import { ALLOWANCE_LIMIT } from '@/lib/allowance';
 import ResumeContent from '../components/ResumeContent';
 import Breadcrumb from '../components/Breadcrumb';
 import { fetchJSON } from '@/lib/fetchJSON';
@@ -106,6 +109,91 @@ async function fireB2IfThird(supabase) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// THE GO PRO LINK UNDER A PANEL
+//
+// It was a fourth dashed card under the three slots, which made the panel look
+// like it held four things and left the three slots reading as four. The offer
+// is not one of the three; it is what to do when they run out. So it is a link
+// under them rather than a row among them, and the panel always shows exactly
+// three cards.
+//
+// The chip is the house mark in the brand gradient - the one thing on the page
+// that is Hire Power's rather than the account's - at the size a line of text
+// can carry. Same bolt path the Career Profile miniature draws.
+// ─────────────────────────────────────────────────────────────────────────────
+function GoProLink({ onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center justify-center group"
+      style={{ marginTop: 12, gap: 8 }}
+    >
+      <span
+        aria-hidden="true"
+        className="flex items-center justify-center flex-shrink-0"
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: 6,
+          background: 'linear-gradient(135deg, #667eea, #764ba2)',
+          boxShadow: '0 2px 6px rgba(118,75,162,.35)'
+        }}
+      >
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="#ffffff">
+          <path d={BOLT} />
+        </svg>
+      </span>
+      <span className="text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors cursor-pointer">
+        {children}
+        {/* The arrow is the same purple and not bold, so the words carry the
+            weight and it reads as a direction rather than a fifth word. */}
+        <span className="font-normal"> →</span>
+      </span>
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// THREE SLOTS, AND WHAT IS IN THEM
+//
+// Free and Vault get three job match scores and three cover letters for life.
+// The panel has always shown three slots; what it could not show was the
+// difference between a slot nobody has used and a slot that was used and then
+// deleted. Those looked identical - an empty dashed box - which is how an
+// account comes to read "1 of 3 remaining" above three empty-looking rows.
+//
+// So the counter and the live rows are laid out together:
+//
+//   live    something they made and still have
+//   used    the counter says it was spent and there is no row for it. Almost
+//           always a delete; nothing else removes one.
+//   create  the first slot they can still use, as a button
+//   empty   the rest, numbered, exactly as before
+//
+// CLAMPED AT ZERO
+// live items can outnumber the counter - an account whose Vault job match
+// scores were never counted, before the counter learned to count them. The
+// subtraction would go negative and render a negative number of rows, so it
+// is floored, and such an account simply sees its live items and no used
+// slots. It is also capped at what is left, so the three never becomes four.
+// ─────────────────────────────────────────────────────────────────────────────
+const ALLOWANCE_SLOTS = ALLOWANCE_LIMIT;
+
+function allowanceSlots(live, counter) {
+  const items = (live || []).slice(0, ALLOWANCE_SLOTS);
+  const spent = Math.max(0, (counter ?? 0) - items.length);
+  const usedCount = Math.min(spent, ALLOWANCE_SLOTS - items.length);
+
+  const slots = items.map(item => ({ kind: 'live', item }));
+  for (let i = 0; i < usedCount; i++) slots.push({ kind: 'used' });
+  while (slots.length < ALLOWANCE_SLOTS) {
+    slots.push({ kind: slots.some(s => s.kind === 'create') ? 'empty' : 'create' });
+  }
+  return slots;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Hub spotlight tour
 // Desktop only. Runs once, the first time a user lands on the hub with a core
 // resume already in hand. Each stop dims the page, cuts a hole around a real
@@ -113,13 +201,47 @@ async function fireB2IfThird(supabase) {
 // ─────────────────────────────────────────────────────────────────────────────
 const HUB_TOUR_KEY = 'hp_hub_tour_complete';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// THE SAMPLE PROFILE IN THE CARD'S DRAWING
+//
+// What the miniature shows when the account's own profile cannot fill it: on
+// the notice, where there is no profile yet, and on the invitation where the
+// profile is missing its name, its headline or three proof points.
+//
+// Real values, copied from the daniel-mercer-test Career Profile, rather than
+// invented ones. A drawing of a page is a claim about what the page looks like,
+// and lorem numbers in it would be a claim nobody could check. These came off
+// that profile's leading direction in its public order, which is the same cut
+// the live version takes.
+//
+// Hardcoded on purpose. It is one fixed illustration, shown to accounts that
+// have no profile of their own, so reading it at runtime would be a query
+// every hub load makes to draw a constant - and it would break the day that
+// test account is edited.
+// ─────────────────────────────────────────────────────────────────────────────
+const SAMPLE_PROFILE = {
+  name: 'Daniel Mercer',
+  directions: ['Business Development', 'Executive Leadership'],
+  headline: 'Business development leader scaling revenue through structured pipeline and consultative account management',
+  proofPoints: [
+    { num: '$5M+', label: 'annual recurring revenue added at Trident' },
+    { num: '$2M-$3M', label: 'projected revenue from three accounts in four weeks' },
+    { num: '$6M to $20M', label: 'revenue scaling at Trident Industrial' }
+  ]
+};
+
 const HUB_TOUR_STEPS = [
   {
     id: 'core-actions',
     targets: ['core-actions'],
     placement: 'right',
     title: 'Core resume quick actions',
-    body: 'Open and edit your resume, create a version for a specific job, download your PDF, or delete and start over. Everything starts here.'
+    body: 'Open and edit your resume, create a version for a specific job, download your PDF, or delete and start over. Everything starts here.',
+    // Creating a job-specific version and deleting are both Pro: the delete
+    // button in this very cluster is wrapped in isPro, and the job-specific
+    // flow answers with the upgrade modal. So the Free version names what Free
+    // can do and says where the rest is.
+    freeBody: 'Open and edit your resume or download your PDF. With Pro, you can also create a version for a specific job. Everything starts here.'
   },
   {
     id: 'score',
@@ -144,7 +266,7 @@ const HUB_TOUR_STEPS = [
     body: "Employers expect a resume that matches their posting. Paste any job description and we'll customize your resume to fit. Each version lives here with its own match score.",
     // Free tier sees the Job Match Scores card in this slot, not job-specific resumes.
     freeTitle: 'See how you match up',
-    freeBody: "Paste any job description and we'll score how well your resume matches. You get 3 free job match scores to help you target your strongest opportunities."
+    freeBody: "Paste any job description and we'll score how well your resume matches. Your plan includes 3 job match scores to help you target your strongest opportunities."
   },
   {
     id: 'cover-letters',
@@ -152,14 +274,37 @@ const HUB_TOUR_STEPS = [
     placement: 'left',
     title: 'Cover letters that connect the dots',
     body: "Paste a job posting and we'll write a cover letter that ties your experience to what they're looking for. Works with or without a tailored resume for that job.",
-    freeBody: "Paste a job posting and we'll write a cover letter that ties your experience to what they're looking for. You get 3 free cover letters."
+    freeBody: "Paste a job posting and we'll write a cover letter that ties your experience to what they're looking for. Your plan includes 3 cover letters."
   },
   {
     id: 'job-tracker',
     targets: ['job-tracker'],
     placement: 'bottom',
     title: 'Everything for every job, one place',
-    body: 'When you create a resume or cover letter for a specific job, a job card is automatically created in your Job Tracker. It keeps the job description, your tailored resume, and your cover letter together so nothing gets lost.'
+    body: 'When you create a resume or cover letter for a specific job, a job card is automatically created in your Job Tracker. It keeps the job description, your tailored resume, and your cover letter together so nothing gets lost.',
+    freeBody: 'When you score a job or write a cover letter for a specific job, a job card is automatically created in your Job Tracker. It keeps the job description and your cover letter together, so nothing gets lost.'
+  },
+  // Last, because it is the one stop that is not about this page. It is also
+  // the one stop that is not always here: both states of the Career Profile
+  // slot carry the data-tour, but the slot itself is empty for an account
+  // that has finished coaching and has no profile row. Tour drops any stop
+  // whose target is missing, so that account gets six steps, a counter that
+  // reads "of 6", and "Got it ✓" on the Job Tracker stop - all without this
+  // list knowing anything about it.
+  //
+  // Two sets of words for the two states, resolved where the tour is mounted.
+  // The invitation describes a page that exists; the notice cannot, so it
+  // offers the reason to finish instead. Same split as the card's own copy,
+  // and keyed off the same flag, so the stop and the thing it is pointing at
+  // can never say different things.
+  {
+    id: 'career-profile',
+    targets: ['career-profile'],
+    placement: 'top',
+    title: 'Your Career Profile',
+    body: 'We built it from your resume coaching. A resume is one snapshot of your career. Your Career Profile brings the whole gallery into view, in one link you can share.',
+    adTitle: 'Your Career Profile is next',
+    adBody: "Your career deserves more than one page. Finish your core resume, and we'll build your Career Profile from it."
   }
 ];
 
@@ -828,6 +973,26 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   };
 
   const handleDeleteResume = async (resumeId) => {
+    // Outside Pro a job-specific resume cannot be taken off the panel: the
+    // allowance is for life and nothing hands a slot back, so removing one
+    // would cost the work and keep the cost.
+    //
+    // THIS IS THE ENFORCEMENT, NOT A SECOND LAYER
+    // There is no database trigger behind it. One was written and deliberately
+    // not installed: these rows are removed by cascade when an account is
+    // deleted, and a BEFORE DELETE trigger that reads profiles cannot survive
+    // that - the profiles row is already gone by then, so it would refuse the
+    // cascade and break account deletion on every plan. So the button is
+    // hidden on these plans and this is the check. Anyone holding the account's
+    // own key can still do it directly.
+    //
+    // The core resume is not in that rule - archiving it is how somebody
+    // starts again - so it is excluded by id rather than by tier.
+    if (!mayCreate && resumeId !== coreResume?.id) {
+      setConfirmDeleteId(null);
+      setErrorToast("Job-specific resumes can't be deleted on your plan. Each one counts toward your 3 for life.");
+      return;
+    }
     try {
       setDeletingId(resumeId);
       const now = new Date().toISOString();
@@ -1104,6 +1269,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   }
 
   const handleDeleteCoverLetter = async (clId) => {
+    // Outside Pro the allowance is for life and nothing hands a slot back,
+    // so deleting would cost the work and keep the cost. See
+    // handleDeleteResume above.
+    if (!mayCreate) {
+      setConfirmDeleteCLId(null);
+      setErrorToast("Cover letters can't be deleted on your plan. Each one counts toward your 3 for life.");
+      return;
+    }
     try {
       setDeletingCLId(clId);
       const { error } = await supabase
@@ -1161,8 +1334,34 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       improve: `/resume/${resumeId}?step=format`,
       format: `/resume/${resumeId}?step=save`
     };
-    
-    router.push(nextSteps[journeyStep] || `/resume/${resumeId}`);
+
+    const destination = nextSteps[journeyStep] || `/resume/${resumeId}`;
+
+    // ---- ONE FULL COACHING SESSION, EVER ----
+    //
+    // Outside Pro the core gets coached once per account, archived cores
+    // counted. /api/coach refuses a second start; this is so the refusal is
+    // an offer here rather than a dead session two pages in.
+    //
+    // Only when this step is the one that starts a session, and only when
+    // this resume has no conversation to go back to - a core already being
+    // coached, or already coached and reopened, is continuing rather than
+    // starting, which is what the route allows too.
+    //
+    // Either heading into the coach step from Assess, or already standing on
+    // it. The second case is the one the panel is showing the spent-session
+    // sentence for, and its button has to answer the same way - from that step
+    // the button navigates on to Improve, so without it the button would walk
+    // past the lock rather than into it.
+    //
+    // coachingLockShowing is the shared flag: the panel's sentence and the
+    // button's label read it too.
+    if (coachingLockShowing && (destination.includes('step=coach') || journeyStep === 'coach')) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    router.push(destination);
   };
 
   // Journey step messages (tier-specific)
@@ -1172,8 +1371,15 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     const messages = {
       review: "Your resume is in! Now make sure everything landed in the right place - AI parsing is good, not perfect. Give it a quick review, then we'll assess.",
       assess: "Time to assess what you’re working with. Get your Resume Power Score and a breakdown of what's working and what's not - specific to your experience, not generic advice.",
+      // Outside Pro there is one full session, ever. Before it is spent, this
+      // says what it is and that there is one of it; after, it says so and
+      // points at the plan that lifts it - the same sentence the lock itself
+      // uses, from lib/coreResumes, so the hub and the resume page cannot word
+      // one refusal two ways.
       coach: isFree
-        ? "Get a taste of what coaching can do. We'll have a real conversation about one of your jobs and surface an achievement worth adding. Then, you decide if you want the full session."
+        ? (coachingLockShowing
+            ? CORE_COACHING_USED_MESSAGE
+            : "Your career deserves a conversation. We'll talk through your experience and surface the achievements your resume is leaving out. Your plan includes one full coaching session.")
         : "Chat your way to a better resume. Through conversation, we'll uncover quantifiable achievements, transferable skills, and results you forgot were impressive.",
      improve: isFree 
         ? "Review the suggestions from your assessment and make changes directly to your resume. When you're done, you can format, save, and download your improved resume."
@@ -1181,7 +1387,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       format: "Content is locked in. Run Auto-fit to get the perfect page fit, try different templates, and preview the end result before downloading.",
       save: isFree
         ? "Your core resume is complete! Download it for immediate use, and when you're ready, upload a job description to create a cover letter or see how well your resume matches that role."
-        : "Your core resume is bulletproof. Download it for immediate use, or create job-specific versions with a cover letters to match."
+        : "Your core resume is bulletproof. Download it for immediate use, or create job-specific versions with cover letters to match."
     };
     return messages[step] || messages.review;
   };
@@ -1271,16 +1477,44 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   const clLimitReached = !isPro && (data?.userProfile?.cl_count ?? 0) >= 3;
   const jmsLimitReached = !isPro && (data?.userProfile?.jms_count ?? 0) >= 3;
 
-  // ---- THE CAREER PROFILE INVITATION ----
-  // Shown once there is something to show: a coached core resume, which is
-  // what the profile is written out of, and a Career Profile row to send them
-  // to. Either one missing and the card would point at an empty page.
+  // ---- THE CAREER PROFILE SLOT ----
   //
-  // This is where the core-resume selector used to be - three tiles, one per
-  // Career Direction, each either a core to switch to or a core to build.
-  // Directions live on the Career Profile now, and this card is the way
-  // across rather than a second place to manage them.
-  const showCareerProfileCard = Boolean(coreResume?.coaching_complete) && data?.hasCareerProfile === true;
+  // One slot under the resume card, and two things that can fill it.
+  //
+  // The invitation, once there is something to open: a coached core resume,
+  // which is what the profile is written out of, and a Career Profile row to
+  // send them to. Either one missing and the card would point at an empty
+  // page.
+  //
+  // The notice, while the core resume is still being coached - which is the
+  // moment the profile is worth telling somebody about, because it is the
+  // reason to finish.
+  //
+  // Coached with no profile row falls between the two and gets neither. That
+  // is a state the account should not be in for long (coaching creates the
+  // row), and the honest thing to show for it is nothing rather than an offer
+  // that would 404 or a promise that has already come due.
+  const coachingDone = Boolean(coreResume?.coaching_complete);
+  const showCareerProfileCard = coachingDone && data?.hasCareerProfile === true;
+  const showCareerProfileAd = Boolean(coreResume) && !coachingDone;
+  // Whether the slot is filled at all. The resume card above tightens its
+  // padding and drops its subtitle to make room, and it has to do that for
+  // either card rather than for one of them - otherwise the page spaces
+  // itself differently depending on which is showing.
+  const careerProfileSlotFilled = showCareerProfileCard || showCareerProfileAd;
+
+  // ---- THE ONE COACHING SESSION, SPENT ----
+  // One flag for the three things that have to agree about it: the sentence in
+  // "What This Means", the label on the button beside it, and what the button
+  // does. It was three separate conditions, which is how the panel came to
+  // announce the lock while the button still offered to start a session.
+  const coachingLockShowing = !isPro
+    && data?.coreCoachingUsed === true
+    && !coreResume?.has_coaching_conversation;
+  // The owner's own profile in the drawing where the route could fill it, the
+  // fixed sample otherwise. The route returns null rather than a part-filled
+  // object, so this is the whole decision - see careerProfilePreview there.
+  const miniProfileData = data?.careerProfilePreview || SAMPLE_PROFILE;
 
   // What to call a job-specific resume in a list. The job title, which is what
   // every one of these is made from and named after - except the ones that are
@@ -1325,7 +1559,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 
                 {/* Core Resume Card (8 cols) */}
                 <div className="col-span-1 md:col-span-8 md:flex md:flex-col md:min-h-0">
-                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 ${showCareerProfileCard ? "md:py-3" : "md:py-4"}`}>
+                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 ${careerProfileSlotFilled ? "md:py-3" : "md:py-4"}`}>
                    <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2 min-w-0">
                         <h2 className="text-lg font-semibold text-gray-900 truncate">{coreResume?.display_name || 'Core Resume'}</h2>
@@ -1336,7 +1570,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       </div>
                       <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Writer</span>
                     </div>
-                    {!showCareerProfileCard && (
+                    {!careerProfileSlotFilled && (
                       <p className="text-sm text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
                     )}
                     
@@ -1688,38 +1922,127 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           </>
                         ) : (
                           <>
-                            {displayStep === 'coach' && coreResume?.has_coaching_conversation ? 'Continue Coaching' : getButtonText(displayStep)} {displayStep !== 'save' && '→'}
+                            {coachingLockShowing && displayStep === 'coach'
+                              ? 'Upgrade to Pro →'
+                              : <>{displayStep === 'coach' && coreResume?.has_coaching_conversation ? 'Continue Coaching' : getButtonText(displayStep)} {displayStep !== 'save' && '→'}</>}
                           </>
                         )}
                       </button>
                     </div>
                   </div>
 
-                  {/* ---- THE CAREER PROFILE INVITATION ----
+                  {/* ---- THE CAREER PROFILE SLOT ----
                       Where the core-resume selector used to be: three tiles,
                       one per Career Direction, each either a core to switch to
                       or a core to build. There is one core resume now and
-                      directions live on the Career Profile, so this card is
+                      directions live on the Career Profile, so this slot is
                       the way across rather than a second place to manage them.
 
-                      Same card and same button as the rest of the hub, sized
-                      to its own content under the resume card above it. */}
-                  {showCareerProfileCard && (
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 mt-2">
-                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                      ONE CARD, TWO STATES
+                      The invitation once there is a profile to open, the
+                      notice before then, and they never both show. Same
+                      container, same type, same drawing - only the words, the
+                      link and the drawing's data change, so the slot does not
+                      change shape when one becomes the other.
+
+                      THE SAME BOX AS EVERY OTHER CARD ON THE HUB
+                      White, with the same padding, radius and type scale.
+                      There was a lavender wash and a violet glow here, on the
+                      reasoning that the dark miniature reads as a hole in flat
+                      white; the card is one of several in a column and being
+                      the only coloured one was the louder problem. The lift
+                      comes from the shadow instead, which is violet-tinted
+                      rather than grey and is the only thing marking this card
+                      out.
+
+                      IT TAKES THE REST OF THE COLUMN
+                      md:flex-1, so its bottom lands level with the right
+                      column's whatever the boxes above it contain - it used
+                      to size to its copy and leave a gap under itself. The
+                      inner row carries md:h-full and the card does the
+                      centring, so the graphic column's self-stretch has the
+                      card's whole height to fill rather than just the copy's.
+
+                      AND IT STILL CANNOT CLIP
+                      flex-1 can shrink an item below its content, and this
+                      card hides its overflow - but it carries no min-h-0, so
+                      its automatic minimum size is its content and it refuses
+                      to shrink past it. On a window too short for both cards
+                      the scroller above takes it instead.
+
+                      THE LINK IS A LINK
+                      Download Resume is the hub's one filled button. This was
+                      an outline button beside the text and is now the last few
+                      words of it, in the same purple as every other "view all"
+                      on the page. The whole card carries the click; the link
+                      is what says so. */}
+                  {careerProfileSlotFilled && (
+                    <div
+                      data-tour="career-profile"
+                      className={`relative overflow-hidden rounded-lg bg-white p-3 md:px-5 md:py-3 mt-2 md:flex-1 md:flex md:flex-col ${showCareerProfileCard ? 'cursor-pointer' : ''}`}
+                      style={{
+                        border: '1px solid #ede9fe',
+                        boxShadow: '0 4px 16px rgba(124,58,237,.10)'
+                      }}
+                      {...(showCareerProfileCard
+                        ? {
+                            role: 'link',
+                            tabIndex: 0,
+                            onClick: () => router.push('/career-profile'),
+                            onKeyDown: (e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                router.push('/career-profile');
+                              }
+                            }
+                          }
+                        : {})}
+                    >
+                      <div className="relative flex items-center w-full md:h-full" style={{ gap: 20, zIndex: 2 }}>
                         <div className="flex-1 min-w-0">
-                          <h2 className="text-base font-semibold text-gray-900">Your Career Profile is ready.</h2>
-                          <p className="text-sm text-gray-500 leading-snug">
-                            We built it from your resume coaching. A resume is one snapshot of your career. Your Career Profile brings the whole gallery into view.
+                          <h2 className="text-base font-semibold text-gray-900">
+                            {showCareerProfileCard
+                              ? 'Your Career Profile is ready.'
+                              : 'Your career deserves more than one page.'}
+                          </h2>
+                          {/* The same type as the sentence in "What This
+                              Means" below the progress bar: both are a short
+                              paragraph explaining the card they sit in, and
+                              two different greys for that job on one screen
+                              was two answers to one question. */}
+                          <p className="text-sm text-gray-700 leading-snug">
+                            {showCareerProfileCard
+                              ? 'A resume is one snapshot of your career. Your Career Profile brings the whole gallery into view.'
+                              : 'As soon as your core resume is complete, we build your Career Profile. A resume is one snapshot. Your Career Profile is the whole gallery.'}
+                            {/* Last words of the paragraph rather than a
+                                control beside it. The card is the click
+                                target; a nested button would be a second one
+                                inside it. */}
+                            {showCareerProfileCard && (
+                              <span className="text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors cursor-pointer whitespace-nowrap ml-1.5">
+                                View your Career Profile →
+                              </span>
+                            )}
                           </p>
                         </div>
-                        <button
-                          onClick={() => router.push('/career-profile')}
-                          className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-medium text-sm whitespace-nowrap flex-shrink-0"
-                          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+
+                        {/* ---- THE GRAPHIC COLUMN ----
+                            A fixed-width window cut into the card's right
+                            edge. The negative margins cancel the card's own
+                            padding on three sides so the drawing can reach
+                            those edges and be clipped by them; self-stretch
+                            makes the window as tall as the row, whatever the
+                            copy decided that was.
+
+                            Hidden on a phone, where the card is barely wider
+                            than the drawing and the copy needs all of it. */}
+                        <div
+                          aria-hidden="true"
+                          className="hidden md:block relative self-stretch overflow-hidden flex-shrink-0"
+                          style={{ width: 220, margin: '-0.75rem -1.25rem -0.75rem 0', pointerEvents: 'none' }}
                         >
-                          View your Career Profile
-                        </button>
+                          <MiniProfileCard {...miniProfileData} />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1730,7 +2053,15 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
                   {/* Card 1: job specific Resumes (Pro) / Job Match Scores (Free) */}
                   <div data-tour="job-specific" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden md:flex-1" style={{ marginBottom: '16px' }}>
-                    {mayAccess ? (
+                    {/* ---- WHICH PANEL THIS IS ----
+                        mayCreate, not mayAccess. The list-everything panel
+                        belongs to the plan with no ceiling; Free and Vault
+                        share one allowance of three and both get the three
+                        slots, the counter and the spent-slot explanation.
+                        Vault reaches its Pro-made work through the link
+                        under the slots, and opens it there, which is what
+                        keeping what you built means. */}
+                    {mayCreate ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
                         <p className="text-sm text-gray-500 mb-2">Tailored versions for specific applications</p>
@@ -1800,7 +2131,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                               {data.resumeVersions.length > 2 && (
                                <button
                                     onClick={() => setShowOlderJSModal(true)}
-                                    className="w-full text-center py-1.5 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                                    className="w-full text-center py-1.5 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors cursor-pointer"
                                   >
                                     View all job-specific resumes →
                                   </button>
@@ -1825,104 +2156,127 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             {Math.max(0, 3 - (data?.userProfile?.jms_count ?? 0))} of 3 remaining
                           </span>
                         </div>
-                        <p className="text-sm text-gray-500 mb-2">Upload a job description to see how well you match</p>
+                        <p className="text-sm text-gray-500 mb-2">Upload a job description to see how well your experience matches the role.</p>
                         <div className="space-y-1.5">
-                          {(() => {
-                            const versions = data.resumeVersions || []
-                            const slots = [0, 1, 2]
-                            return slots.map((slotIndex) => {
-                              const version = versions[slotIndex]
-                              const isFirstEmpty = slotIndex === versions.length
-                              const isUsed = !!version
-
-                              if (isUsed) {
-                                return (
-                                  <div
-                                    key={version.id}
-                                    className="group bg-white border border-gray-200 rounded-lg px-3 hover:border-purple-400 hover:shadow-sm transition-all cursor-pointer flex items-center"
+                          {allowanceSlots(data.resumeVersions, data?.userProfile?.jms_count).map((slot, slotIndex) => {
+                            if (slot.kind === 'live') {
+                              const version = slot.item
+                              return (
+                                <div
+                                  key={version.id}
+                                  className="group bg-white border border-gray-200 rounded-lg px-3 hover:border-purple-400 hover:shadow-sm transition-all cursor-pointer flex items-center"
                                   style={{ height: '44px' }}
                                   onClick={() => router.push(`/resume/${version.id}`)}
-                                  >
-                                    <div className="flex items-center justify-between w-full">
-                                      <div className="flex-1 min-w-0">
-                                        <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{versionTitle(version)}</div>
-                                        <div className="text-xs md:text-[10px] text-gray-500 truncate">{version.job_company}</div>
-                                      </div>
-                                      <div className="flex items-center gap-1 ml-2 flex-shrink-0 ml-auto">
-                                        {isPro && <button
-                                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(version.id); }}
-                                            className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all"
-                                            title="Delete"
-                                          >
-                                            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                          </button>}
-                                        <div className="relative w-8 h-8">
-                                          <svg className="w-8 h-8 transform -rotate-90">
-                                            <circle cx="16" cy="16" r="12" stroke="#e5e7eb" strokeWidth="2.5" fill="none" />
-                                            <circle
-                                              cx="16" cy="16" r="12"
-                                              stroke={getCircleColor(version.match_score)}
-                                              strokeWidth="2.5" fill="none"
-                                              strokeDasharray={`${2 * Math.PI * 12}`}
-                                              strokeDashoffset={`${2 * Math.PI * 12 * (1 - version.match_score / 100)}`}
-                                              strokeLinecap="round"
-                                            />
-                                          </svg>
-                                          <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="text-[9px] font-bold" style={{ color: getCircleColor(version.match_score) }}>
-                                              {version.match_score}%
-                                            </div>
+                                >
+                                  <div className="flex items-center justify-between w-full">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{versionTitle(version)}</div>
+                                      <div className="text-xs md:text-[10px] text-gray-500 truncate">{version.job_company}</div>
+                                    </div>
+                                    <div className="flex items-center gap-1 ml-2 flex-shrink-0 ml-auto">
+                                      {/* No delete outside Pro. The slot is spent
+                                          either way, so deleting would take the
+                                          work and leave the cost. */}
+                                      <div className="relative w-8 h-8">
+                                        <svg className="w-8 h-8 transform -rotate-90">
+                                          <circle cx="16" cy="16" r="12" stroke="#e5e7eb" strokeWidth="2.5" fill="none" />
+                                          <circle
+                                            cx="16" cy="16" r="12"
+                                            stroke={getCircleColor(version.match_score)}
+                                            strokeWidth="2.5" fill="none"
+                                            strokeDasharray={`${2 * Math.PI * 12}`}
+                                            strokeDashoffset={`${2 * Math.PI * 12 * (1 - version.match_score / 100)}`}
+                                            strokeLinecap="round"
+                                          />
+                                        </svg>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                          <div className="text-[9px] font-bold" style={{ color: getCircleColor(version.match_score) }}>
+                                            {version.match_score}%
                                           </div>
                                         </div>
                                       </div>
                                     </div>
                                   </div>
-                                )
-                              }
-
-                            if (isFirstEmpty && versions.length < 3) {
-                                return (
-                                  <button
-                                    key={`upload-${slotIndex}`}
-                                    onClick={() => { setJobModalSourceId(data?.coreResume?.id || null); setShowJobModal(true); }}
-                                    className="w-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-2 hover:border-purple-400 hover:bg-purple-50 transition-all"
-                                    style={{ height: '44px' }}
-                                  >
-                                    <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                                      <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                      </svg>
-                                    </div>
-                                    <div className="text-sm font-semibold text-gray-700">Click to upload a job description</div>
-                                  </button>
-                                )
-                              }
-
-                              return (
-                                <div
-                                  key={`empty-${slotIndex}`}
-                                  className="w-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50"
-                                  style={{ height: '44px' }}
-                                >
-                                  <div className="text-xs md:text-[10px] text-gray-400 font-semibold tracking-wide uppercase">Job Match Score {slotIndex + 1}</div>
                                 </div>
                               )
-                            })
-                          })()}
+                            }
 
-                          {/* Upgrade CTA slot */}
-                          <button
-                            onClick={() => setShowUpgradeModal(true)}
-                            className="w-full border-2 border-dashed border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
-                            style={{ height: '44px' }}
-                          >
-                            <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                              <span className="text-[10px]">🔒</span>
+                            if (slot.kind === 'used') {
+                              return (
+                                <div
+                                  key={`used-${slotIndex}`}
+                                  className="w-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center gap-1.5 bg-gray-50 cursor-default"
+                                  style={{ height: '44px' }}
+                                >
+                                  <div className="text-xs md:text-[10px] text-gray-400 font-semibold tracking-wide uppercase">
+                                    Job Match Score {slotIndex + 1} · Used
+                                  </div>
+                                  <Popover label="Why does this slot say used?">
+                                    Your plan includes 3 job match scores for life. This one has already been used, so it counts toward your 3.
+                                  </Popover>
+                                </div>
+                              )
+                            }
+
+                            if (slot.kind === 'create') {
+                              return (
+                                <button
+                                  key={`upload-${slotIndex}`}
+                                  onClick={() => { setJobModalSourceId(data?.coreResume?.id || null); setShowJobModal(true); }}
+                                  className="w-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-2 hover:border-purple-400 hover:bg-purple-50 transition-all"
+                                  style={{ height: '44px' }}
+                                >
+                                  <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                  </div>
+                                  <div className="text-sm font-semibold text-gray-700">Click to upload a job description</div>
+                                </button>
+                              )
+                            }
+
+                            return (
+                              <div
+                                key={`empty-${slotIndex}`}
+                                className="w-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50"
+                                style={{ height: '44px' }}
+                              >
+                                <div className="text-xs md:text-[10px] text-gray-400 font-semibold tracking-wide uppercase">Job Match Score {slotIndex + 1}</div>
+                              </div>
+                            )
+                          })}
+
+                          <GoProLink onClick={() => setShowUpgradeModal(true)}>
+                            Go Pro to tailor your resume to each job
+                          </GoProLink>
+
+                          {/* ---- THE WORK THEY MADE ON PRO ----
+                              Not in the slots above: it was never one of the
+                              three, so counting it would leave them a score
+                              short. But it is still theirs, and an account
+                              that cannot find it will assume it was deleted.
+                              So the panel says where it went.
+
+                              Only when there is some. The link is built from
+                              proResumeVersions, which the route fills only for
+                              a non-Pro account - on Pro they are all in the
+                              list above and there is nothing to look for.
+
+                              Under the Go Pro link and behind a rule, because
+                              it is a different kind of offer: that one sells a
+                              plan, this one points at work they already have.
+                              pb-1 keeps it off the panel's bottom edge. */}
+                          {(data?.proResumeVersions?.length ?? 0) > 0 && (
+                            <div className="border-t border-gray-100 mt-3 pb-1">
+                              <button
+                                onClick={() => setShowOlderJSModal(true)}
+                                className="w-full text-center py-1.5 text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors cursor-pointer"
+                              >
+                                Looking for your job-specific resumes?
+                              </button>
                             </div>
-                            <div className="text-sm font-semibold text-purple-600">Go Pro to tailor your resume to each job</div>
-                          </button>
+                          )}
                         </div>
                       </>
                     )}
@@ -1930,7 +2284,15 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
                  {/* Card 2: Cover Letters */}
                   <div data-tour="cover-letters" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden md:flex-1">
-                    {mayAccess ? (
+                    {/* ---- WHICH PANEL THIS IS ----
+                        mayCreate, not mayAccess. The list-everything panel
+                        belongs to the plan with no ceiling; Free and Vault
+                        share one allowance of three and both get the three
+                        slots, the counter and the spent-slot explanation.
+                        Vault reaches its Pro-made work through the link
+                        under the slots, and opens it there, which is what
+                        keeping what you built means. */}
+                    {mayCreate ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
                         <p className="text-sm text-gray-500 mb-2">Written for this job, not every job.</p>
@@ -1959,7 +2321,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 )}
                               </div>
                               <div className={`text-sm font-semibold ${clLimitReached ? 'text-purple-600' : 'text-gray-900'}`}>
-                                {clLimitReached ? 'Go Pro for unlimited cover letters' : 'Create New'}
+                                Create New
                               </div>
                             </button>
 
@@ -1999,7 +2361,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 {data.coverLetters.length > 2 && (
                                   <button
                                       onClick={() => setShowOlderCLModal(true)}
-                                      className="w-full text-center py-1.5 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                                      className="w-full text-center py-1.5 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors cursor-pointer"
                                     >
                                       View all cover letters →
                                     </button>
@@ -2026,77 +2388,94 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                         </div>
                         <p className="text-sm text-gray-500 mb-2">Written for this job, not every job.</p>
                         <div className="space-y-1.5">
-                          {(() => {
-                            const letters = data.coverLetters || []
-                            const slots = [0, 1, 2]
-                            return slots.map((slotIndex) => {
-                              const cl = letters[slotIndex]
-                              const isFirstEmpty = slotIndex === letters.length
-                              const isUsed = !!cl
-
-                              if (isUsed) {
-                                return (
-                                  <div
-                                    key={cl.id}
-                                    className="group bg-white border border-gray-200 rounded-lg px-3 hover:border-purple-400 hover:shadow-sm transition-all cursor-pointer flex items-center"
-                                    style={{ height: '44px' }}
-                                    onClick={() => router.push(`/cover-letter/${cl.id}`)}
-                                  >
-                                    <div className="flex items-center gap-2 w-full">
-                                      <div className="w-6 h-6 rounded bg-purple-50 flex items-center justify-center flex-shrink-0">
-                                        <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{cl.job_title}</div>
-                                        <div className="text-xs md:text-[10px] text-gray-500 truncate">{cl.job_company}</div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )
-                              }
-
-                              if (isFirstEmpty && letters.length < 3) {
-                                return (
-                                  <button
-                                    key={`cl-upload-${slotIndex}`}
-                                    onClick={() => setShowCLModal(true)}
-                                    className="w-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-2 hover:border-purple-400 hover:bg-purple-50 transition-all"
-                                    style={{ height: '44px' }}
-                                  >
-                                    <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                                      <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                      </svg>
-                                    </div>
-                                    <div className="text-sm font-semibold text-gray-700">Click to create a cover letter</div>
-                                  </button>
-                                )
-                              }
-
+                          {allowanceSlots(data.coverLetters, data?.userProfile?.cl_count).map((slot, slotIndex) => {
+                            if (slot.kind === 'live') {
+                              const cl = slot.item
                               return (
                                 <div
-                                  key={`cl-empty-${slotIndex}`}
-                                  className="w-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50"
+                                  key={cl.id}
+                                  className="group bg-white border border-gray-200 rounded-lg px-3 hover:border-purple-400 hover:shadow-sm transition-all cursor-pointer flex items-center"
                                   style={{ height: '44px' }}
+                                  onClick={() => router.push(`/cover-letter/${cl.id}`)}
                                 >
-                                  <div className="text-xs md:text-[10px] text-gray-400 font-semibold tracking-wide uppercase">Cover Letter {slotIndex + 1}</div>
+                                  <div className="flex items-center gap-2 w-full">
+                                    <div className="w-6 h-6 rounded bg-purple-50 flex items-center justify-center flex-shrink-0">
+                                      <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                      </svg>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{cl.job_title}</div>
+                                      <div className="text-xs md:text-[10px] text-gray-500 truncate">{cl.job_company}</div>
+                                    </div>
+                                  </div>
                                 </div>
                               )
-                            })
-                          })()}
+                            }
 
-                          <button
-                            onClick={() => setShowUpgradeModal(true)}
-                            className="w-full border-2 border-dashed border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
-                            style={{ height: '44px' }}
-                          >
-                            <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                              <span className="text-[10px]">🔒</span>
+                            if (slot.kind === 'used') {
+                              return (
+                                <div
+                                  key={`cl-used-${slotIndex}`}
+                                  className="w-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center gap-1.5 bg-gray-50 cursor-default"
+                                  style={{ height: '44px' }}
+                                >
+                                  <div className="text-xs md:text-[10px] text-gray-400 font-semibold tracking-wide uppercase">
+                                    Cover Letter {slotIndex + 1} · Used
+                                  </div>
+                                  <Popover label="Why does this slot say used?">
+                                    Your plan includes 3 cover letters for life. This one has already been used, so it counts toward your 3.
+                                  </Popover>
+                                </div>
+                              )
+                            }
+
+                            if (slot.kind === 'create') {
+                              return (
+                                <button
+                                  key={`cl-upload-${slotIndex}`}
+                                  onClick={() => setShowCLModal(true)}
+                                  className="w-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-2 hover:border-purple-400 hover:bg-purple-50 transition-all"
+                                  style={{ height: '44px' }}
+                                >
+                                  <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                  </div>
+                                  <div className="text-sm font-semibold text-gray-700">Click to create a cover letter</div>
+                                </button>
+                              )
+                            }
+
+                            return (
+                              <div
+                                key={`cl-empty-${slotIndex}`}
+                                className="w-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50"
+                                style={{ height: '44px' }}
+                              >
+                                <div className="text-xs md:text-[10px] text-gray-400 font-semibold tracking-wide uppercase">Cover Letter {slotIndex + 1}</div>
+                              </div>
+                            )
+                          })}
+
+                          <GoProLink onClick={() => setShowUpgradeModal(true)}>
+                            Go Pro for unlimited cover letters
+                          </GoProLink>
+
+                          {/* The letters they wrote on Pro. Same reasoning and
+                              the same arrangement as the job-specific link
+                              above. */}
+                          {(data?.proCoverLetters?.length ?? 0) > 0 && (
+                            <div className="border-t border-gray-100 mt-3 pb-1">
+                              <button
+                                onClick={() => setShowOlderCLModal(true)}
+                                className="w-full text-center py-1.5 text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors cursor-pointer"
+                              >
+                                Looking for your cover letters?
+                              </button>
                             </div>
-                            <div className="text-sm font-semibold text-purple-600">Go Pro for unlimited cover letters</div>
-                          </button>
+                          )}
                         </div>
                       </>
                     )}
@@ -2764,40 +3143,80 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         </div>
       )}
 
-      {/* Older job specific Resumes Modal */}
-      {showOlderJSModal && (
+      {/* ---- JOB-SPECIFIC RESUMES, TWO WAYS ----
+          On Pro this is the overflow of the panel beside it: all of them, each
+          one deletable. Outside Pro it is the other list - the ones made on
+          Pro, which the panel deliberately leaves out - and it is where
+          "Looking for your job-specific resumes?" lands.
+
+          Vault opens and downloads them, because keeping what was built is
+          the whole plan. Free sees that they are still there and is offered
+          both ways to reach them, which is what VaultUpgradeModal does when
+          it is handed onChoosePro. */}
+      {showOlderJSModal && (() => {
+        const fromPro = !mayCreate;
+        const rows = (fromPro ? data?.proResumeVersions : data?.resumeVersions) || [];
+        const locked = !mayAccess;
+        return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
             <div className="px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-white">Job-Specific Resumes</h2>
-                  <p className="text-purple-100 text-xs">{data?.resumeVersions?.length} resumes</p>
+                  <p className="text-purple-100 text-xs">
+                    {rows.length} {rows.length === 1 ? 'resume' : 'resumes'}
+                    {fromPro ? ' built on Pro' : ''}
+                  </p>
                 </div>
                 <button onClick={() => setShowOlderJSModal(false)} className="text-white text-2xl leading-none font-light hover:opacity-70">×</button>
               </div>
             </div>
             <div className="px-6 py-4 overflow-y-auto" style={{ maxHeight: '60vh' }}>
+              {locked && (
+                <p className="text-sm text-gray-500 leading-snug mb-3">
+                  We're keeping your job-specific resumes safe in your Career Vault. Upgrade to Vault or Pro to open them again.
+                </p>
+              )}
               <div className="space-y-2">
-                {data?.resumeVersions?.map((version) => (
+                {rows.map((version) => (
                   <div
                     key={version.id}
-                    className="group flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-purple-400 hover:bg-white cursor-pointer transition-all"
-                    onClick={() => { setShowOlderJSModal(false); router.push(`/resume/${version.id}`); }}
+                    className={`group flex items-center justify-between p-3 rounded-lg border transition-all ${locked ? 'bg-gray-50 border-gray-200 cursor-pointer' : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:bg-white cursor-pointer'}`}
+                    onClick={() => {
+                      if (locked) {
+                        setShowOlderJSModal(false);
+                        setVaultPrompt({
+                          title: 'Your job-specific resumes are still here.',
+                          message: LOCK_COPY.job_specific
+                        });
+                        return;
+                      }
+                      setShowOlderJSModal(false);
+                      router.push(`/resume/${version.id}`);
+                    }}
                   >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-gray-900 truncate">{versionTitle(version)}</p>
-                      <p className="text-xs text-gray-500 truncate">{version.job_company}</p>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      {locked && <span className="text-xs flex-shrink-0" aria-hidden="true">🔒</span>}
+                      <div className="min-w-0">
+                        <p className={`text-sm font-bold truncate ${locked ? 'text-gray-500' : 'text-gray-900'}`}>{versionTitle(version)}</p>
+                        <p className="text-xs text-gray-500 truncate">{version.job_company}</p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 ml-3 flex-shrink-0">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(version.id); setShowOlderJSModal(false); }}
-                        className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                      {/* Pro only. Outside it, a job-specific resume cannot be
+                          deleted at all: the slot it spent does not come back,
+                          so deleting would cost the work and keep the cost. */}
+                      {mayCreate && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(version.id); setShowOlderJSModal(false); }}
+                          className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
                       <div className="relative w-10 h-10 flex-shrink-0">
                         <svg className="w-10 h-10 transform -rotate-90">
                           <circle cx="20" cy="20" r="16" stroke="#e5e7eb" strokeWidth="2.5" fill="none" />
@@ -2812,57 +3231,125 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 ))}
               </div>
             </div>
+              {locked && (
+                <div className="flex items-center justify-end gap-2 px-6 pb-5 pt-1">
+                  <button
+                    onClick={() => router.push(UPGRADE_HREF)}
+                    className="rounded-lg py-2.5 px-4 text-sm font-semibold transition-colors"
+                    style={{ color: '#5b21b6', background: '#f5f3ff', border: '1px solid #ddd6fe' }}
+                  >
+                    Upgrade to Vault
+                  </button>
+                  <button
+                    onClick={() => { setShowOlderJSModal(false); setShowUpgradeModal(true); }}
+                    className="text-white rounded-lg py-2.5 px-4 text-sm font-semibold hover:opacity-90 transition-opacity"
+                    style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+                  >
+                    Upgrade to Pro
+                  </button>
+                </div>
+              )}
             </div>
         </div>
-      )}
+        );
+      })()}
 
-      {/* Older Cover Letters Modal */}
-      {showOlderCLModal && (
+      {/* The same two modes, for cover letters. See the note above. */}
+      {showOlderCLModal && (() => {
+        const fromPro = !mayCreate;
+        const rows = (fromPro ? data?.proCoverLetters : data?.coverLetters) || [];
+        const locked = !mayAccess;
+        return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
             <div className="px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-white">Cover Letters</h2>
-                  <p className="text-purple-100 text-xs">{data?.coverLetters?.length} cover letters</p>
+                  <p className="text-purple-100 text-xs">
+                    {rows.length} {rows.length === 1 ? 'cover letter' : 'cover letters'}
+                    {fromPro ? ' written on Pro' : ''}
+                  </p>
                 </div>
                 <button onClick={() => setShowOlderCLModal(false)} className="text-white text-2xl leading-none font-light hover:opacity-70">×</button>
               </div>
             </div>
             <div className="px-6 py-4 overflow-y-auto" style={{ maxHeight: '60vh' }}>
+              {locked && (
+                <p className="text-sm text-gray-500 leading-snug mb-3">
+                  We're keeping your cover letters safe in your Career Vault. Upgrade to Vault or Pro to open them again.
+                </p>
+              )}
               <div className="space-y-2">
-                {data?.coverLetters?.map((cl) => (
+                {rows.map((cl) => (
                   <div
                     key={cl.id}
                     className="group flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-purple-400 hover:bg-white cursor-pointer transition-all"
-                    onClick={() => { setShowOlderCLModal(false); router.push(`/cover-letter/${cl.id}`); }}
+                    onClick={() => {
+                      if (locked) {
+                        setShowOlderCLModal(false);
+                        setVaultPrompt({
+                          title: 'Your cover letters are still here.',
+                          message: LOCK_COPY.job_specific
+                        });
+                        return;
+                      }
+                      setShowOlderCLModal(false);
+                      router.push(`/cover-letter/${cl.id}`);
+                    }}
                   >
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <div className="w-8 h-8 rounded bg-purple-50 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
+                      {locked
+                        ? <span className="text-xs flex-shrink-0" aria-hidden="true">🔒</span>
+                        : (
+                          <div className="w-8 h-8 rounded bg-purple-50 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                        )}
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-gray-900 truncate">{cl.job_title}</p>
+                        <p className={`text-sm font-bold truncate ${locked ? 'text-gray-500' : 'text-gray-900'}`}>{cl.job_title}</p>
                         <p className="text-xs text-gray-500 truncate">{cl.job_company}</p>
                       </div>
                     </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setConfirmDeleteCLId(cl.id); setShowOlderCLModal(false); }}
-                      className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all ml-2 flex-shrink-0"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                    {/* Pro only, for the reason the job-specific delete is. */}
+                    {mayCreate && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteCLId(cl.id); setShowOlderCLModal(false); }}
+                        className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all ml-2 flex-shrink-0"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
+              {locked && (
+                <div className="flex items-center justify-end gap-2 px-6 pb-5 pt-1">
+                  <button
+                    onClick={() => router.push(UPGRADE_HREF)}
+                    className="rounded-lg py-2.5 px-4 text-sm font-semibold transition-colors"
+                    style={{ color: '#5b21b6', background: '#f5f3ff', border: '1px solid #ddd6fe' }}
+                  >
+                    Upgrade to Vault
+                  </button>
+                  <button
+                    onClick={() => { setShowOlderCLModal(false); setShowUpgradeModal(true); }}
+                    className="text-white rounded-lg py-2.5 px-4 text-sm font-semibold hover:opacity-90 transition-opacity"
+                    style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+                  >
+                    Upgrade to Pro
+                  </button>
+                </div>
+              )}
             </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Cover Letter Delete Confirmation */}
       {confirmDeleteCLId && (
@@ -2905,9 +3392,19 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
       {showHubTour && (
         <Tour
-          steps={HUB_TOUR_STEPS.map(step => (
-            isPro ? step : { ...step, title: step.freeTitle || step.title, body: step.freeBody || step.body }
-          ))}
+          steps={HUB_TOUR_STEPS.map(step => {
+            // The Career Profile stop before the profile exists. Resolved
+            // here for the same reason the free copy is: which words a stop
+            // uses is a question about this page's state, and a tour engine
+            // that knew about Career Profiles would be carrying vocabulary
+            // from a part of the product it has no other business with.
+            const resolved = showCareerProfileAd && step.adTitle
+              ? { ...step, title: step.adTitle, body: step.adBody }
+              : step;
+            return isPro
+              ? resolved
+              : { ...resolved, title: resolved.freeTitle || resolved.title, body: resolved.freeBody || resolved.body };
+          })}
           storageKey={HUB_TOUR_KEY}
           onStepChange={setHubTourStepId}
           onClose={closeHubTour}
@@ -2916,11 +3413,15 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
 
+      {/* Both plans open a locked resume, so both are offered. Without
+          onChoosePro this modal sells Vault alone, which is the cheaper answer
+          to this gate but not the only one. */}
       <VaultUpgradeModal
         isOpen={Boolean(vaultPrompt)}
         onClose={() => setVaultPrompt(null)}
         title={vaultPrompt?.title}
         message={vaultPrompt?.message}
+        onChoosePro={() => { setVaultPrompt(null); setShowUpgradeModal(true); }}
       />
 
       <UpgradeModal

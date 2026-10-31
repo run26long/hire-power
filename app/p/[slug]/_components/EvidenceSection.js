@@ -6,13 +6,13 @@ import Reveal from './Reveal'
 import EvidenceOverlay from './EvidenceOverlay'
 import EvidenceThumb from './EvidenceThumb'
 import { useViewerAuthHeaders } from '../_lib/viewerAuth'
-import { EditGrip, SlotGuide, SlotGhost, UpgradeNote, useEditSlot } from './EditAffordance'
+import { EditGrip, SlotGuide, SlotGhost, SectionHiddenChip, Lock, useEditSlot } from './EditAffordance'
 import AddEvidence from './AddEvidence'
 import { isEvidenceItem } from '@/lib/portfolio'
 import ManageList from './ManageList'
 import { usePaneGuard } from './ManageShell'
 import { EvidenceEditPane, useEvidenceDelete } from './ManagePanes'
-import { useCanShowEmpty, useCanEdit, useProfileEdit } from '../_lib/editContext'
+import { useCanShowEmpty, useCanEdit, useProfileEdit, useShowUpgradeModal } from '../_lib/editContext'
 import { directionsByItem, rowsForDirection, selectForDirection } from '../_lib/profileData'
 import { PICKABLE } from './DirectionPicker'
 import { useGridDrag } from '../_lib/gridDrag'
@@ -117,6 +117,7 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
   const fromGallery = useCallback((item) => setOverlay({ mode: 'detail', item, fromGallery: true }), [])
   const canShowEmpty = useCanShowEmpty()
   const canEdit = useCanEdit()
+  const showUpgrade = useShowUpgradeModal()
   const slot = useEditSlot()
   const backToGallery = useCallback(() => setOverlay({ mode: 'gallery' }), [])
   const close = useCallback(() => setOverlay(null), [])
@@ -392,7 +393,7 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
   return (
     <div className="hp-practice-part hp-ev-section">
         <Reveal enabled={animate} className="hp-ev-intro">
-          <h3 className="hp-practice-sub">Evidence</h3>
+          <h3 className="hp-practice-sub">Evidence<SectionHiddenChip /></h3>
           <p className="hp-practice-line">Credentials, recognition, and documents that back it up.</p>
         </Reveal>
 
@@ -400,27 +401,27 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
             the modal the section already had. Adding is in there too: a second
             button out here was the owner being asked the same question in two
             places. */}
-        {canEdit ? (
+        {canShowEmpty ? (
           <div className="hp-ed-manage-row">
             {/* Beside Manage rather than under it, and only where the grid
                 has no slot left to ask in: below that count the next slot
                 carries the invitation, and a second control saying the same
                 thing would be the owner asked the same question twice. The
-                row renders only for an owner in Edit mode, so neither Preview
-                nor the public page has either control. */}
+                row renders for an owner in Edit mode on every plan, and a
+                gated press opens the Pro modal rather than the panel. */}
             {freeSlots === 0 ? (
               <button
                 type="button"
                 className="hp-ed-action"
                 data-primary="true"
-                onClick={() => setOpenAdd(n => n + 1)}
+                onClick={canEdit ? () => setOpenAdd(n => n + 1) : showUpgrade}
               >
-                + Add evidence
+                {canEdit ? null : <Lock />}+ Add evidence
               </button>
             ) : null}
 
-            <button type="button" className="hp-ed-manage" onClick={openManage} aria-haspopup="dialog">
-              Manage evidence
+            <button type="button" className="hp-ed-manage" onClick={canEdit ? openManage : showUpgrade} aria-haspopup="dialog">
+              {canEdit ? null : <Lock />}Manage evidence
             </button>
           </div>
         ) : null}
@@ -446,7 +447,7 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
                     feature="evidence"
                     onAction={() => setOpenAdd(n => n + 1)}
                   >
-                    A résumé asks recruiters to take your word for it. Your Career
+                    A resume asks recruiters to take your word for it. Your Career
                     Profile lets you show them the proof. Add credentials,
                     recognition, reports, presentations, or other documents that
                     demonstrate you’ve done the work.
@@ -514,7 +515,7 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
             the Manage row opens it, the same way the slot guide does. */}
         {canEdit
           ? <AddEvidence openSignal={openAdd} trigger={false} />
-          : items.length > 0 ? <UpgradeNote feature="evidence" /> : null}
+          : null}
 
       <EvidenceOverlay
         key={`${directionKey}:${visit}`}
@@ -532,7 +533,7 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
         // the gallery can never offer a way into a panel this account does
         // not get. Absent outside Edit mode, which is how Preview and the
         // public page end up with no button at all.
-        onManage={canEdit ? openManage : undefined}
+        onManage={canShowEmpty ? (canEdit ? openManage : showUpgrade) : undefined}
         manageTitle={editingItem ? 'Edit evidence' : 'Manage evidence'}
         manageCount={editingItem ? undefined : manageItems.length}
         manageBody={editingItem ? (

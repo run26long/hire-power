@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js'
-import { requireCustomise } from '../_lib/requireCustomise'
 
 // ============================================================================
 // POST /api/career-profile/contact
@@ -13,14 +12,24 @@ import { requireCustomise } from '../_lib/requireCustomise'
 // only thing standing between somebody's session and somebody else's Contact
 // button. The row is found from the authenticated user and updated in place.
 //
-// THREE STATES, NOT TWO
-// NULL and '' are different answers here and the difference is the whole
-// feature. NULL means the owner has never touched this field, and the public
-// page falls back to their account address so the Contact button is there by
-// default. '' means they cleared the field on purpose, which is how the button
-// is turned off. Collapsing '' to NULL - which this route used to do - made
-// "never asked" and "no thank you" the same row, and there was then no way to
-// honour the second without overriding the first.
+// TWO COLUMNS, ONE QUESTION EACH
+// contact_enabled is whether the Contact button is on the profile, and
+// contact_email is which address it opens - the owner's own, or empty for
+// the account address. They were one column with three states, and the
+// middle one did both jobs: '' meant "no button" AND "no custom address",
+// so switching the button off threw away the address somebody had typed
+// and switching it back on meant typing it again.
+//
+// Both are optional in the body and each is written only if it was sent, so
+// the switch and the address are two independent saves from one form.
+//
+// EVERY PLAN
+// This was behind requireCustomise, which made a contact address a Pro
+// feature. It is not one any more: a free profile publishes, has a link,
+// and is a page somebody is meant to answer. What it had instead was the
+// worst of both - no way to set an address and no way to switch the button
+// off, while the public route fell back to the account's sign-in address
+// and published it to every visitor.
 //
 // An address of only spaces is a cleared field, not an address.
 // ============================================================================
@@ -47,12 +56,6 @@ export async function POST(request) {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // A contact address is something the owner writes, so it is gated like
-    // everything else they write. The management page already says so -
-    // UPGRADE_COPY.contact - and this is where it is enforced.
-    const gate = await requireCustomise(user.id)
-    if (gate) return gate
-
     let body
     try {
       body = await request.json()
@@ -60,10 +63,22 @@ export async function POST(request) {
       return Response.json({ error: 'Invalid request.' }, { status: 400 })
     }
 
-    // Stored as typed, including the empty string: see THREE STATES above.
+    // ---- WHAT WAS SENT, AND ONLY WHAT WAS SENT ----
+    //
+    // The drawer saves the switch and the address separately, so a body
+    // carrying one must not blank the other. hasOwnProperty rather than a
+    // truthiness test, because the meaningful values here are the empty
+    // string and false.
+    const sentEmail = Object.prototype.hasOwnProperty.call(body, 'contact_email')
+    const sentEnabled = Object.prototype.hasOwnProperty.call(body, 'contact_enabled')
+    if (!sentEmail && !sentEnabled) {
+      return Response.json({ error: 'Nothing to save.', code: 'EMPTY' }, { status: 400 })
+    }
+
+    // An address of only spaces is no address, not an address.
     const contactEmail = typeof body?.contact_email === 'string' ? body.contact_email.trim() : ''
 
-    if (contactEmail !== '' && (contactEmail.length > MAX || !SHAPE.test(contactEmail))) {
+    if (sentEmail && contactEmail !== '' && (contactEmail.length > MAX || !SHAPE.test(contactEmail))) {
       return Response.json(
         { error: "That doesn't look like an email address.", code: 'BAD_EMAIL' },
         { status: 400 }
@@ -72,9 +87,12 @@ export async function POST(request) {
 
     const { data: updated, error: updateError } = await supabase
       .from('career_profiles')
-      .update({ contact_email: contactEmail })
+      .update({
+        ...(sentEmail ? { contact_email: contactEmail } : {}),
+        ...(sentEnabled ? { contact_enabled: body.contact_enabled === true } : {})
+      })
       .eq('user_id', user.id)
-      .select('contact_email')
+      .select('contact_email, contact_enabled')
       .maybeSingle()
 
     if (updateError) {
@@ -83,7 +101,7 @@ export async function POST(request) {
       // run. Everything else about the default still works without it, so the
       // one action that cannot is worth naming rather than answering with a
       // generic failure somebody would retry forever.
-      if (contactEmail === '' && /contact_email_shape/.test(updateError.message || '')) {
+      if (sentEmail && contactEmail === '' && /contact_email_shape/.test(updateError.message || '')) {
         console.error('[career-profile] Clearing the contact address needs scripts/allow-cleared-contact-email.sql')
         return Response.json(
           { error: "We can't switch the Contact button off yet. Please try again later.", code: 'CLEAR_UNAVAILABLE' },
@@ -99,7 +117,13 @@ export async function POST(request) {
 
     // `?? null` and not `|| null`: '' is an answer and has to survive the
     // trip back, or the drawer would read a cleared field as never set.
-    return Response.json({ contact_email: updated.contact_email ?? null })
+    return Response.json({
+      contact_email: updated.contact_email ?? null,
+      // `!== false`, so a build whose column is not there yet reads as on
+      // rather than as off. The failure direction matters: a profile that
+      // loses its Contact button silently is worse than one that keeps it.
+      contact_enabled: updated.contact_enabled !== false
+    })
   } catch (error) {
     console.error('[career-profile] Contact email route failed:', error)
     return Response.json({ error: "We couldn't save that. Please try again." }, { status: 500 })

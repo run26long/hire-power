@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Lock } from './EditAffordance'
+import { useIsGated } from '../_lib/editContext'
 
 
 import StrokeIcon, { ICON_MEDIA, ICON_ARROW_LEFT, ICON_ARROW_RIGHT } from './StrokeIcon'
@@ -79,6 +81,11 @@ export default function PortfolioLightbox({
   manageCount,
   manageBody
 }) {
+  // The same question the section's own Manage control asks, asked here
+  // rather than passed in: these portal onto the body but are still children
+  // of the document in the React tree, so the edit context reaches them.
+  const manageLocked = useIsGated()
+
   const [index, setIndex] = useState(startIndex || 0)
 
   // Here as well as in the media component below, because the preload reads
@@ -303,7 +310,7 @@ export default function PortfolioLightbox({
                 onClick={onManage}
                 aria-haspopup="dialog"
               >
-                Manage
+                {manageLocked ? <Lock /> : null}Manage
               </button>
             ) : null}
 

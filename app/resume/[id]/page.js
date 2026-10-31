@@ -7,7 +7,9 @@ import { createClient } from '@/utils/supabase/client'
 import MainNav from '@/app/components/MainNav'
 import UpgradeModal from '@/app/components/UpgradeModal'
 import { canOpenResume, lockReason, LOCK_COPY } from '@/lib/resumeAccess'
-import { UPGRADE_HREF, UPGRADE_LABEL } from '@/lib/tiers'
+import { UPGRADE_HREF, UPGRADE_LABEL, canCreateResumes } from '@/lib/tiers'
+import { hasUsedCoreCoaching, CORE_COACHING_USED_MESSAGE, CORE_COACHING_STILL_CAN } from '@/lib/coreResumes'
+import { openableOnAllowance } from '@/lib/allowance'
 import { getTemplateStyles } from '../../templates/getTemplateStyles'
 import Breadcrumb from '@/app/components/Breadcrumb'
 import ResumeContent from '../../components/ResumeContent'
@@ -139,6 +141,10 @@ export default function ResumePage() {
   // one a free account keeps, which is a question about the set and not about
   // the resume on screen.
   const [ownedCores, setOwnedCores] = useState(null)
+  // Whether the one non-Pro core coaching session has been spent. Read once
+  // with the resume rather than per step, so the Assess CTA and the Coach
+  // panel are answering the same question.
+  const [coreCoachingUsed, setCoreCoachingUsed] = useState(false)
   const [siblingResumes, setSiblingResumes] = useState([])
   const [linkedCoverLetter, setLinkedCoverLetter] = useState(null)
   const [history, setHistory] = useState([])
@@ -1071,6 +1077,7 @@ function formatDate(dateString, format = dateFormat) {
         .eq('resume_type', 'core')
         .eq('is_active', true)
       setOwnedCores(cores || [])
+      setCoreCoachingUsed(await hasUsedCoreCoaching(supabase, user.id))
 
     // Restore the persisted pre-coaching baseline so the before/after reveal
     // survives a reload. Without this the only baseline is in-memory and a
@@ -1345,7 +1352,7 @@ if (data.ai_analysis) {
               className="w-full text-white rounded-lg py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
               style={{ marginTop: 20, background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
             >
-              {UPGRADE_LABEL} — $4.99/mo
+              {UPGRADE_LABEL} for $4.99/mo
             </button>
             <button
               onClick={() => router.push('/resume-coach')}
@@ -2214,6 +2221,7 @@ if (data.ai_analysis) {
           recoachAttempts={recoachAttempts}
           setRecoachAttempts={setRecoachAttempts}
           setShowUpgradeModal={setShowUpgradeModal}
+          coreCoachingUsed={coreCoachingUsed}
           handleDownload={handleDownload}
           isDownloading={isDownloading}
           resetHistory={resetHistory}
@@ -2466,7 +2474,7 @@ if (data.ai_analysis) {
 }
 
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, filteredAnalysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, setReviseModalState, bulletSelectMode, setBulletSelectMode, knowledgeMatches }) {
+function RightPanel({ journeyStep: savedStep, score, analysisResults, setAnalysisResults, filteredAnalysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, setReviseModalState, bulletSelectMode, setBulletSelectMode, knowledgeMatches, coreCoachingUsed }) {
   const isJobSpecific = resume?.resume_type === 'job_specific'
   const jobAnalysis = analysisResults?.analysis || analysisResults || {}
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
@@ -2490,9 +2498,70 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
   // any other job-specific resume behaves.
   const isLensCore = !isJobSpecific && resume?.created_via === 'lens_core'
   const skippedCoaching = isJobSpecific && resume?.coaching_complete === true && (!resume?.coaching_conversation || resume.coaching_conversation.length === 0)
+
+  // ---- A JOB MATCH SCORE, ON THE PLAN THAT MADE IT ----
+  //
+  // Outside Pro a job-specific resume made on the account's own allowance is
+  // a job match score: the score and the gap analysis, and nothing past
+  // them. Coach, Improve, Format and Save are all Pro.
+  //
+  // It had two steps, assess and save, with the progress bar hidden. That
+  // hid the shape of the thing - somebody could not see that there were four
+  // more steps, or that they are what Pro buys. The bar shows the whole
+  // journey now with Assess current and the rest greyed, which is what the
+  // bar already does for any step past maxStepIndex, so greying them needs
+  // no new state.
+  //
+  // openableOnAllowance is the same predicate canOpenResume uses to let them
+  // in here at all, so a resume that opens is a resume that opens at Assess.
+  const isAllowanceScore = isJobSpecific
+    && !canCreateResumes(userTier)
+    && openableOnAllowance(resume)
+
+  // ---- THE ONE CORE COACHING SESSION, SPENT ----
+  // The Assess step offers to start coaching, and outside Pro that offer is
+  // only real once. When it is not, the button says what it does instead -
+  // the same label and the same treatment the Coach step's own lock panel
+  // uses, and the same the hub's coach button uses, so one refusal looks
+  // like one thing in all three places.
+  const coreCoachingLocked = !isJobSpecific
+    && !canCreateResumes(userTier)
+    && coreCoachingUsed === true
+    && !(resume?.coaching_conversation?.length > 0)
+
+  // ---- IT ALWAYS OPENS AT ASSESS ----
+  // Whatever the row says. A score made before this rule existed may be
+  // sitting at 'save' - SaveStep writes that on mount - and an account that
+  // reached Save once should not keep landing past the only step it has.
+  // Overriding here rather than at the call site means currentIndex,
+  // maxStepIndex and displayStep all follow, so the steps past Assess stay
+  // grey and unclickable instead of reading as already visited.
+  //
+  // A core whose one coaching session is spent stops in the same place, for
+  // the same reason: Assess is the whole of what this account has here, and
+  // everything past it is behind the session it cannot start. The row may
+  // say review, which auto-advances to assess anyway, or assess itself.
+  const journeyStep = (isAllowanceScore || coreCoachingLocked) ? 'assess' : savedStep
+
+  // ---- THE ONE STEP PAST IT THAT STILL OPENS ----
+  //
+  // Coach, and only on a locked core. Not because it can be used - it
+  // cannot - but because the reason it cannot is written in that step, and
+  // a step carrying an explanation has to be reachable or the explanation
+  // is not there. It keeps the unvisited circle; what it does not keep is
+  // the ○, because the lock is what it has to say.
+  //
+  // Improve, Format and Save say nothing and open nothing, so they stay
+  // exactly as they are past maxStepIndex: grey, and not clickable.
+  //
+  // A job match score has no such step: everything past its Assess is Pro
+  // and none of it has a panel of its own to read, so it gets no lock here
+  // and nothing to press.
+  const lockedStep = coreCoachingLocked ? 'coach' : null
+
   const steps = isJobSpecific
-    ? (userTier === 'free'
-        ? ['assess', 'save']
+    ? (isAllowanceScore
+        ? ['assess', 'coach', 'improve', 'format', 'save']
         : skippedCoaching
         ? ['assess', 'improve', 'format', 'save']
         : ['assess', 'coach', 'improve', 'format', 'save'])
@@ -2551,11 +2620,11 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
  return (
    <div ref={panelRef} className={isConvCoach ? "flex flex-col overflow-hidden flex-1 px-3 md:pl-0 md:pr-3" : "overflow-y-auto overflow-x-hidden flex-1 pb-6 px-3 md:pl-0 md:pr-3 md:pb-6"}>
       
- <div className={`sticky top-0 bg-white px-4 md:-mx-6 md:px-6 z-10 flex-shrink-0 ${isConvCoach ? '' : 'pt-3 md:pt-4'} ${isJobSpecific && userTier === 'free' ? 'mb-2 pb-2 border-b border-gray-100' : isConvCoach ? 'mb-1 pb-2 border-b border-gray-100' : 'mb-3 md:mb-4 pb-2 md:pb-3 border-b border-gray-100'}`} style={isConvCoach ? { paddingTop: '18px' } : {}}>
+ <div className={`sticky top-0 bg-white px-4 md:-mx-6 md:px-6 z-10 flex-shrink-0 ${isConvCoach ? '' : 'pt-3 md:pt-4'} ${isAllowanceScore ? 'mb-2 pb-2 border-b border-gray-100' : isConvCoach ? 'mb-1 pb-2 border-b border-gray-100' : 'mb-3 md:mb-4 pb-2 md:pb-3 border-b border-gray-100'}`} style={isConvCoach ? { paddingTop: '18px' } : {}}>
  {isJobSpecific ? (
         <div className="mb-3 text-center">
           <h3 className="font-bold text-base md:text-sm text-gray-900 leading-tight">{resumeName}</h3>
-          {(userTier !== 'free') && (
+          {(
             <div className="mt-3">
               <p className="text-xs md:text-[10px] text-purple-600 font-semibold uppercase tracking-wide">Resume Tailoring Progress</p>
             </div>
@@ -2571,7 +2640,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
         </h3>
       )}
         
-        <div className={`relative ${isJobSpecific && userTier === 'free' ? 'hidden' : ''}`}>
+        <div className="relative">
           <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-300">
             <div 
               className="h-full transition-all duration-300"
@@ -2582,12 +2651,13 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
             />
           </div>
           
-        <div className={`relative flex justify-between ${isJobSpecific && userTier === 'free' ? 'hidden' : ''}`}>
+        <div className="relative flex justify-between">
             {steps.map((step, index) => (
               <div key={step} className="flex flex-col items-center">
                 <div
                   onClick={() => {
-                    if (index > maxStepIndex || index === displayIndex) return
+                    if (index > maxStepIndex && step !== lockedStep) return
+                    if (index === displayIndex) return
                     setViewingStep(step)
                   }}
                   className={`
@@ -2595,19 +2665,22 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
                    ${index < displayIndex ? 'text-white cursor-pointer transition-colors' :
                     index === displayIndex ? 'text-white' :
                     index <= maxStepIndex ? 'text-white cursor-pointer transition-colors' :
+                    step === lockedStep ? 'bg-white border-2 border-gray-300 text-gray-400 cursor-pointer transition-colors' :
                     'bg-white border-2 border-gray-300 text-gray-400'}
                   `}
                   style={index <= maxStepIndex ? { background: 'linear-gradient(to bottom right, #667eea, #764ba2)' } : {}}>
-                 {index < displayIndex ? '✓' : index === displayIndex ? '●' : index <= maxStepIndex ? '✓' : '○'}
+                 {index < displayIndex ? '✓' : index === displayIndex ? '●' : index <= maxStepIndex ? '✓' : step === lockedStep ? '🔒' : '○'}
                 </div>
                 <span
                   onClick={() => {
-                    if (index >= maxStepIndex || index === displayIndex) return
+                    if (index >= maxStepIndex && step !== lockedStep) return
+                    if (index === displayIndex) return
                     setViewingStep(step)
                   }}
                  className={`text-sm mt-1 capitalize ${
                     index === displayIndex ? 'text-purple-600 font-semibold' :
                     index <= maxStepIndex ? 'text-purple-600 cursor-pointer hover:underline' :
+                    step === lockedStep ? 'text-gray-400 cursor-pointer hover:underline' :
                     'text-gray-400'
                   }`}>
                   {step}
@@ -3063,7 +3136,20 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
           </div>      
 {/* CTA */}
           <div className="pt-3 border-t border-gray-300">
-            {(resume?.coaching_complete || maxStepIndex > steps.indexOf('assess')) ? null : (
+            {(resume?.coaching_complete || maxStepIndex > steps.indexOf('assess')) ? null : coreCoachingLocked ? (
+              <>
+                <button
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="mx-auto block text-white rounded-lg py-2 px-6 text-sm font-semibold transition-opacity hover:opacity-90"
+                  style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                >
+                  Upgrade to Pro &rarr;
+                </button>
+                <p className="text-center text-xs text-gray-500 mt-2">
+                  {CORE_COACHING_STILL_CAN}
+                </p>
+              </>
+            ) : (
                 <button
                   onClick={async () => {
                     setIsUpdatingJourney(true)
@@ -3352,6 +3438,11 @@ function CoachStep({ resume, resumeData, careerContext, setAnalysisResults, dete
   const [errorToast, setErrorToast] = useState(null)
   const [userInput, setUserInput] = useState('')
   const [userTier, setUserTier] = useState(userTierProp || null)
+  // True when this account has already spent its one non-Pro core coaching
+  // session and this resume has no conversation to go back to. See the note on
+  // the init below: this is where every route into the coach step converges,
+  // which is why the gate is here rather than on each of them.
+  const [coachingLocked, setCoachingLocked] = useState(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   const previousMessageCount = useRef(0)
@@ -3710,8 +3801,25 @@ const getMessageText = (msg) => {
         setUserTier(tier)
 
       const hasRealMessages = coachingMessages.some(m => m.content && typeof m.content === 'string' && m.content.trim().length > 0)
+      const wouldStart = (coachingMessages.length === 0 || !hasRealMessages) && !hasStartedCoaching.current
 
-      if ((coachingMessages.length === 0 || !hasRealMessages) && !hasStartedCoaching.current) {
+      // ---- ONE FULL COACHING SESSION, EVER ----
+      //
+      // Outside Pro the core gets coached once per account, archived cores
+      // counted, and /api/coach refuses a second start. Four things set
+      // journey_step to 'coach' on this page and the hub sends people here as
+      // well, but a session only begins where one is started - here - so this
+      // is the one place that has to ask, and it covers all five.
+      //
+      // Only a start is gated. A conversation already on the row is one to
+      // restore, which is what the branch below does and what the route
+      // permits; a finished session can still be reopened and read back.
+      if (wouldStart && !canCreateResumes(tier) && await hasUsedCoreCoaching(supabase, user.id)) {
+        setCoachingLocked(true)
+        return
+      }
+
+      if (wouldStart) {
         hasStartedCoaching.current = true
         await startCoaching(tier)
       }
@@ -4007,6 +4115,33 @@ const getMessageText = (msg) => {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+      </div>
+    )
+  }
+
+  // ── The one session is spent ──
+  // Instead of a conversation, the reason there isn't one and the plan that
+  // lifts it. Pro rather than Vault: coaching a resume again is making
+  // something new, which is the side of the line Vault is not on.
+  if (coachingLocked) {
+    return (
+      <div className="px-1 py-6">
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-5 text-center">
+          <div className="text-2xl mb-2">🔒</div>
+          <p className="text-sm text-gray-700 leading-snug mb-4">
+            {CORE_COACHING_USED_MESSAGE}
+          </p>
+          <button
+            onClick={() => setShowUpgradeModal(true)}
+            className="mx-auto block text-white rounded-lg py-2 px-6 text-sm font-semibold transition-opacity hover:opacity-90"
+            style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+          >
+            Upgrade to Pro →
+          </button>
+          <p className="text-xs text-gray-500 mt-2">
+            {CORE_COACHING_STILL_CAN}
+          </p>
+        </div>
       </div>
     )
   }

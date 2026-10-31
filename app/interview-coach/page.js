@@ -84,14 +84,19 @@ const HUB_TOUR_STEPS = [
     targets: ['interview-prep'],
     placement: 'right',
     title: 'Your interview prep hub',
-    body: 'Start a new practice for any job, or pick up where you left off. Each card shows four ways to prepare for your interview: Analysis, Research, Prep, and Practice. Do them in order or skip to what you need.'
+    body: 'Start a new practice for any job, or pick up where you left off. Each card shows four ways to prepare for your interview: Analysis, Research, Prep, and Practice. Do them in order or skip to what you need.',
+    // "any job" is Pro's answer. Outside it the allowance is one prepared
+    // job and three practice sessions - see FREE_PA_LIMIT in power-analysis
+    // and FREE_TRIAL_LIMIT here - so the Free version says the number.
+    freeBody: 'Prepare for your interview, or pick up where you left off. Each card shows four ways to prepare: Analysis, Research, Prep, and Practice. Do them in order, or skip to what you need. Your plan includes full prep for one job and 3 practice sessions.'
   },
   {
     id: 'practice-stats',
     targets: ['practice-stats'],
     placement: 'left',
     title: 'Track your progress',
-    body: 'Your training at a glance. Sessions, level, and total jobs update as you practice.'
+    body: 'Your training at a glance. Sessions, level, and total jobs update as you practice.',
+    freeBody: 'Your training at a glance. Your sessions and level update as you practice.'
   },
   {
     id: 'question-of-the-day',
@@ -112,7 +117,8 @@ const HUB_TOUR_STEPS = [
     targets: ['job-tracker'],
     placement: 'bottom',
     title: 'Linked to your Job Tracker',
-    body: "Each job's practice session is linked to its job card in your Job Tracker. Start interview prep from here or from the job card itself."
+    body: "Each job's practice session is linked to its job card in your Job Tracker. Start interview prep from here or from the job card itself.",
+    freeBody: 'Your interview prep is linked to its job card in your Job Tracker, so everything for that job stays in one place.'
   }
 ];
 
@@ -597,7 +603,7 @@ export default function MyInterviewsPage() {
                               {practiceCards.length > 3 && (
                                <button
                                     onClick={() => setShowOlderModal(true)}
-                                    className="w-full text-center py-1.5 mb-3 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                                    className="w-full text-center py-1.5 mb-3 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors cursor-pointer"
                                   >
                                     View all interview practices →
                                   </button>

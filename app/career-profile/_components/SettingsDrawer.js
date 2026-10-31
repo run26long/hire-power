@@ -1,6 +1,7 @@
 'use client'
 
-import { PRO_UPGRADE_HREF, PRO_UPGRADE_LABEL, upgradeCopyFor } from '@/lib/profileTier'
+import { PRO_UPGRADE_LABEL, upgradeCopyFor } from '@/lib/profileTier'
+import { Lock } from '@/app/p/[slug]/_components/EditAffordance'
 import { lensRefusalNote, rewriteOfferNote, REWRITE_OFFER } from '@/lib/lensRefusal'
 import { COLOR_MODES, normalizeColorMode } from '@/lib/profileColorMode'
 import { ACCENTS, DEFAULT_ACCENT, OFFERED_ACCENTS, accentFor } from '@/lib/profileAccent'
@@ -63,17 +64,17 @@ function Value({ children, empty }) {
 // ---------------------------------------------------------------------------
 // WHAT A DIRECTION IS DOING ON THE CAREER PROFILE
 //
-// Four states, and only one of them has no control. A dismissed direction is
-// not offered back here, because putting something back that somebody threw
-// away is a different decision from un-hiding something they kept.
+// Three states and the primary, and every one of them is on this page. On the
+// profile and arrangeable, off it and switchable back on, and not on it yet.
 //
-// It used to be offered back on the Resume Writer hub, which was where it was
-// thrown away. The hub no longer shows directions at all, and nothing can
-// dismiss one any more, so no new dismissed rows appear - but the two rows
-// already carrying that status now have nowhere to be restored from, and the
-// visibility route still refuses them with "Restore it from your suggestions
-// first", pointing at a control that is gone. Whoever adds a way back should
-// add it here.
+// There was a fourth, 'dismissed': a direction thrown away from the Resume
+// Writer hub's suggestions row, which was also the only place it could be
+// taken back from. The hub no longer shows directions, so nothing creates
+// that status and the rows that held it were converted to 'hidden' - off the
+// profile, in this list, one switch from being back on. lensState below
+// returns null for anything it does not recognise, which keeps a row written
+// by some path this does not know about out of all three groups rather than
+// into the wrong one.
 //
 // PRIMARY is the only row without a switch, and it is first in the ladder
 // because it is the only fact about a row that the owner cannot change from
@@ -129,7 +130,6 @@ export default function SettingsDrawer({
   open,
   onClose,
   profile,
-  publicUrl,
   accountEmail,
   getAuthHeaders,
   onProfileChanged,
@@ -144,6 +144,10 @@ export default function SettingsDrawer({
   showsAllDirections = false,
   notify,
   lenses,
+  // Opens the page's Pro modal. The drawer used to send people to
+  // /profile?upgrade=true from three places; the modal is on the page now,
+  // so the three become one offer in one place.
+  onShowUpgrade,
   onLensVisibility,
   onLensReorder,
   onLensCreate,
@@ -518,15 +522,17 @@ export default function SettingsDrawer({
   const published = profile?.is_published === true
   const currentSlug = profile?.slug || ''
 
-  // The field shows the address the Contact button will actually open, which
-  // when nothing has been set is the account address. Showing a blank box
-  // there would have been a lie in both directions: it would suggest no button
-  // exists, and it would leave no way to say "not this one" - you cannot clear
-  // a field that is already empty, and clearing is how the button is switched
-  // off. A stored '' is a cleared field and stays blank.
-  const currentEmail = profile?.contact_email == null
-    ? (accountEmail || '')
-    : profile.contact_email
+  // The owner's OWN address, and nothing standing in for it. The field is
+  // "a different address", so empty is its true resting state: the account
+  // email is the placeholder and the line under the field names whichever
+  // one the button will actually open.
+  //
+  // It used to prefill the account address when nothing had been set, back
+  // when clearing the field was the only way to switch the button off and a
+  // blank box would have left nothing to clear. The switch does that now, so
+  // prefilling would only mean pressing Save stored a custom address
+  // identical to the account one - a copy that stops tracking the account.
+  const currentEmail = (profile?.contact_email || '').trim()
 
   const [publishing, setPublishing] = useState(false)
   const [colorModeSaving, setColorModeSaving] = useState(false)
@@ -543,6 +549,7 @@ export default function SettingsDrawer({
   const [emailSaving, setEmailSaving] = useState(false)
   const [emailError, setEmailError] = useState(null)
   const [emailSaved, setEmailSaved] = useState(false)
+  const [contactSaving, setContactSaving] = useState(false)
 
   // The drawer is mounted for the life of the page and renders null when
   // closed, so nothing here is torn down on the way out: state set while it
@@ -675,6 +682,30 @@ export default function SettingsDrawer({
     }
   }
 
+  // The switch, which sends nothing but the switch. Written through the
+  // same route as the address and patched into `profile` the same way the
+  // publication switch patches its own column, so the sentence under the
+  // field re-reads without a reload.
+  async function toggleContact() {
+    if (contactSaving) return
+    setContactSaving(true)
+    setEmailError(null)
+    try {
+      const res = await fetch('/api/career-profile/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        body: JSON.stringify({ contact_enabled: !contactOn })
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
+      onProfileChanged({ contact_enabled: payload.contact_enabled !== false })
+    } catch (err) {
+      setEmailError(err.message || "We couldn't save that.")
+    } finally {
+      setContactSaving(false)
+    }
+  }
+
   async function saveEmail() {
     if (emailSaving) return
     setEmailSaving(true)
@@ -781,7 +812,31 @@ export default function SettingsDrawer({
   const colorMode = normalizeColorMode(profile?.color_mode)
   const slugDirty = candidate !== currentSlug && candidate.length > 0
   const slugUsable = slugDirty && slugCheck?.available === true && !slugChecking
+
+  // ---- WHAT THE LINK FIELD HAS TO SAY, IF ANYTHING ----
+  //
+  // Four states that were four spans in a row, only ever one of which was
+  // rendered. Resolved to one value so the line below the field is one
+  // line: it is there when there is something to report and absent when
+  // there is not, rather than an empty row holding its own margin open.
+  //
+  // The order is the order they happen in. Saved is last and asks for a
+  // field that is NOT dirty, because a confirmation about what is stored
+  // stops being true the moment somebody types over it.
+  const slugHint =
+    slugDirty && slugChecking ? { text: 'Checking…', tone: null }
+    : slugDirty && slugCheck?.available === true ? { text: 'Available', tone: 'ok' }
+    : slugDirty && slugCheck?.available === false ? { text: slugCheck.reason, tone: 'bad' }
+    : !slugDirty && slugSaved ? { text: 'Saved', tone: 'ok' }
+    : null
   const emailDirty = email.trim() !== currentEmail
+
+  // ---- WHETHER THE BUTTON IS THERE, AND WHO IT REACHES ----
+  //
+  // `!== false` so a build whose column has not been added yet reads as on,
+  // `!== false` so a build whose column has not been added yet reads as on,
+  // which is the behaviour every profile already had.
+  const contactOn = profile?.contact_enabled !== false
 
   return (
     <>
@@ -989,7 +1044,12 @@ export default function SettingsDrawer({
                         // exists, everything written for it is still here,
                         // and it comes back with the plan. The line under
                         // the list says so.
-                        <span className="hp-ed-lens-fixed" data-locked="true">Pro</span>
+                        /* The chip is the way up as well as the label: it
+                           carries the same href the drawer's own "Upgrade to
+                           Pro" link does, because a reader who has just been
+                           told a direction needs Pro should not have to go
+                           looking for where to get it. */
+                        <button type="button" className="hp-ed-lens-fixed cursor-pointer" data-locked="true" onClick={onShowUpgrade}><Lock />PRO</button>
                       ) : (
                         <button
                           type="button"
@@ -1053,7 +1113,7 @@ export default function SettingsDrawer({
                       ) : null}
 
                       {!showsAllDirections ? (
-                        <span className="hp-ed-lens-fixed" data-locked="true">Pro</span>
+                        <button type="button" className="hp-ed-lens-fixed cursor-pointer" data-locked="true" onClick={onShowUpgrade}><Lock />PRO</button>
                       ) : (
                       <button
                         type="button"
@@ -1116,7 +1176,7 @@ export default function SettingsDrawer({
                               {busy ? 'Adding…' : 'Add to Career Profile'}
                             </button>
                           ) : (
-                            <a className="hp-ed-lens-add" href={PRO_UPGRADE_HREF}>{PRO_UPGRADE_LABEL}</a>
+                            <button type="button" className="hp-ed-lens-add cursor-pointer" onClick={onShowUpgrade}>{PRO_UPGRADE_LABEL}</button>
                           )}
                         </div>
                       )
@@ -1160,7 +1220,7 @@ export default function SettingsDrawer({
                       {creating ? 'Building…' : 'Create'}
                     </button>
                   ) : (
-                    <a className="hp-ed-lens-add" href={PRO_UPGRADE_HREF}>{PRO_UPGRADE_LABEL}</a>
+                    <button type="button" className="hp-ed-lens-add cursor-pointer" onClick={onShowUpgrade}>{PRO_UPGRADE_LABEL}</button>
                   )}
                 </div>
                 {creating && (
@@ -1239,24 +1299,29 @@ export default function SettingsDrawer({
             </Group>
           )}
 
-          {/* ---- Link ---- */}
-          <Group label="Link">
-            <div className="hp-ed-field">
-              <span className="hp-ed-prefix">/p/</span>
-              <input
-                id="hp-ed-slug"
-                className="hp-ed-input"
-                type="text"
-                value={slug}
-                spellCheck="false"
-                autoComplete="off"
-                onChange={e => { setSlug(e.target.value); setSlugSaved(false); setSlugError(null) }}
-                aria-label="Your Career Profile link"
-                aria-describedby="hp-ed-slug-note"
-              />
-            </div>
-
-            <div className="hp-ed-row">
+          {/* ---- Profile link ---- */}
+          <Group label="Profile link">
+            {/* The address and its Save on one line, in the Contact group's own
+                row: same class, same three quarters to the field, same button
+                beside it. The field here is .hp-ed-field rather than a bare
+                input because /p/ is part of the control, and that is the whole
+                difference between the two - see the sizing rule, which names
+                both shapes as direct children for exactly this reason. */}
+            <div className="hp-ed-row hp-ed-contact-row">
+              <div className="hp-ed-field">
+                <span className="hp-ed-prefix">/p/</span>
+                <input
+                  id="hp-ed-slug"
+                  className="hp-ed-input"
+                  type="text"
+                  value={slug}
+                  spellCheck="false"
+                  autoComplete="off"
+                  onChange={e => { setSlug(e.target.value); setSlugSaved(false); setSlugError(null) }}
+                  aria-label="Your Career Profile link"
+                  aria-describedby="hp-ed-slug-note"
+                />
+              </div>
               <button
                 type="button"
                 className="hp-ed-action"
@@ -1264,52 +1329,107 @@ export default function SettingsDrawer({
                 onClick={saveSlug}
                 disabled={!slugUsable || slugSaving}
               >
-                {slugSaving ? 'Saving…' : 'Save link'}
+                {slugSaving ? 'Saving…' : 'Save'}
               </button>
-              {slugDirty && slugChecking ? <span className="hp-ed-hint">Checking…</span> : null}
-              {slugDirty && !slugChecking && slugCheck?.available === true
-                ? <span className="hp-ed-hint" data-ok="true">Available</span> : null}
-              {slugDirty && !slugChecking && slugCheck?.available === false
-                ? <span className="hp-ed-hint" data-bad="true">{slugCheck.reason}</span> : null}
-              {!slugDirty && slugSaved ? <span className="hp-ed-hint" data-ok="true">Saved</span> : null}
             </div>
 
+            {/* The full URL used to sit at the top of this line, in monospace on
+                its own row. It is gone: the chrome bar above the document shows
+                the link and carries Copy link, so this was the same address
+                said twice on one screen - and the one place it mattered is the
+                one with the button next to it. */}
             <p className="hp-ed-soon" id="hp-ed-slug-note">
-              {publicUrl ? <span className="hp-ed-url">{publicUrl}</span> : null}
               {published
                 ? 'Changing this breaks every link you have already shared.'
                 : 'Lowercase letters, numbers and hyphens.'}
             </p>
+
+            {/* Under the helper line rather than in the row above it, which is
+                where four mutually exclusive answers belong: there is only ever
+                one of them, and inside the row it would have wrapped to a line
+                of its own anyway and pushed the helper down a step each time
+                the owner typed. */}
+            {slugHint ? (
+              <div className="hp-ed-row">
+                <span
+                  className="hp-ed-hint"
+                  data-ok={slugHint.tone === 'ok' || undefined}
+                  data-bad={slugHint.tone === 'bad' || undefined}
+                >
+                  {slugHint.text}
+                </span>
+              </div>
+            ) : null}
+
             {slugError ? <p className="hp-ed-error">{slugError}</p> : null}
           </Group>
 
           {/* ---- Contact ----
-              The whole group goes on a plan that cannot set one. Publication
-              and the link above stay: a free account still publishes, still
-              has an address, and still shares it. What it does not get is a
-              second way for somebody to reach it. */}
-          {!canCustomise ? (
-            <Group label="Contact address">
-              <p className="hp-ed-upsell">
-                <span className="hp-ed-upsell-text">{upgradeCopyFor('contact')}</span>
-                <a className="hp-ed-upsell-link" href={PRO_UPGRADE_HREF}>{PRO_UPGRADE_LABEL}</a>
-              </p>
-            </Group>
-          ) : (
-          <Group label="Contact address">
-            <input
-              id="hp-ed-email"
-              className="hp-ed-input"
-              type="email"
-              value={email}
-              spellCheck="false"
-              autoComplete="off"
-              placeholder="you@example.com"
-              onChange={e => { setEmail(e.target.value); setEmailSaved(false); setEmailError(null) }}
-              aria-label="Contact address"
-              aria-describedby="hp-ed-email-note"
-            />
-            <div className="hp-ed-row">
+              Every plan. It was behind canCustomise, which is how a free
+              profile ended up with the worst of both answers: no way to set an
+              address, no way to switch the button off, and the public route
+              falling back to the account's sign-in address and publishing it
+              to every visitor who opened the link.
+
+              TWO CONTROLS, TWO COLUMNS
+              The switch writes contact_enabled and the field writes
+              contact_email, which is why turning the button off no longer
+              throws away the address somebody typed. They save separately:
+              each sends only its own key and the route writes only what it was
+              sent.
+
+              The line under them says which address is used when the field
+              is empty, because that is the only part of this a reader
+              cannot see from the two controls themselves. */}
+          <Group label="Contact email">
+            <div className="hp-ed-switch-row">
+              <button
+                type="button"
+                className="hp-ed-switch"
+                role="switch"
+                aria-checked={contactOn}
+                aria-label="Show the Contact button on your Career Profile"
+                onClick={toggleContact}
+                disabled={contactSaving}
+                data-on={contactOn ? 'true' : 'false'}
+              >
+                <span className="hp-ed-switch-knob" aria-hidden="true" />
+              </button>
+              <span className="hp-ed-switch-label">
+                {/* What the switch has done, not what pressing it would do.
+                    "Contact button on" was true of the control and said
+                    nothing about the page: this names the profile, which is
+                    the thing the owner is deciding about. Saving… is kept
+                    from the Publication switch above, which is this row's
+                    pattern and reports the write in the same place. */}
+                {contactSaving
+                  ? 'Saving…'
+                  : contactOn
+                  ? 'Contact button is visible on your profile'
+                  : 'Contact button is hidden on your profile'}
+              </span>
+            </div>
+
+            {/* ---- THE ADDRESS AND ITS SAVE, ON ONE LINE ----
+                .hp-ed-row is the drawer's own button line - the one under
+                the Link field carries Save link and its hints - with the
+                field brought into it. Its flex-wrap is kept rather than
+                turned off: the field and the button come to just under the
+                drawer's width, so "Saved" has nowhere to go but the line
+                below, which is where it belongs anyway. */}
+            <div className="hp-ed-row hp-ed-contact-row">
+              <input
+                id="hp-ed-email"
+                className="hp-ed-input"
+                type="email"
+                value={email}
+                spellCheck="false"
+                autoComplete="off"
+                placeholder={accountEmail || 'you@example.com'}
+                onChange={e => { setEmail(e.target.value); setEmailSaved(false); setEmailError(null) }}
+                aria-label="A different contact address"
+                aria-describedby="hp-ed-email-note"
+              />
               <button
                 type="button"
                 className="hp-ed-action"
@@ -1317,17 +1437,15 @@ export default function SettingsDrawer({
                 onClick={saveEmail}
                 disabled={!emailDirty || emailSaving}
               >
-                {emailSaving ? 'Saving…' : 'Save address'}
+                {emailSaving ? 'Saving…' : 'Save'}
               </button>
               {emailSaved ? <span className="hp-ed-hint" data-ok="true">Saved</span> : null}
             </div>
             <p className="hp-ed-soon" id="hp-ed-email-note">
-              Opens the Contact button on your Career Profile. Defaults to your account
-              email. Set a different address here, or leave it empty to hide the button.
+              Uses your account email unless you enter a different one.
             </p>
             {emailError ? <p className="hp-ed-error">{emailError}</p> : null}
           </Group>
-          )}
         </div>
       </aside>
 

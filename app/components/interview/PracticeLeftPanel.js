@@ -317,7 +317,7 @@ function SessionList({ sessions, onSelectSession, onDeleteRequest, onViewAll, ca
       {sessions.length > VISIBLE_SESSIONS && (
         <button
           onClick={onViewAll}
-          className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+          className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors cursor-pointer"
         >
           View all practice sessions →
         </button>

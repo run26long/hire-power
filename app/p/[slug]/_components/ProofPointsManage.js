@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import ProfileModal from './ProfileModal'
 import { UnsavedBar, useUnsavedGuard } from './ManageShell'
-import { useProfileEdit } from '../_lib/editContext'
+import { useProfileEdit, useIsGated, useShowUpgradeModal } from '../_lib/editContext'
+import { Lock } from './EditAffordance'
 
 // ============================================================================
 // MANAGING THE PROOF POINTS
@@ -124,6 +125,17 @@ function GripIcon() {
 
 export default function ProofPointsManage({ open, onClose }) {
   const edit = useProfileEdit()
+
+  // ---- THE ONE HALF OF THIS PANEL THE PLAN STILL DECIDES ----
+  //
+  // The three slots are a free account's own to write: it types its own
+  // figures, reorders them and saves them, and the route behind Save
+  // accepts proof_points from any plan. What it does not get is them
+  // suggested, and /proof-suggestions refuses it - so the list below is
+  // never asked for on a plan that cannot have it, and More suggestions
+  // makes the offer instead of collecting a 403.
+  const gated = useIsGated()
+  const showUpgrade = useShowUpgradeModal()
 
   // The directions the profile shows, in the profile's order. The document's
   // own list, which is already cut to what this plan renders - so a free
@@ -264,9 +276,10 @@ export default function ProofPointsManage({ open, onClose }) {
   // to suggest is not asked again every time the tab is reopened.
   useEffect(() => {
     if (!open || !tabId) return
+    if (gated) return
     if (suggestions[tabId] !== undefined || loading[tabId]) return
     fetchSuggestions(tabId, [])
-  }, [open, tabId, suggestions, loading, fetchSuggestions])
+  }, [open, tabId, gated, suggestions, loading, fetchSuggestions])
 
   // ---- THE GESTURE ----
   // Lifted from ManageList, which explains it at length: pointer events from
@@ -585,7 +598,11 @@ export default function ProofPointsManage({ open, onClose }) {
           calculated or rounded.
         </p>
 
-        {tabLoading ? (
+        {/* Nothing where the list would be on a gated plan, rather than the
+            house empty line: "nothing further to suggest from your material"
+            is a statement about the material, and the material was never
+            read. What is left is the title, the note and the control. */}
+        {gated ? null : tabLoading ? (
           <p className="hp-manage-empty">Reading your career data…</p>
         ) : tabError ? (
           <p className="hp-manage-empty">{tabError}</p>
@@ -621,8 +638,9 @@ export default function ProofPointsManage({ open, onClose }) {
             type="button"
             className="hp-manage-secondary"
             disabled={tabLoading || saving}
-            onClick={() => fetchSuggestions(tabId, offered[tabId] || [])}
+            onClick={gated ? showUpgrade : () => fetchSuggestions(tabId, offered[tabId] || [])}
           >
+            {gated ? <Lock /> : null}
             {tabLoading ? 'Looking…' : 'More suggestions'}
           </button>
         </div>

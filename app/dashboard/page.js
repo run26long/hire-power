@@ -787,7 +787,7 @@ function DashboardContent() {
               numeral="01"
               heading="Resume Writer"
               lead="Build the strongest version of your story."
-              copy="Hire Power finds what’s missing and turns your real experience into a résumé that sounds like you."
+              copy="Hire Power finds what’s missing and turns your real experience into a resume that sounds like you."
               copyWidth={430}
               cta="Open Resume Writer →"
               badge={
@@ -804,7 +804,7 @@ function DashboardContent() {
               numeral="02"
               heading="Career Profile"
               lead="Your career deserves more than one page."
-              copy="Bring together the story, proof, and perspective a résumé can’t hold — and show employers the fuller picture of who you are."
+              copy="Bring together the story, proof, and perspective a resume can’t hold — and show employers the fuller picture of who you are."
               copyWidth={445}
               cta="Open Career Profile →"
               badge={hasProfile ? (
@@ -819,7 +819,7 @@ function DashboardContent() {
           {/* ================= SECONDARY ROW ================= */}
           <div className="hp-tools">
 
-            {/* The way in is the same one the nav offers. What a résumé is
+            {/* The way in is the same one the nav offers. What a resume is
                 needed for is Interview Practice's own question to ask on the
                 page where it can be answered, not a door held shut here. */}
             <ToolColumn
@@ -827,7 +827,7 @@ function DashboardContent() {
               numeral="03"
               name="Interview Practice"
               lead="Be ready to say it out loud."
-              copy="Practice with your résumé and target job in context."
+              copy="Practice with your resume and target job in context."
               cta="Open Interview Practice →"
             />
 
@@ -845,7 +845,7 @@ function DashboardContent() {
               numeral="05"
               name="Career Vault"
               lead="Never start from scratch again."
-              copy="Everything Hire Power learns about your career makes the next résumé, interview, and job search easier."
+              copy="Everything Hire Power learns about your career makes the next resume, interview, and job search easier."
               copyWidth={360}
               cta="Open Career Vault →"
             />

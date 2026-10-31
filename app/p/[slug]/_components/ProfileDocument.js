@@ -71,7 +71,20 @@ const RESOLVE_MS = 670
 // because it sits in a URL somebody pastes into a message.
 const LENS_PARAM = 'd'
 
-export default function ProfileDocument({ data, slug, onLensUpdated, edit = null, deepLinkLens = false }) {
+// ---- hideProOnly ----
+//
+// The one cut this component makes on the plan's behalf, and it exists for
+// exactly one reader: Preview.
+//
+// Everything else the plan decides is decided in the route. Preview cannot
+// be: it is the owner's own fetch of the public endpoint, so the payload
+// arrives whole on purpose - the editor beside it has to show the owner
+// everything they hold in order to let them add to it. Preview is the
+// recruiter's reading of that same payload, so the cut happens here.
+//
+// The public page never passes this and never needs to; by the time the
+// response reaches a visitor the route has already left these out of it.
+export default function ProfileDocument({ data, slug, onLensUpdated, edit = null, deepLinkLens = false, hideProOnly = false }) {
   const reducedMotion = usePrefersReducedMotion()
 
   const [activeIndex, setActiveIndex] = useState(0)
@@ -345,6 +358,10 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   const imowVideoWidth = data?.profile?.imow_video_width ?? null
   const imowVideoHeight = data?.profile?.imow_video_height ?? null
   const imowHasPoster = data?.profile?.imow_has_poster === true
+  // Which poster, so the card can tell that it changed. See the note on
+  // posterVersion in ./ImowVideo - without this the In My Own Words card
+  // signs its poster once and keeps the old still until a reload.
+  const imowPosterVersion = data?.profile?.imow_poster_version ?? null
 
   // Where the resume actually carries one. There is no location and no remote
   // field in the API contract, so nothing is inferred and nothing stands in
@@ -363,10 +380,17 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
 
   // A testimonial with no text and a piece of evidence with neither a title nor
   // a link are not content, so they do not get to keep their sections open.
-  const testimonials = (Array.isArray(data?.testimonials) ? data.testimonials : [])
-    .filter(item => String(item?.polished_text || '').trim())
-  const evidence = (Array.isArray(data?.evidence) ? data.evidence : [])
-    .filter(item => item && (item.title || item.url))
+  const testimonials = useMemo(() => {
+    if (hideProOnly) return []
+    return (Array.isArray(data?.testimonials) ? data.testimonials : [])
+      .filter(item => String(item?.polished_text || '').trim())
+  }, [hideProOnly, data?.testimonials])
+
+  const evidence = useMemo(() => {
+    if (hideProOnly) return []
+    return (Array.isArray(data?.evidence) ? data.evidence : [])
+      .filter(item => item && (item.title || item.url))
+  }, [hideProOnly, data?.evidence])
 
   // What this direction puts in Evidence, and in what order.
   //
@@ -398,7 +422,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   // read. A direction's reading of the same testimony is not something the
   // profile offers any more, and preferring a leftover row would show one
   // direction something older than what every other direction shows.
-  const impact = data?.collectiveImpact || null
+  const impact = hideProOnly ? null : (data?.collectiveImpact || null)
 
   // One shared, privacy-filtered collection, read in this direction's order.
   // The canonical list is what proof resolves against, so reordering here
@@ -649,6 +673,19 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       // document; it is asked in the settings drawer, off manage.isPro.
       canUseProfileTools: edit.canUseProfileTools === true,
       notify: edit.notify,
+      // ---- WHAT A GATED CONTROL DOES WHEN IT IS PRESSED ----
+      //
+      // The one channel every lock on this page uses, and it has to be
+      // named here like everything else: this object has no spread, so a
+      // key the workspace sets and this does not name never arrives. It
+      // was missing, and the whole of the page's locking was dead because
+      // of it - useShowUpgradeModal falls back to a no-op rather than
+      // throwing, so every gated Manage, Add, Request, suggestion and
+      // pencil pressed silently and nothing happened. The ones that did
+      // work worked by another path entirely: the settings drawer takes
+      // onShowUpgrade as a prop, and the AI callbacks open the modal from
+      // the workspace's own scope on their way to refusing.
+      onShowUpgrade: edit.onShowUpgrade,
       // Every direction, not just the one on screen: adding a piece of
       // evidence is where an owner decides which chapters it belongs to.
       lenses,
@@ -708,7 +745,15 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       imowText: edit.imowText ?? imowText ?? '',
       imowType: edit.imowType ?? imowType ?? null,
       imowHasVideo: edit.imowOwnerHasVideo === true || imowHasVideo,
+      // No fallback to the document: the offset is owner-only and the
+      // public payload does not carry it.
+      imowPosterAt: edit.imowPosterAt ?? null,
       onUploadImowVideo: edit.onUploadImowVideo,
+      // Changing the thumbnail of a stored video. Named here like
+      // everything else: this object has no spread, and a key the workspace
+      // sets and this does not name never arrives - which is how the whole
+      // of the page's locking was dead for a while. See onShowUpgrade.
+      onSaveImowPoster: edit.onSaveImowPoster,
       onRemoveImowVideo: edit.onRemoveImowVideo,
       onDownloadReferenceSheet: edit.onDownloadReferenceSheet,
       openField,
@@ -735,6 +780,9 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     }
   }, [
     edit?.editing, edit?.canCustomise, edit?.canUseProfileTools, edit?.notify,
+    edit?.onShowUpgrade,
+    edit?.onSaveImowPoster,
+    edit?.imowPosterAt,
     edit?.onPreviewUrl, edit?.onCreateEvidence, edit?.onUploadEvidence,
     edit?.onReplaceEvidenceFile,
     edit?.allEvidence, edit?.allPlacements, edit?.onSetEvidenceDirections,
@@ -836,6 +884,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
         imowVideoWidth={imowVideoWidth}
         imowVideoHeight={imowVideoHeight}
         imowHasPoster={imowHasPoster}
+        imowPosterVersion={imowPosterVersion}
         imowText={imowText}
         imowExpanded={imowExpanded}
         onToggleImow={() => setImowExpanded(value => !value)}

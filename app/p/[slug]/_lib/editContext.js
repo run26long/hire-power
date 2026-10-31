@@ -112,7 +112,16 @@ export function useCanEdit() {
 // A set rather than a flag on each call site, so there is one list and anybody
 // reading it can see how short it is.
 // ---------------------------------------------------------------------------
-const FREE_WRITABLE = new Set(['imow'])
+// Everything the owner writes themselves. A free account types its own
+// headline, its own About, its own proof points, its own Open to tags and
+// its own In My Own Words - the profile is theirs and the words in it are
+// not what the plan is for. What the plan is for is having them written:
+// every AI control in these editors is still gated, and the routes behind
+// those controls still refuse free outright.
+//
+// ready_for_next is deliberately absent. It is written by the same route as
+// the four above and is not one of them, so that route checks per field.
+const FREE_WRITABLE = new Set(['imow', 'headline', 'bio', 'proof_points', 'ready_tags'])
 
 export function useCanEditField(field) {
   const edit = useContext(ProfileEditContext)
@@ -121,10 +130,21 @@ export function useCanEditField(field) {
   return FREE_WRITABLE.has(field)
 }
 
-// True only where an upgrade prompt belongs: the management page, on an
-// account that cannot use the control it stands in for. The public page and
-// preview get neither the control nor the prompt.
-export function useShowUpgrade() {
+// The way a gated control asks for the upgrade modal. One channel, so every
+// locked pencil, Manage, Add and Request on this page opens the same modal
+// as the settings drawer, and no section has to know how to build one.
+//
+// A no-op when nothing is wired, for the same reason notify is: a control
+// that cannot explain itself must still not throw when pressed.
+export function useShowUpgradeModal() {
+  const edit = useContext(ProfileEditContext)
+  return edit?.onShowUpgrade || (() => {})
+}
+
+// True where a control exists but this plan cannot use it. The control is
+// still rendered on every plan, so this decides what pressing it does, not
+// whether it is there.
+export function useIsGated() {
   const edit = useContext(ProfileEditContext)
   return Boolean(edit?.editing === true && edit.canCustomise !== true)
 }
@@ -164,6 +184,12 @@ export function useFieldEditor(field) {
     // direction. A free account with one direction can generate, so hiding the
     // button from them was hiding a feature they have. The payload's lenses are
     // already filtered to the statuses that route counts.
-    canRegenerate: edit.canUseProfileTools === true || (edit.lenses?.length ?? 0) <= 1
+    // An AI control looks the same on every plan - a control that is simply
+    // absent cannot say what it would have done. Free always sees it and
+    // pressing it opens the modal; the two paid branches are exactly what
+    // they were, so Vault keeps the behaviour it has.
+    canRegenerate: edit.canUseProfileTools === true
+      || (edit.lenses?.length ?? 0) <= 1
+      || edit.canCustomise !== true
   }
 }

@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useFieldEditor } from '../_lib/editContext'
+import { useFieldEditor, useIsGated } from '../_lib/editContext'
+import { Lock } from './EditAffordance'
 import useAutoGrow from '../_lib/useAutoGrow'
 import ProfileModal from './ProfileModal'
 import { LIMITS, clampToLimit, overLimitNote } from '@/lib/textLimits'
@@ -129,9 +130,17 @@ export function FieldEditorBar({ cancel, middle, save }) {
 function EditorShell({
   editor, label, onSave, canSave, children, onRegenerate, hint, count, note, modalTitle
 }) {
-  // Offered only where it exists. A free account with more than one direction
-  // cannot generate at all, and a button that always answered PRO_REQUIRED
-  // would be worse than no button.
+  // Locked rather than absent, and the lock is the mark every other gate on
+  // this page wears. The question is the plan, not the field: the three
+  // editors this shell serves - headline, About and Open to - all write on
+  // free and all have their rewriting behind the same gate.
+  const aiLocked = useIsGated()
+
+  // The same control on every plan, which is what canRegenerate now answers:
+  // it is offered wherever the field has a regenerator, and a gated press
+  // opens the Pro modal. It used to be withheld from an account that would
+  // have collected a PRO_REQUIRED, which meant the one thing the plan would
+  // add was the one thing the page never mentioned.
   //
   // It takes several seconds and says so while it does. Without the mark the
   // only sign anything was happening was the button going flat, which reads as
@@ -145,6 +154,7 @@ function EditorShell({
       disabled={editor.busy}
       title="Write this again from your coaching sessions"
     >
+      {aiLocked ? <Lock /> : null}
       {editor.working ? <span className="hp-ed-spin" aria-hidden="true" /> : null}
       {editor.working ? 'Creating another version…' : 'Show me another version'}
     </button>

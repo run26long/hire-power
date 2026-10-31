@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Reveal from './Reveal'
-import { GhostText, useEditSlot } from './EditAffordance'
+import { GhostText, SectionHiddenChip, Lock, useEditSlot } from './EditAffordance'
 import ProfileModal from './ProfileModal'
 import ManageList from './ManageList'
 import { usePaneGuard } from './ManageShell'
 import { TestimonialEditPane, TestimonialRequestPane, useTestimonialDelete } from './ManagePanes'
 import TestimonialReview from './TestimonialReview'
 import TestimonialsAll from './TestimonialsAll'
-import { useCanShowEmpty, useProfileEdit } from '../_lib/editContext'
+import { useCanShowEmpty, useCanEdit, useShowUpgradeModal, useProfileEdit } from '../_lib/editContext'
 import { directionsByItem, rowsForDirection, selectForDirection } from '../_lib/profileData'
 import { PICKABLE } from './DirectionPicker'
 
@@ -51,6 +51,11 @@ export default function CollectiveImpact({
   directionKey
 }) {
   const canShowEmpty = useCanShowEmpty()
+  // Both controls below show on every plan and both of them write, so a
+  // gated press opens the Pro modal instead of a panel whose routes would
+  // refuse it. Same split as Evidence and Portfolio.
+  const canEdit = useCanEdit()
+  const showUpgrade = useShowUpgradeModal()
   const slot = useEditSlot()
   const [expanded, setExpanded] = useState(() => new Set())
   // Every account, on request. Its own state rather than a pane of the
@@ -475,7 +480,7 @@ export default function CollectiveImpact({
             the accounts on the right are two readings of the same thing. What
             each column is then says so inside the column itself. */}
         <Reveal enabled={animate} className={`hp-impact-intro${slot}`}>
-          <h2 className="hp-impact-headline">What others see.</h2>
+          <h2 className="hp-impact-headline">What others see.<SectionHiddenChip /></h2>
         </Reveal>
 
         {/* One control for the whole section, at the top right, the same one
@@ -492,16 +497,16 @@ export default function CollectiveImpact({
                 has something in it: while it is empty the invitation stands
                 in the first quote position and asks there, and a second
                 control saying the same thing would be the owner asked the
-                same question twice. The row renders only for an owner in
-                Edit mode, so neither Preview nor the public page has it. */}
+                same question twice. The row renders for an owner in Edit mode
+                on every plan, and a gated press opens the Pro modal. */}
             {hasQuotes ? (
               <button
                 type="button"
                 className="hp-ed-action"
                 data-primary="true"
-                onClick={() => { setPane('request'); setManageOpen(true) }}
+                onClick={canEdit ? () => { setPane('request'); setManageOpen(true) } : showUpgrade}
               >
-                + Request a testimonial
+                {canEdit ? null : <Lock />}+ Request a testimonial
               </button>
             ) : null}
 
@@ -509,9 +514,9 @@ export default function CollectiveImpact({
               type="button"
               className="hp-ed-manage"
               aria-haspopup="dialog"
-              onClick={() => { setPane(null); setManageOpen(true) }}
+              onClick={canEdit ? () => { setPane(null); setManageOpen(true) } : showUpgrade}
             >
-              Manage testimonials
+              {canEdit ? null : <Lock />}Manage testimonials
               {toReviewCount > 0 ? (
                 <span
                   className="hp-ed-manage-count"
@@ -790,7 +795,7 @@ export default function CollectiveImpact({
               // One closes as the other opens, in that order, so there is
               // never a moment with two of these on screen.
               onManage={canShowEmpty
-                ? () => { setAllOpen(false); setPane(null); setManageOpen(true) }
+                ? (canEdit ? () => { setAllOpen(false); setPane(null); setManageOpen(true) } : showUpgrade)
                 : undefined}
             />
           ) : null}

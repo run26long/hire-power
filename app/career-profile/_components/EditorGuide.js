@@ -30,7 +30,7 @@ export default function EditorGuide() {
     <section className="hp-ed-guide-intro" aria-label="About your Career Profile">
       <div className="hp-ed-guide-inner">
         <div className="hp-ed-guide-say">
-          {/* The pairing now carries itself: what a résumé does, said quietly
+          {/* The pairing now carries itself: what a resume does, said quietly
               above what this does. */}
           <span className="hp-ed-guide-eyebrow">
             Your r&eacute;sum&eacute; tells people where you worked.

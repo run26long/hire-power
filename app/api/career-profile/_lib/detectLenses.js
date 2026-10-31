@@ -88,7 +88,7 @@ export async function ensureCareerProfile(supabaseWrite, userId, displayName) {
 }
 
 // Deduped by slug against every status, so a lens the user has already accepted
-// or dismissed is never re-suggested. A row the user owns is never touched, and
+// or turned off is never re-suggested. A row the user owns is never touched, and
 // neither is one they have built: only a still-suggested row this evaluation
 // wrote gets its evidence refreshed, and only its evidence.
 //
@@ -349,8 +349,8 @@ export async function detectLensesFromKnowledge({ userId, supabase }) {
     }
   }
 
-  // Every status counts as taken. A direction the user dismissed or already built
-  // is not a suggestion, and naming them keeps the model from proposing one back.
+  // Every status counts as taken. A direction the user has turned off is still
+  // one they have, and naming them keeps the model from proposing one back.
   // The slug check inside saveSuggestedLenses is what actually enforces it.
   const existingLensNames = (lensRes.data || []).map(l => l.name).filter(Boolean)
 

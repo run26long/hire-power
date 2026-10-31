@@ -293,7 +293,7 @@
   border: 1px solid transparent;
 }
 
-/* Download résumé: a real control, just a quieter one. Surface and border
+/* Download resume: a real control, just a quieter one. Surface and border
    rather than fill, so it never competes with Contact. */
 .hp-header .hp-btn-secondary,
 .hp-bar .hp-btn-secondary,

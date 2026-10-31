@@ -14,6 +14,7 @@ import ProfileDocument from '../p/[slug]/_components/ProfileDocument'
 import SettingsDrawer from './_components/SettingsDrawer'
 import EditorGuide from './_components/EditorGuide'
 import Tour, { tourSeen, TourReplayButton } from '@/app/components/Tour'
+import UpgradeModal from '@/app/components/UpgradeModal'
 
 import './_styles/editor.css'
 import { currentPath, signInUrl } from '@/lib/returnPath'
@@ -64,7 +65,7 @@ const PROFILE_TOUR_STEPS = [
     id: 'profile-identity',
     targets: ['profile-identity'],
     placement: 'right',
-    title: 'Meet the résumé’s much more interesting sibling.',
+    title: 'Meet the resume’s much more interesting sibling.',
     body: 'Your Career Profile brings the fuller story together: your work, results, proof, recommendations, and the parts of you that never fit on one page.'
   },
   {
@@ -72,14 +73,16 @@ const PROFILE_TOUR_STEPS = [
     targets: ['profile-directions'],
     placement: 'bottom',
     title: 'One career can tell more than one story.',
-    body: 'Career Directions reshape your profile around the opportunities you want. Choose one to show employers the experience that matters most for that path.'
+    body: 'Career Directions reshape your profile around the opportunities you want. Choose one to show employers the experience that matters most for that path.',
+    freeBody: 'Career Directions reshape your profile around the opportunities you want. Your profile shows your primary Career Direction. Upgrade to Pro to show up to three.'
   },
   {
     id: 'profile-mode',
     targets: ['profile-mode'],
     placement: 'bottom',
     title: 'Edit here. Preview like an employer.',
-    body: 'Edit shows your controls. Preview hides them, so you can see exactly what someone opening your link will see.'
+    body: 'Edit shows your controls. Preview hides them, so you can see exactly what someone opening your link will see.',
+    freeBody: 'Edit is where you speak directly to employers, in your own words. Preview shows exactly what someone opening your link will see.'
   },
   {
     id: 'profile-about',
@@ -93,7 +96,8 @@ const PROFILE_TOUR_STEPS = [
     targets: ['profile-settings'],
     placement: 'bottom',
     title: 'Nothing goes public until you say so.',
-    body: 'Use Settings to choose what appears. Then preview, publish, and share your link when you’re ready. Your career story, your call.'
+    body: 'Use Settings to choose what appears. Then preview, publish, and share your link when you’re ready. Your career story, your call.',
+    freeBody: 'Preview, publish, and share your link when you’re ready. Your career story, your call.'
   }
 ]
 
@@ -107,6 +111,11 @@ export default function CareerProfileEditorPage() {
   const [document_, setDocument] = useState(null)
   const [mode, setMode] = useState(MODES.EDIT)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  // The Pro modal, for every gated control on the page. It was not mounted
+  // here at all: the page explained its locks with sentences and sent people
+  // to /profile?upgrade=true. The controls do the explaining now, so the
+  // offer has to be where they are.
+  const [showUpgrade, setShowUpgrade] = useState(false)
 
   // First-visit tour. The step id is held here rather than inside the tour
   // because one stop points at the About pencil, which is invisible until its
@@ -339,9 +348,6 @@ export default function CareerProfileEditorPage() {
   // on screen is what is in the database, and a round trip would only add a
   // flicker. A changed slug also changes the public address, so the link in
   // the bar and the drawer follow from the same state.
-  const handleProfileChanged = useCallback((patch) => {
-    setManage(prev => prev ? { ...prev, profile: { ...prev.profile, ...patch } } : prev)
-  }, [])
 
   // ---- WRITING A DIRECTION ----
   //
@@ -368,6 +374,9 @@ export default function CareerProfileEditorPage() {
   // is what keeps it out of the database: the new wording arrives in the open
   // editor as a draft, and Save is the only thing that stores it.
   const regenerateLens = useCallback(async (lensId, field) => {
+    // Gated on this plan: the offer, not a refusal. See the note on
+    // onShowUpgrade below.
+    if (manage?.canCustomise !== true) { setShowUpgrade(true); return null }
     const res = await fetch('/api/career-profile/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
@@ -382,7 +391,7 @@ export default function CareerProfileEditorPage() {
       )
     }
     return payload?.draft?.[field] ?? null
-  }, [getAuthHeaders])
+  }, [getAuthHeaders, manage?.canCustomise])
 
   // ---- EVIDENCE ----
   //
@@ -420,6 +429,27 @@ export default function CareerProfileEditorPage() {
     const managed = await fetchJSON('/api/career-profile/manage', { headers: await getAuthHeaders() })
     setManage(managed)
   }, [getAuthHeaders])
+
+  // ---- A DRAWER WRITE, FOLDED BACK IN ----
+  //
+  // Most of these touch the management record alone - the template, the
+  // colour mode, the accent - so patching `manage` is the whole of it and
+  // the document behind the drawer is already right.
+  //
+  // The two contact columns are not like that. They decide whether the
+  // public page carries a Contact button and which address it opens, and
+  // that is computed by the document route rather than read off a column,
+  // so the page cannot be patched into agreement - it has to be re-read.
+  // Without this the owner switches the button off and goes on looking at
+  // it until the next reload.
+  const handleProfileChanged = useCallback((patch) => {
+    setManage(prev => prev ? { ...prev, profile: { ...prev.profile, ...patch } } : prev)
+    const touchesContact = Object.prototype.hasOwnProperty.call(patch || {}, 'contact_email')
+      || Object.prototype.hasOwnProperty.call(patch || {}, 'contact_enabled')
+    // Deliberately not awaited: the drawer has already reported Saved, and a
+    // re-read that fails is a stale button rather than a failed save.
+    if (touchesContact) reloadDocument().catch(() => {})
+  }, [reloadDocument])
 
   // Every management write lands the same way: do it, then re-read both
   // records. Two requests rather than one, and worth it - the document decides
@@ -698,6 +728,9 @@ export default function CareerProfileEditorPage() {
   }, [getAuthHeaders, reloadDocument, reloadManage])
 
   const generateImow = useCallback(async () => {
+    // Gated on this plan: the offer, not a refusal. See the note on
+    // onShowUpgrade below.
+    if (manage?.canCustomise !== true) { setShowUpgrade(true); return null }
     const res = await fetch('/api/career-profile/imow/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) }
@@ -712,12 +745,15 @@ export default function CareerProfileEditorPage() {
     }
     // Nothing is reloaded here, because nothing was written.
     return payload
-  }, [getAuthHeaders])
+  }, [getAuthHeaders, manage?.canCustomise])
 
   // The other half of the same bargain: ./generate has material and no text,
   // this has text and no material. It writes nothing either, and what it
   // returns is shown beside the original rather than instead of it.
   const strengthenImow = useCallback(async (imowText) => {
+    // Gated on this plan: the offer, not a refusal. See the note on
+    // onShowUpgrade below.
+    if (manage?.canCustomise !== true) { setShowUpgrade(true); return null }
     const res = await fetch('/api/career-profile/imow/strengthen', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
@@ -732,7 +768,7 @@ export default function CareerProfileEditorPage() {
       )
     }
     return payload
-  }, [getAuthHeaders])
+  }, [getAuthHeaders, manage?.canCustomise])
 
   // ---- TESTIMONIALS ----
   //
@@ -900,6 +936,78 @@ export default function CareerProfileEditorPage() {
     await Promise.all([reloadDocument(), reloadManage()])
     return payload
   }, [getAuthHeaders, reloadDocument, reloadManage])
+
+  // ---- A NEW THUMBNAIL FOR A VIDEO ALREADY STORED ----
+  //
+  // The same three steps as an upload with one of them missing: ask for a
+  // place to put the still, put it there, tell the server it has landed. There
+  // is no video leg because the video is already on the row - the server reads
+  // its path from there rather than taking one from here, so this cannot point
+  // a poster at anybody else's film.
+  //
+  // Both requests carry poster_only, which is what selects the branch on each
+  // side. Without it POST would demand a video content type and PUT would
+  // demand a video ticket and a freshly uploaded object.
+  const saveImowPoster = useCallback(async (frame) => {
+    if (!frame?.blob) throw new Error("We couldn't read that frame. Please try again.")
+
+    const startRes = await fetch('/api/career-profile/imow/video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+      body: JSON.stringify({
+        poster_only: true,
+        poster_content_type: frame.contentType
+      })
+    })
+    const start = await startRes.json().catch(() => ({}))
+    if (!startRes.ok) throw new Error(start?.error || "We couldn't start that upload.")
+    if (!start.poster_signed_url || !start.poster_path) {
+      throw new Error("We couldn't start that upload.")
+    }
+
+    const putRes = await fetch(start.poster_signed_url, {
+      method: 'PUT',
+      headers: { 'Content-Type': start.poster_content_type || frame.contentType },
+      body: frame.blob
+    })
+    if (!putRes.ok) throw new Error("That upload didn't finish. Please try again.")
+
+    const finishRes = await fetch('/api/career-profile/imow/video', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+      body: JSON.stringify({
+        poster_only: true,
+        poster_path: start.poster_path,
+        poster_ticket: start.poster_ticket,
+        // Where in the film it came from, so the picker can reopen on it.
+        poster_at: frame.at ?? null
+      })
+    })
+    const payload = await finishRes.json().catch(() => ({}))
+    if (!finishRes.ok) {
+      throw new Error(payload?.error || "We couldn't save that frame. Your current thumbnail is unchanged.")
+    }
+
+    // BOTH RECORDS, AND THEY CARRY DIFFERENT HALVES OF THE SAME SAVE
+    //
+    // The document, because the public page draws the poster and the card
+    // re-signs off imow_poster_version.
+    //
+    // The management record, because imow_poster_at is on it. That is the
+    // offset the frame picker reopens at, and it is owner-only working state
+    // that the public payload has no business carrying - so without this the
+    // owner could save a frame, close the editor, reopen it in the same
+    // session and be put back at the start by a value that was already
+    // stale. This note used to say the management record carried no poster;
+    // it carries where the poster came from.
+    //
+    // Neither re-read disturbs the player. previewUrl is unchanged by the
+    // manage read, and startAt is not one of the picker's reset keys - only
+    // its source is - so the film stays exactly where the owner left it.
+    await Promise.all([reloadDocument(), reloadManage()])
+    return payload
+  }, [getAuthHeaders, reloadDocument, reloadManage])
+
 
   const removeImowVideo = useCallback(async () => {
     const res = await fetch('/api/career-profile/imow/video', {
@@ -1263,6 +1371,19 @@ export default function CareerProfileEditorPage() {
         // reason the public one does, and for one more: Copy link is up in the
         // bar above, and it copies what the owner is looking at.
         deepLinkLens
+        // ---- WHAT PREVIEW HAS TO DROP ----
+        // Evidence, the portfolio, the testimonials and the Collective
+        // Impact synthesis are part of Pro and Vault. The public route
+        // leaves them out of a free profile for every reader but its
+        // owner, and this page is the owner - it has to be, because the
+        // editor beside the document is how they are added to. Preview is
+        // the same payload read as a recruiter would read it, so Preview
+        // is where the cut has to be made again.
+        //
+        // Edit is deliberately not included: the owner sees everything
+        // they hold, with one line in each of those sections saying it is
+        // not on the public page.
+        hideProOnly={!editing && manage?.canUseProfileTools !== true}
         edit={editing ? {
           editing: true,
           // Whether the owner may put their own words and files into the
@@ -1275,6 +1396,9 @@ export default function CareerProfileEditorPage() {
           // career direction - is in the settings drawer, which reads
           // manage.isPro directly.
           canUseProfileTools: manage?.canUseProfileTools === true,
+          // What a gated control does when it is pressed. One modal for the
+          // whole page, including the settings drawer.
+          onShowUpgrade: () => setShowUpgrade(true),
           notify,
           onSaveLens: saveLens,
           onRegenerateLens: regenerateLens,
@@ -1309,6 +1433,11 @@ export default function CareerProfileEditorPage() {
           imowText: manage?.profile?.imow_text || '',
           imowType: manage?.profile?.imow_type || null,
           imowOwnerHasVideo: manage?.profile?.imow_has_video === true,
+          // Where the stored poster was taken from, so the frame picker
+          // opens on the frame the owner chose rather than at the start.
+          // Off the management record: it is working state, and the public
+          // payload has no business carrying it.
+          imowPosterAt: manage?.profile?.imow_poster_at ?? null,
           onGenerateImow: generateImow,
           onStrengthenImow: strengthenImow,
           // The whole set, so the rail can offer a direction the profile is
@@ -1337,6 +1466,7 @@ export default function CareerProfileEditorPage() {
           // else can see yet.
           getAuthHeaders,
           onUploadImowVideo: uploadImowVideo,
+          onSaveImowPoster: saveImowPoster,
           onRemoveImowVideo: removeImowVideo,
           onDownloadReferenceSheet: downloadReferenceSheet
         } : null}
@@ -1346,7 +1476,6 @@ export default function CareerProfileEditorPage() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         profile={profile}
-        publicUrl={publicUrl}
         accountEmail={manage?.accountEmail || null}
         getAuthHeaders={getAuthHeaders}
         onProfileChanged={handleProfileChanged}
@@ -1357,6 +1486,7 @@ export default function CareerProfileEditorPage() {
         showsAllDirections={manage?.showsAllDirections === true}
         notify={notify}
         lenses={manage?.lenses || []}
+        onShowUpgrade={() => setShowUpgrade(true)}
         onLensVisibility={setLensVisibility}
         onLensReorder={reorderLenses}
         onLensCreate={createLens}
@@ -1369,9 +1499,27 @@ export default function CareerProfileEditorPage() {
       {/* Inside .hp-ed, which is where the workspace's colour tokens live: the
           card reads them through the DOM, so being fixed-position does not
           matter but being a descendant does. */}
+      {/* Every locked pencil, Manage, Add and Request on the document, and
+          the drawer's own Pro links, open this one. */}
+      <UpgradeModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} currentTier={manage?.userProfile?.subscription_tier} />
+
       {showTour && (
         <Tour
-          steps={PROFILE_TOUR_STEPS}
+          /* ---- WHOSE WORDS THESE ARE ----
+             The same substitution the Resume Writer and Interview Practice
+             tours make, with one difference in the predicate. Those two ask
+             isPro, so Vault reads the Free copy; this page asks canCustomise,
+             which is every paying plan, so Vault reads the Pro copy here.
+             That is not an inconsistency - it follows what each tour is
+             about. A Vault account has the Career Profile in full: three
+             directions, every pencil, the recruiter tools. What it does not
+             have is a second job-specific resume or unlimited practice,
+             which is what the other two tours are describing. */
+          steps={PROFILE_TOUR_STEPS.map(step => (
+            manage?.canCustomise === true
+              ? step
+              : { ...step, title: step.freeTitle || step.title, body: step.freeBody || step.body }
+          ))}
           storageKey={PROFILE_TOUR_KEY}
           theme="dark"
           onStepChange={setTourStepId}

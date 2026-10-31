@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Reveal from './Reveal'
 import { splitLeadSentence } from '../_lib/profileData'
-import { EditPencil, SlotGuide, GuideAction, useEditSlot, UpgradeNote } from './EditAffordance'
+import { EditPencil, SlotGuide, GuideAction, useEditSlot } from './EditAffordance'
 import { ProseEditor } from './EditFields'
 import ImowEditor from './ImowEditor'
 import ImowVideo from './ImowVideo'
@@ -66,6 +66,7 @@ export default function ProfileSpread({
   imowVideoWidth = null,
   imowVideoHeight = null,
   imowHasPoster = false,
+  imowPosterVersion = null,
   slug,
   getAuthHeaders,
   animate = true
@@ -144,7 +145,16 @@ export default function ProfileSpread({
   const edit = useProfileEdit()
   const ownerHasText = Boolean(String(edit?.imowText || '').trim())
   const ownerHasVideo = edit?.imowHasVideo === true
-  const canChooseHalf = Boolean(edit?.setImowLive) && ownerHasText && ownerHasVideo
+  // ---- AND THE PLAN, WHICH IS THE THIRD CONDITION ----
+  // There is nothing to choose between on a plan whose profile only ever
+  // shows the written half: the public route serves the words whatever the
+  // column says, so a switch reading Video would be a setting that changes
+  // nothing a visitor can see. The video is still in the editor, still
+  // plays, and comes back to the profile with the plan.
+  const canChooseHalf = Boolean(edit?.setImowLive)
+    && edit?.canUseProfileTools === true
+    && ownerHasText
+    && ownerHasVideo
   const liveHalf = edit?.imowType === 'video' ? 'video' : 'text'
 
   // Its own flag rather than the field editor's busy slot: nothing is being
@@ -202,7 +212,6 @@ export default function ProfileSpread({
         {hasBio && !bioEditor?.isOpen && (
           <div className={`hp-refocus${slot}`} data-resolve="about">
             <EditPencil field="bio" label="the bio for this Career Direction" tourId="profile-about" />
-            <UpgradeNote feature="bio" />
             <Reveal enabled={animate}>
               <span className="hp-eyebrow">About</span>
               {lead && <p className="hp-about-lead">{lead}</p>}
@@ -250,7 +259,7 @@ export default function ProfileSpread({
                 onAction={() => bioEditor?.open()}
               >
                 This is the career story someone can understand in under a
-                minute. We have started it from your résumé and coaching.
+                minute. We have started it from your resume and coaching.
                 Review it, sharpen it, and make sure it sounds like you.
               </SlotGuide>
             </div>
@@ -336,6 +345,7 @@ export default function ProfileSpread({
                   width={imowVideoWidth}
                   height={imowVideoHeight}
                   hasPoster={imowHasPoster}
+                  posterVersion={imowPosterVersion}
                 />
               )}
 

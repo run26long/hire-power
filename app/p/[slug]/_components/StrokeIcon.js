@@ -25,6 +25,18 @@ export default function StrokeIcon({ paths, size = 18, strokeWidth = 1.4 }) {
 export const ICON_CERT = ['M12 15a6 6 0 100-12 6 6 0 000 12z', 'M8.2 14L7 22l5-3 5 3-1.2-8']
 export const ICON_PLUS = ['M12 5v14', 'M5 12h14']
 
+// An eye with a line through it: the section is here and a visitor will not
+// see it. Four subpaths rather than two so the eye reads as broken by the
+// slash rather than merely crossed by it - the upper arc stops short on one
+// side and the lower on the other, which is what makes the line look like
+// it is in front of the eye.
+export const ICON_EYE_OFF = [
+  'M3 3l18 18',
+  'M14.1 14.2a3 3 0 01-4.2-4.3',
+  'M10.7 5.1a10.7 10.7 0 0111.2 6.6 10.7 10.7 0 01-1.4 2.5',
+  'M17.5 17.5A10.8 10.8 0 012 12a10.8 10.8 0 014.5-5.1'
+]
+
 // Whole arrows: a shaft and a head, not the bare chevron a single angle draws.
 // The shaft is what makes one read as "go back to the previous item" rather
 // than as the corner of something.

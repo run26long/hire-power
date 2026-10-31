@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useProfileEdit, useFieldEditor, useCanEditField } from '../_lib/editContext'
-import { LockIcon, UpgradeNote } from './EditAffordance'
+import { useProfileEdit, useFieldEditor, useCanEditField, useShowUpgradeModal } from '../_lib/editContext'
+import { LockIcon, Lock } from './EditAffordance'
 import { FieldEditorBar } from './EditFields'
 import {
   FRAME_HELP,
@@ -128,7 +128,7 @@ import { LIMITS } from '@/lib/textLimits'
 const MAX = LIMITS.imow
 
 const PLACEHOLDER =
-  'What should an employer know about you that your résumé can’t show? ' +
+  'What should an employer know about you that your resume can’t show? ' +
   'What sets you apart when the work gets real?'
 
 // One control, three jobs. Keyed by intent for the resting label and by the
@@ -161,11 +161,38 @@ const ROWS = 5
 const TABS = ['text', 'video']
 const TAB_LABEL = { text: 'Written', video: 'Video' }
 
+// ---------------------------------------------------------------------------
+// THE ONE LINE UNDER THE VIDEO TAB'S MIDDLE
+//
+// It is the written tab's character count in the same place, and it says the
+// one thing the box above cannot: the file specs, the frame instruction where
+// there is a frame to pick, and what just happened where something did.
+//
+// The picker is in the middle in two states now - a file waiting to upload,
+// and a video already stored - so the instruction belongs to both. The two
+// save states belong only to the stored one: in the upload flow the frame is
+// held and goes with the file, so there is nothing to report until the upload
+// itself reports it in the footer.
+//
+// Here rather than inside VideoFramePicker on purpose. The picker's controls
+// and wording are identical in both flows, which is the whole point of it
+// being one picker; what differs is what a captured frame means, and that is
+// the dialog's to say.
+// ---------------------------------------------------------------------------
+function imowVideoNote(video) {
+  if (video.savingPoster) return 'Saving your new thumbnail…'
+  if (video.posterSaved) return 'Thumbnail updated. Pick another frame any time.'
+  const picking = video.pending || (video.hasVideo && video.canSavePoster && video.previewUrl)
+  return picking ? `${VIDEO_HELP} ${FRAME_HELP}` : VIDEO_HELP
+}
+
+
 export default function ImowEditor({ value }) {
   const edit = useProfileEdit()
   const editor = useFieldEditor('imow')
   // Per field rather than per profile: writing this section is not gated.
   const canEdit = useCanEditField('imow')
+  const showUpgrade = useShowUpgradeModal()
 
   // The owner's own text, which is not always what the page is showing. The
   // document payload now sends only the chosen half, so a profile leading with
@@ -185,7 +212,12 @@ export default function ImowEditor({ value }) {
 
   // Which half the profile is showing. Read only to decide which tab opens;
   // nothing in this dialog changes it or says what it is.
-  const live = edit?.imowType === 'video' ? 'video' : 'text'
+  // Clamped by the plan as well as by the record. A lapsed account may still
+  // have the video chosen, and on that plan the written half is what its
+  // profile is showing - so Written is where the dialog should open. The
+  // video tab is still there and still opens; it simply is not the one the
+  // profile is leading with any more.
+  const live = edit?.imowType === 'video' && edit?.canUseProfileTools ? 'video' : 'text'
 
   const [tab, setTab] = useState(live)
   const [draft, setDraft] = useState(stored)
@@ -219,7 +251,11 @@ export default function ImowEditor({ value }) {
   const ref = useRef(null)
 
   const trimmed = draft.trim()
-  const busy = Boolean(editor?.busy || running || video.busy)
+  // savingPoster is in here with the rest: saving a frame is a write, and
+  // Done pressed in the middle of one would close the dialog over a request
+  // still in flight. It is not part of video.busy because that flag drives
+  // the upload and delete labels, and a thumbnail save has neither.
+  const busy = Boolean(editor?.busy || running || video.busy || video.savingPoster)
 
   // ---- WHAT THERE IS TO LOSE BY LEAVING ----
   //
@@ -260,7 +296,7 @@ export default function ImowEditor({ value }) {
   useEffect(() => {
     if (!isOpen) return
     setDraft(stored)
-    setTab(edit?.imowType === 'video' ? 'video' : 'text')
+    setTab(live)
     // A question left standing from the last visit is not a question about
     // this one.
     guard.reset()
@@ -311,6 +347,10 @@ export default function ImowEditor({ value }) {
   const aiAllowed = edit.canUseProfileTools === true
   const aiWired = Boolean(edit.onGenerateImow && edit.onStrengthenImow)
   const aiOffered = aiWired && aiAllowed
+
+  // Which half of the switch this plan may open. The same question as the
+  // AI control above, asked of a tab.
+  const locked = (which) => which === 'video' && !aiAllowed
 
   // The page's toast rather than the note under the textarea. That note is
   // where this editor says what just happened to the draft; a failure is not
@@ -454,32 +494,18 @@ export default function ImowEditor({ value }) {
     foot = (
       <FieldEditorBar
         cancel={cancelButton}
-        middle={aiOffered ? (
+        middle={aiWired ? (
           <button
             type="button"
             className="hp-manage-secondary"
-            onClick={runAi}
+            onClick={aiAllowed ? runAi : showUpgrade}
             disabled={busy}
             data-working={running ? 'true' : undefined}
             title={AI_TITLE[intent]}
           >
+            {aiAllowed ? null : <Lock />}
             {running ? <span className="hp-ed-spin" aria-hidden="true" /> : null}
             {running ? AI_BUSY[running] : AI_LABEL[intent]}
-          </button>
-        ) : aiWired ? (
-          /* Shown and locked rather than absent. A control that vanishes never
-             tells anybody there is something to upgrade for, and the line
-             under the middle says what it would do. The lock mark is the
-             profile's own, the one every other gate on this page wears. */
-          <button
-            type="button"
-            className="hp-manage-secondary"
-            data-locked="true"
-            disabled
-            title={AI_TITLE[intent]}
-          >
-            <span className="hp-ed-locked-mark"><LockIcon /></span>
-            {AI_LABEL[intent]}
           </button>
         ) : null}
         save={
@@ -494,10 +520,23 @@ export default function ImowEditor({ value }) {
         }
       />
     )
-  } else if (!edit.canUseProfileTools) {
-    // Nothing to do on this tab but leave: the body says what the upgrade is
-    // for and there is no control to offer behind it.
-    foot = <FieldEditorBar cancel={cancelButton} />
+  } else if (!aiAllowed) {
+    // The video half, locked. Cancel on the left as everywhere else, and
+    // the offer where Save stands on the written tab - the same place in the
+    // same bar, so the one action this tab has is where the eye already
+    // goes. It wears .hp-manage-done, which is that bar's primary; nothing
+    // else about the footer changes, and Replace, Delete and Upload are all
+    // writes this plan does not get.
+    foot = (
+      <FieldEditorBar
+        cancel={cancelButton}
+        save={
+          <button type="button" className="hp-manage-done" onClick={showUpgrade}>
+            Upgrade to Pro
+          </button>
+        }
+      />
+    )
   } else if (video.pending) {
     // A file chosen and a frame taken, neither uploaded. Use this frame
     // belongs to the picker in the body; this row is about the file.
@@ -597,6 +636,17 @@ export default function ImowEditor({ value }) {
             onClick={() => setTab(which)}
           >
             <span className="hp-bar-label" data-label={TAB_LABEL[which]}>
+              {/* The lock, and nothing else. It is 13px in a 19.6px line box,
+                  so it fits inside the strut and takes no extra height -
+                  which is why the two labels sit on one line and their
+                  underlines stay level with the label left as the block it
+                  is in every other tab row. The PRO pill did not fit: at
+                  25px it grew the line box and took the baseline down with
+                  it, and holding both labels to its height to compensate
+                  was a row built one way here and another way everywhere
+                  else. The pill is in the chip beside the section titles
+                  now, and this is a lock before a word again. */}
+              {locked(which) ? <Lock /> : null}
               {TAB_LABEL[which]}
             </span>
             <span className="hp-bar-mark" aria-hidden="true" />
@@ -657,15 +707,10 @@ export default function ImowEditor({ value }) {
             {' '}{trimmed.length.toLocaleString('en-US')} of {MAX.toLocaleString('en-US')} characters.
           </p>
 
-          {/* Renders only on a plan that cannot use the locked control above,
-              and only in Edit mode - UpgradeNote decides both. It points at
-              Pro, like every gate on this profile. */}
-          {aiWired && !aiAllowed ? <UpgradeNote feature="imow" /> : null}
-
           {note ? <p className="hp-ed-add-note" data-tone="done">{note}</p> : null}
           {editor.error ? <p className="hp-ed-editor-error">{editor.error}</p> : null}
         </>
-      ) : edit.canUseProfileTools ? (
+      ) : aiAllowed ? (
         <>
           <ImowVideoBody video={video} />
 
@@ -680,37 +725,57 @@ export default function ImowEditor({ value }) {
               is the frame's and is set in CSS; what gives is the dialog, which
               has the room - see the budget beside --ed-imow-middle. */}
           <p className="hp-ed-proof-note">
-            {video.pending ? `${VIDEO_HELP} ${FRAME_HELP}` : VIDEO_HELP}
+            {imowVideoNote(video)}
           </p>
         </>
       ) : (
         <>
-          {/* Free accounts see the half disabled with the reason rather than
-              not at all: a control that vanishes never tells anybody there is
-              something to upgrade for. It stands in the middle's own space, so
-              moving to this tab does not resize the dialog either. */}
-          <button
-            type="button"
-            className="hp-ed-add-choice hp-ed-imow-middle hp-ed-imow-drop"
-            disabled
-            title="Video is part of Pro"
-          >
-            <span className="hp-ed-add-choice-title">
-              Record or upload video
-              {/* Pro, not Vault. Both plans do have the video; the only
-                  account that reads this tag is a free one, and every upgrade
-                  prompt on this profile offers Pro - naming Vault here would
-                  make this the one place that offers the other plan. */}
-              <span className="hp-ed-pro-tag">Pro</span>
-            </span>
-            <span className="hp-ed-add-choice-note">
-              Prefer to speak directly to an employer? Upload a short video and let them
-              hear what sets you apart.
-            </span>
-          </button>
+          {/* THE VIDEO ITSELF, ON A PLAN THAT CANNOT SHOW IT
+              It plays, with its own controls, because it is theirs: they
+              recorded it and a locked plan is not a reason to stop somebody
+              watching their own file. What the plan decides is whether a
+              visitor sees it, and that is decided in the public route.
 
-          <p className="hp-ed-proof-note">{VIDEO_HELP}</p>
-          <UpgradeNote feature="imow_video" />
+              What is gone is every control that would change it. There is no
+              picker here and no file input, the footer below carries nothing
+              but the offer, and Replace and Delete are not rendered at all.
+              Not disabled, either: a control greyed out is a control that is
+              coming back, and these are not what the upgrade is being offered
+              for - the footer is. */}
+          {video.hasVideo ? (
+            <div className="hp-ed-vid hp-ed-imow-middle">
+              {video.previewUrl ? (
+                <video
+                  className="hp-ed-vid-preview"
+                  src={video.previewUrl}
+                  poster={video.previewPoster || undefined}
+                  controls
+                  preload="metadata"
+                  playsInline
+                />
+              ) : (
+                <div className="hp-ed-vid-preview" data-waiting="true" aria-hidden="true" />
+              )}
+            </div>
+          ) : (
+            /* Nothing stored. The same drop area the paid tab offers, with
+               its input gone rather than refused: a file chooser that opens
+               and then will not upload is worse than one that does not open. */
+            <div className="hp-ed-add-choice hp-ed-imow-middle hp-ed-imow-drop" data-locked="true">
+              <span className="hp-ed-add-choice-title">Upload a video</span>
+              <span className="hp-ed-add-choice-note">
+                Speak directly to an employer and let them hear what sets you apart.
+              </span>
+            </div>
+          )}
+
+          {/* The line and the way up, in the place the other tab puts its
+              count - so moving between the halves does not resize the box. */}
+          {/* The sentence alone. The button that stood beside it is in the
+              footer now, which is where this dialog puts what it can do. */}
+          <p className="hp-ed-proof-note">
+            Video is part of Pro. Upgrade to Pro to show it on your profile.
+          </p>
         </>
       )}
 

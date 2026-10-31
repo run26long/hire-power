@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useProfileEdit, useFieldEditor, useCanEdit, useCanEditField, useShowUpgrade } from '../_lib/editContext'
-import { PRO_UPGRADE_HREF, PRO_UPGRADE_LABEL, upgradeCopyFor } from '@/lib/profileTier'
+import { useProfileEdit, useFieldEditor, useCanEdit, useCanEditField, useShowUpgradeModal, useIsGated } from '../_lib/editContext'
+import StrokeIcon, { ICON_EYE_OFF } from './StrokeIcon'
 
 // ============================================================================
 // EDIT AFFORDANCES
@@ -55,22 +55,85 @@ export function useEditSlot() {
   const edit = useProfileEdit()
   return edit?.editing ? ' hp-ed-slot' : ''
 }
-
-// A line where a control would have been, saying what the plan would add and
-// linking somewhere it can be added. Deliberately a sentence and a link rather
-// than a dialog: the management page is the profile itself with controls over
-// it, and throwing a modal over a document somebody is reading to tell them
-// about a feature is an interruption, not an offer.
+// ---------------------------------------------------------------------------
+// THE TWO MARKS A LOCK IS MADE OF
 //
-// It renders only in edit mode, so the public page and preview never see it.
-export function UpgradeNote({ feature }) {
-  const show = useShowUpgrade()
-  if (!show) return null
+// One lock glyph and one PRO pill, declared here and used everywhere, so a
+// locked button, a locked tab, a locked row and a locked section are the same
+// object in four places rather than four drawings of the same idea.
+//
+// Neither of these gates itself. A lock is a statement about one control, and
+// only the control knows whether it is the gated one - Lock is drawn beside a
+// button whose plan cannot press it, and the same button on a paid plan draws
+// nothing. ProPill is the exception's exception: it is used in places that are
+// gated for the whole section, so it asks.
+// ---------------------------------------------------------------------------
+
+// The glyph alone, before a label. The mark every gate on this page already
+// wore; it is a component now only so no call site has to remember the span.
+export function Lock() {
+  return <span className="hp-ed-locked-mark"><LockIcon /></span>
+}
+
+// The glyph and the word. It is the left half of SectionHiddenChip below and
+// nothing else now - a bare lock beside a sentence would read as decoration,
+// and this is what names the plan instead.
+//
+// `gated` is still a prop rather than a question asked here, because the
+// chip has already asked it: by the time this renders the answer is yes.
+export function ProPill({ gated = true }) {
+  if (!gated) return null
   return (
-    <p className="hp-ed-upsell">
-      <span className="hp-ed-upsell-text">{upgradeCopyFor(feature)}</span>
-      <a className="hp-ed-upsell-link" href={PRO_UPGRADE_HREF}>{PRO_UPGRADE_LABEL}</a>
-    </p>
+    <span className="hp-ed-pro-pill">
+      <LockIcon />
+      PRO
+    </span>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// THE SECTION THE PUBLIC PAGE WILL NOT SHOW
+//
+// One chip after the section's title, and the whole of what says so. It
+// replaced a card and then a notice, both of which stood in the section's own
+// layout and moved the composition below them - which meant a fact about the
+// plan rearranged the thing the owner came to look at. This is beside the
+// title, in the space a title already leaves, and nothing under it moves.
+//
+// TWO SEGMENTS, ONE BUTTON
+// The left segment is the PRO pill, unchanged and still the brand gradient,
+// because that mark means the same thing on this page as it does in the
+// Upgrade modal it opens. The right segment is the sentence, and it is built
+// from the profile's own accent tokens so it follows the palette and both
+// modes. One <button> around both: there is one thing to press and one thing
+// it does, so two controls would be two answers to one question.
+//
+// It never breaks inside - white-space: nowrap - and being inline-level it
+// wraps whole onto the line under the heading when the heading leaves it no
+// room. See .hp-ed-hidden-chip in editor.css.
+//
+// Edit mode only, and only on a plan the sections are hidden for.
+// ---------------------------------------------------------------------------
+export function SectionHiddenChip() {
+  const gated = useIsGated()
+  const showUpgrade = useShowUpgradeModal()
+  if (!gated) return null
+
+  return (
+    <button
+      type="button"
+      className="hp-ed-hidden-chip"
+      onClick={showUpgrade}
+      // The whole chip read as one thing, rather than as a lock, the letters
+      // P R O and a sentence read one after another.
+      aria-label="Hidden from your public profile. Upgrade to Pro"
+    >
+      <ProPill />
+      <span className="hp-ed-hidden-chip-say">
+        <StrokeIcon paths={ICON_EYE_OFF} size={12} />
+        Hidden from your public profile
+      </span>
+    </button>
   )
 }
 
@@ -88,14 +151,19 @@ export function EditPencil({ field, label, persists = false, tourId }) {
   // Per field, not per profile: In My Own Words is writable on every plan.
   // See useCanEditField.
   const canEdit = useCanEditField(field)
+  const showUpgrade = useShowUpgradeModal()
   if (!edit?.editing) return null
 
-  // A free account keeps everything the coaching wrote and loses the pencil
-  // over it. No disabled control in its place: a pencil that cannot be pressed
-  // still says "this is yours to change", and the whole point is that on this
-  // plan it is not. The section carries the line that says why.
-  if (!canEdit) return null
-
+  // ---- THE CONTROL IS ALWAYS THERE ----
+  // It used to return null here, and the section carried a sentence saying
+  // why. That left a free account looking at a page with no controls on it
+  // and a row of apologies instead - which describes the plan rather than
+  // the profile. The pencil shows on every plan now and a gated one opens
+  // the Pro modal, so the page reads the same and the offer is on the thing
+  // it is about.
+  //
+  // Four of the five fields it guards are writable on free anyway now; this
+  // is for the ones that are not.
   // Nothing to open. No pencil either: a disabled control over a field that
   // has no editor is a promise about a later release, and the page should
   // not be making one. Every call site names a field this document can edit,
@@ -113,7 +181,7 @@ export function EditPencil({ field, label, persists = false, tourId }) {
       className="hp-ed-pencil"
       data-live="true"
       data-tour={tourId}
-      onClick={editor.open}
+      onClick={canEdit ? editor.open : showUpgrade}
       aria-label={`Edit ${label}`}
       title={`Edit ${label}`}
     >
@@ -236,18 +304,15 @@ export function EditElsewhere({ children, href }) {
 export function GuideAction({ label, feature, field, onAction }) {
   const canEdit = useCanEditField(field || feature)
 
-  if (!canEdit) {
-    return (
-      <span className="hp-ed-guide-locked">
-        <span className="hp-ed-locked-mark"><LockIcon /></span>
-        <a className="hp-ed-locked-link" href={PRO_UPGRADE_HREF}>{upgradeCopyFor(feature)}</a>
-      </span>
-    )
-  }
+  // ---- THE REAL CONTROL, ON EVERY PLAN ----
+  // This was a lock and a line of plan copy in place of the button. The
+  // button is here on every plan now and a gated press opens the Pro modal,
+  // so a guided slot looks the same whoever is reading it.
+  const showUpgrade = useShowUpgradeModal()
 
   return (
-    <button type="button" className="hp-ed-action" data-primary="true" onClick={onAction}>
-      {label}
+    <button type="button" className="hp-ed-action" data-primary="true" onClick={canEdit ? onAction : showUpgrade}>
+      {canEdit ? null : <Lock />}{label}
     </button>
   )
 }
@@ -304,25 +369,17 @@ export function GhostNote({ children, feature, field, action }) {
   const canEdit = useCanEdit()
   const editor = useFieldEditor(field)
 
-  // One line, one destination, and no active control: a free account pressing
-  // "Add" would be pressing something that cannot do anything.
-  if (!canEdit) {
-    return (
-      <p className="hp-ed-ghost-note" data-locked="true">
-        <span className="hp-ed-locked-mark"><LockIcon /></span>
-        <a className="hp-ed-locked-link" href={PRO_UPGRADE_HREF}>
-          {upgradeCopyFor(feature || field)}
-        </a>
-      </p>
-    )
-  }
+  // The control shows on every plan; a gated press opens the Pro modal. It
+  // used to be a lock and a sentence about the plan instead, which is a page
+  // describing what it is not rather than what it does.
+  const showUpgradeGhost = useShowUpgradeModal()
 
   return (
     <p className="hp-ed-ghost-note">
       <span className="hp-ed-ghost-say">{children}</span>
-      {action && field && editor ? (
-        <button type="button" className="hp-ed-action" data-primary="true" onClick={editor.open}>
-          {action}
+      {action && field && (editor || !canEdit) ? (
+        <button type="button" className="hp-ed-action" data-primary="true" onClick={canEdit ? editor.open : showUpgradeGhost}>
+          {canEdit ? null : <Lock />}{action}
         </button>
       ) : null}
     </p>

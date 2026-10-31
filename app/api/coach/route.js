@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { apiError } from '@/lib/apiError'
 import { normalizeSkillCategories } from '@/lib/resumeText'
-import { isRealCore } from '@/lib/coreResumes'
+import { isRealCore, hasUsedCoreCoaching } from '@/lib/coreResumes'
 import { canCreateResumes } from '@/lib/tiers'
 
 // ─────────────────────────────────────────────
@@ -1307,6 +1307,42 @@ export async function POST(request) {
         const existing = resumeId && real.some(c => c.id === resumeId)
         if (!existing && real.length > 0) {
           return NextResponse.json({ error: 'CORE_LIMIT_REACHED' }, { status: 403 })
+        }
+
+        // ---- AND ONE FULL COACHING SESSION, EVER ----
+        //
+        // Outside Pro the core gets coached once per account, counting
+        // archived cores, so archiving one and uploading another does not buy
+        // a second. hasUsedCoreCoaching is that question.
+        //
+        // ONLY A START IS BLOCKED
+        // This route is called on every turn, so refusing whenever the
+        // account has a finished core would cut off the session in progress
+        // as well as the next one. What separates the two is whether the
+        // resume being coached has a conversation already: a start has none,
+        // and every later turn does. Read off the row rather than off the
+        // request's own `conversation`, which is whatever the caller sent.
+        //
+        // That also means a core whose coaching finished can still be
+        // reopened and read back - it has a conversation, so it is not a
+        // start. Only beginning a fresh one is refused.
+        if (!canCreateResumes(accountTier)) {
+          const { data: subject } = await supabase
+            .from('resumes')
+            .select('coaching_conversation')
+            .eq('id', resumeId)
+            .eq('user_id', authenticatedUserId)
+            .maybeSingle()
+
+          const alreadyTalking = Array.isArray(subject?.coaching_conversation)
+            && subject.coaching_conversation.length > 0
+
+          if (!alreadyTalking && await hasUsedCoreCoaching(supabase, authenticatedUserId)) {
+            return NextResponse.json(
+              { error: 'CORE_COACHING_USED', code: 'CORE_COACHING_USED' },
+              { status: 403 }
+            )
+          }
         }
       }
     }

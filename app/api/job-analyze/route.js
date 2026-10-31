@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { apiError } from '@/lib/apiError';
 import { normalizeSkillCategories } from '@/lib/resumeText'
+import { canCreateResumes } from '@/lib/tiers'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -314,8 +315,18 @@ export async function POST(request) {
 
     const userTier = profile?.subscription_tier || 'free';
 
-    const isFree = !profile?.subscription_tier || profile?.subscription_tier === 'free'
-    if (isFree && (profile?.jms_count ?? 0) >= 3) {
+    // ---- THE ALLOWANCE IS SHARED, AND IT IS FOR LIFE ----
+    //
+    // Three job match scores on every plan but Pro, counted once and never
+    // reset. This read `subscription_tier === 'free'`, which let Vault score
+    // without limit and without counting: Vault keeps a career rather than
+    // growing one, and a job match score is a new thing made. The same
+    // correction cover letters already carry - see coverLetterLimit.
+    //
+    // Anything unrecognised is not Pro, which is the rule every tier
+    // predicate in lib/tiers.js applies for the same reason.
+    const countsAgainstAllowance = !canCreateResumes(profile?.subscription_tier)
+    if (countsAgainstAllowance && (profile?.jms_count ?? 0) >= 3) {
       return Response.json({ error: 'JMS_LIMIT_REACHED' }, { status: 403 })
     }
 
@@ -352,7 +363,10 @@ ${jobDescription}`;
     const cleanText = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
     const analysis = JSON.parse(cleanText);
 
-    if (isFree && userId) {
+    // Counted on every plan that has a ceiling, which is every plan but Pro.
+    // Only ever up: deleting a job match score must not buy another one, which
+    // is also why the panel shows a spent slot rather than an empty one.
+    if (countsAgainstAllowance && userId) {
       const newCount = (profile.jms_count ?? 0) + 1
       await supabase
         .from('profiles')

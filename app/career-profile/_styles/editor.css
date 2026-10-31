@@ -740,17 +740,6 @@ html:has(.hp-ed) {
   color: var(--ed-quiet);
 }
 
-/* The address gets its own line. Set inline it runs straight into the sentence
-   after it and the two read as one string. */
-.hp-ed-url {
-  display: block;
-  margin-bottom: 3px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-  color: var(--ed-url-ink);
-  overflow-wrap: anywhere;
-}
-
 
 /* ---- The controls that actually write ---------------------------------- */
 
@@ -841,6 +830,28 @@ html:has(.hp-ed) {
   margin-top: 8px;
   flex-wrap: wrap;
 }
+
+/* ---- A field and its Save, on one line --------------------------------
+   Three quarters to the field and the rest to the button, with the input
+   scrolling its own content: an address longer than the box is read by
+   moving through it, not by giving it the whole drawer. flex-basis rather
+   than width, because .hp-ed-input is width: 100% for the column it
+   usually stands in and basis is what a flex item is actually sized by.
+
+   TWO SHAPES, AND WHY THE SELECTOR IS A CHILD SELECTOR
+   Contact puts a bare .hp-ed-input in the row; Profile link puts an
+   .hp-ed-field in it, because /p/ is part of that control. As a descendant
+   selector this would then match the input INSIDE the field and size that
+   to three quarters of the field, leaving the field itself to shrink-wrap
+   it. The child combinator is what keeps the rule about the row rather
+   than about the box.
+
+   The wrap .hp-ed-row carries is deliberately kept: field plus button come
+   to just under the drawer's width, so Contact's "Saved" has nowhere to go
+   but the line below - which is where a confirmation belongs rather than
+   wedged between the two controls. */
+.hp-ed-contact-row > .hp-ed-input,
+.hp-ed-contact-row > .hp-ed-field { flex: 0 1 75%; }
 
 .hp-ed-action:disabled {
   opacity: 0.45;
@@ -3151,6 +3162,7 @@ html:has(.hp-ed) {
   color: var(--profile-body);
   background: var(--profile-accent-wash);
   border: 1px solid rgb(var(--profile-accent-rgb) / 0.18);
+  max-width: 560px;
 }
 
 .hp-ed-upsell-text { flex: 1 1 auto; min-width: 0; }
@@ -3178,52 +3190,151 @@ html:has(.hp-ed) {
 .hp-ed-group .hp-ed-upsell { margin-top: 0; }
 
 
-/* Act I is a twelve column grid, so an upgrade line dropped into it is
-   auto-placed into a single track and arrives seventy pixels wide. It is given
-   the full width and a row of its own under the composition, the same way this
-   section's empty states had to be placed rather than left to the grid. */
-.hp-act1-stage > .hp-ed-upsell {
-  grid-column: 1 / -1;
-  grid-row: 3;
-  margin-top: 18px;
-  max-width: 560px;
+/* The two placements that used to be here are gone with the lines they
+   placed: Act I no longer carries one - a free account edits its own
+   headline and proof points - and neither does the About spread. */
+
+/* ============================================================================
+   THE PRO MARK, AND THE SECTION IT STANDS ON
+   ============================================================================
+
+   WHY THE PILL IS BRAND COLOURED AND THE CARD IS NOT
+
+   The card is built from the profile's own tokens, so it follows the palette
+   the owner chose and both modes: --profile-accent-edge is its border,
+   --profile-accent-soft its eyebrow and its link, --profile-body its sentence.
+   On Hire Power Purple in dark those resolve to rgba(167,139,250,.28) and
+   #c4b5fd, which is exactly the reading this was specified against.
+
+   The pill does not, and deliberately. #667eea to #764ba2 is the Hire Power
+   gradient - it is what the Upgrade modal's own head is made of, and what all
+   three "Upgrade to Pro" buttons on the resume page are made of - and it means
+   "Pro" everywhere in this product regardless of what page it is on or what
+   palette that page is wearing. A palette-derived pill would make the Pro mark
+   six different colours and would stop matching the modal it opens.
+
+   To make it follow the palette instead, point the background at
+   var(--profile-primary-fill) and the shadow at the accent: that token is the
+   per-palette gradient and is already declared for every one of them. It is
+   one line, and this note is here so that choice stays visible.
+   ========================================================================= */
+
+/* The drop area with no input behind it. The paid one is a <label> holding
+   a file input; this is the same box, set back, so moving between the tabs
+   does not resize the dialog and the shape says it is not a control. The
+   stored video beside it is NOT set back: it plays, and a dimmed video is a
+   video somebody has to squint at. */
+:is(.hp-profile, .hp-ed-portal) .hp-ed-add-choice[data-locked="true"] {
+  cursor: default;
+  opacity: 0.55;
 }
 
-/* The two column sections place their children by attribute, so a line with
-   no placement lands wherever the auto flow puts it. Both columns are named
-   the same way the content in them is. */
-.hp-spread > .hp-ed-upsell { max-width: 560px; }
 
-
-/* ===========================================================================
-   THE EDITING LAYER
-
-   Everything below exists only while .hp-profile carries data-mode="edit".
-   Preview drops that attribute, so every rule here stops matching at once and
-   the document returns to the page a visitor gets. The affordances are not
-   dimmed or hidden in preview, they are not selected in the first place.
-   =========================================================================== */
-
-/* ---- The section control group ------------------------------------------
-   A section's controls belong beside that section's heading: not in a rail
-   down the side, and not stranded under the content they act on.
-
-   What makes this possible without rewriting anything is that the add control
-   and the add panel are different elements. AddEvidence renders
-   `.hp-ed-add-row`, holding a single trigger, while it is closed, and
-   `.hp-ed-add`, the whole form, once it is open. So the closed trigger can be
-   placed in the heading row and the open panel can span the section beneath
-   it, with no state passed down: CSS is placing two different children, not
-   one child twice.
-
-   The content keeps the full public measure either way. The control track is
-   `auto`, which is nothing at all when there is no control in it. */
-.hp-profile[data-mode="edit"] .hp-practice-part {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  column-gap: 24px;
-  align-items: start;
+/* The left half of SectionHiddenChip, and nothing else - so the chip owns
+   the radius, the shadow and the alignment, and this owns the mark. */
+:is(.hp-profile, .hp-ed, .hp-ed-portal) .hp-ed-pro-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  /* Asymmetric on purpose: the lock is lighter than a capital, so an even
+     inset reads as a pill leaning right. */
+  padding: 4px 8px 4px 7px;
+  font-family: var(--profile-font-ui);
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  color: #ffffff;
+  background: linear-gradient(135deg, #667eea, #764ba2);
 }
+
+:is(.hp-profile, .hp-ed, .hp-ed-portal) .hp-ed-pro-pill svg {
+  width: 9px;
+  height: 9px;
+  flex: none;
+}
+
+/* ---- The chip: the PRO mark and what it means, in one control ----------
+
+   TWO SEGMENTS WITH NOTHING BETWEEN THEM
+   The button is the frame - the border, the radius, the shadow and the clip -
+   and the two segments fill it edge to edge. overflow: hidden is what lets the
+   left segment keep its square corners and still be rounded by the chip, so
+   the gradient runs to the curve rather than sitting inside it.
+
+   THE PRO SEGMENT IS .hp-ed-pro-pill
+   The gradient, the type, the tracking and the lock, declared once above
+   and read here. It carries no frame of its own: the chip is its only
+   caller, so a radius, a shadow and a vertical-align on the pill would be
+   three declarations that exist only to be cancelled by the three above.
+
+   BOTH SEGMENTS ARE A QUARTER SMALLER THAN THEY WERE
+   The chip stands beside a heading rather than above a button row, which
+   is a place for a mark and not for a second heading. 9.5px and 11.5px of
+   type in 4px of padding, where it was 13px in 6px of both.
+
+   THE SENTENCE SEGMENT IS THE PALETTE'S
+   Accent-soft on a 14% accent tint, so it follows whichever of the six
+   palettes the owner chose and both light and dark. Only the PRO mark stays
+   brand coloured, for the reason in the note above this one.
+
+   letter-spacing AND text-transform ARE BOTH RESET
+   The chip sits inside .hp-practice-sub for Evidence and Portfolio, which is a
+   12px uppercase eyebrow at 0.16em. Inherited, that would set the sentence as
+   HIDDEN FROM YOUR PUBLIC PROFILE at a tracking that belongs to a label.
+   ========================================================================= */
+:is(.hp-profile, .hp-ed-portal) .hp-ed-hidden-chip {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--profile-accent-edge);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgb(118 75 162 / 0.3);
+  cursor: pointer;
+  /* Never inside. Too wide for the line it is on and the whole chip goes to
+     the next one, which is what an inline-level box does by itself. */
+  white-space: nowrap;
+  /* Centred on the line rather than set a fixed distance off the baseline.
+     It stands beside two very different things - a 40px display heading and
+     a 12px uppercase label - and a pixel offset that centres it on one
+     cannot centre it on the other. middle is the same answer for both. */
+  vertical-align: middle;
+}
+
+:is(.hp-impact-intro, .hp-ev-intro, .hp-pf-intro) :is(h2, h3) .hp-ed-hidden-chip {
+  margin-left: 10px;
+}
+
+/* The ring on the chip's own shape rather than the 2px radius the profile's
+   button reset hands every control. */
+:is(.hp-profile, .hp-ed-portal) .hp-ed-hidden-chip:focus-visible {
+  border-radius: 999px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-hidden-chip:hover {
+    box-shadow: 0 4px 13px rgb(118 75 162 / 0.42);
+  }
+}
+
+:is(.hp-profile, .hp-ed-portal) .hp-ed-hidden-chip-say {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 4px 10px;
+  font-family: var(--profile-font-ui);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--profile-accent-soft);
+  background: rgb(var(--profile-accent-rgb) / 0.14);
+}
+
+:is(.hp-profile, .hp-ed-portal) .hp-ed-hidden-chip-say svg { flex: none; }
 
 /* Everything spans, then the two that belong in the heading row are pulled
    back into their tracks. Sparse auto-placement cannot bite here because
@@ -3321,12 +3432,27 @@ html:has(.hp-ed) {
    A free account sees the same ghosted section a paid one does, with one quiet
    line under it instead of an action. The line is rendered by GhostNote, so
    what is left here is the lock mark and the link inside it. */
-:is(.hp-profile, .hp-ed-portal) .hp-ed-locked-mark {
+:is(.hp-profile, .hp-ed, .hp-ed-portal) .hp-ed-locked-mark {
   display: inline-flex;
   color: rgb(var(--profile-accent-rgb) / 0.8);
 }
 
-:is(.hp-profile, .hp-ed-portal) .hp-ed-locked-mark svg { width: 13px; height: 13px; }
+:is(.hp-profile, .hp-ed, .hp-ed-portal) .hp-ed-locked-mark svg { width: 13px; height: 13px; }
+
+/* The mark before a tab label. It goes inside .hp-bar-label, because that is
+   the element on the word's own line - the button stacks the label over the
+   sliding underline, so a sibling there would sit above the word rather than
+   beside it. The label's ::before reserves the width of the bold state and
+   knows nothing about this, so the gap is declared here. */
+:is(.hp-profile, .hp-ed-portal) .hp-bar-label .hp-ed-locked-mark {
+  margin-right: 5px;
+  vertical-align: -2px;
+}
+
+/* In the drawer's locked row the chip is set at 11px, and a 13px glyph in it
+   would make this chip taller than the "Always on" chip beside it. Scaled to
+   the type it sits in, which is what keeps the two rows the same height. */
+:is(.hp-ed) .hp-ed-lens-fixed .hp-ed-locked-mark svg { width: 11px; height: 11px; }
 
 :is(.hp-profile, .hp-ed-portal) .hp-ed-locked-link {
   color: var(--profile-accent);

@@ -83,7 +83,33 @@ const sane = (value) => {
   return Number.isFinite(n) && n > 0 && n <= 16384 ? n : null
 }
 
-export default function ImowVideo({ slug, getAuthHeaders, onUnavailable, width, height, hasPoster }) {
+// ---------------------------------------------------------------------------
+// WHY posterVersion IS A PROP AND NOT AN OVERSIGHT
+//
+// This signs its own URLs once, from an effect whose inputs are the slug and
+// the auth headers. Neither moves when the owner changes the thumbnail, and
+// hasPoster was already true, so there was nothing to tell the card its
+// poster had been replaced: it kept the URL it signed on mount and the card
+// showed the old still until the page was reloaded. Every other edit on the
+// page re-reads the document and gets new values; this one had no value to
+// get.
+//
+// So the payload carries a digest of the poster path and the card depends on
+// it. A new poster is a new path is a new digest is a new signature. It is
+// not the path - see imow_poster_version in the public route.
+//
+// It costs a reader nothing: on a page that loads once it never changes, so
+// the effect runs exactly as often as it did.
+// ---------------------------------------------------------------------------
+export default function ImowVideo({
+  slug,
+  getAuthHeaders,
+  onUnavailable,
+  width,
+  height,
+  hasPoster,
+  posterVersion = null
+}) {
   const [url, setUrl] = useState(null)
   const [posterUrl, setPosterUrl] = useState(null)
   const [state, setState] = useState('loading')   // loading | ready | gone
@@ -110,7 +136,11 @@ export default function ImowVideo({ slug, getAuthHeaders, onUnavailable, width, 
       setState('gone')
       return null
     }
-  }, [slug, getAuthHeaders])
+    // posterVersion is in here for its identity, not its value: nothing in
+    // the body reads it, and a change to it is the one signal that the URLs
+    // this signs have gone stale.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, getAuthHeaders, posterVersion])
 
   useEffect(() => {
     let cancelled = false

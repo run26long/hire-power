@@ -56,7 +56,7 @@ const PROFILE_COLS =
 // retried without them, so an account whose database has not had
 // scripts/add-imow-video-shape.sql run still manages its profile - it simply
 // has no shape and no poster to report.
-const PROFILE_SHAPE_COLS = `${PROFILE_COLS}, imow_video_width, imow_video_height, imow_poster_path`
+const PROFILE_SHAPE_COLS = `${PROFILE_COLS}, imow_video_width, imow_video_height, imow_poster_path, contact_enabled, imow_poster_at`
 
 function isMissingColumnError(error) {
   if (!error) return false

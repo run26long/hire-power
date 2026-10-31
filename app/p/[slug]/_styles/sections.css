@@ -451,6 +451,28 @@
    to sit here is gone: the panels and their controls already say what to do. */
 .hp-exp-intro { margin-bottom: 36px; }
 
+/* ---- "Edit in Resume Writer", tied to the headline ----
+   The button is .hp-ed-elsewhere: absolute, top 0, right 0, inside this
+   block because .hp-ed-slot makes it the positioned ancestor. Right 0 was
+   therefore the right edge of the page, which left it floating a long way
+   from the words it belongs to.
+
+   Nothing is offset by hand. The block shrink-wraps to its widest child -
+   the headline - so right: 0 resolves to the end of the headline text. The
+   label above it is narrower and does not affect the width, and if the
+   headline is reworded or its clamp lands on a different size the button
+   follows, which a fixed right value could not.
+
+   max-width keeps the headline wrapping where it always did: fit-content is
+   min(max-content, max(min-content, available)), so a longer headline still
+   breaks at the column rather than running past it.
+
+   Desktop only. On a phone the button and the label share a narrow line and
+   the page edge is where it should sit. */
+@media (min-width: 768px) {
+  .hp-exp-intro { width: fit-content; max-width: 100%; }
+}
+
 .hp-exp-intro .hp-label { margin-bottom: 18px; }
 
 .hp-exp-headline {
@@ -2126,18 +2148,35 @@
     0 0 12px rgb(var(--profile-status-rgb) / 0.5);
 }
 
-/* The label sits in the run of pills rather than above it, so the pills may
-   wrap onto a second line while the label stays with the first of them. */
+/* ---- Open to ----
+   One line at every width. The label is fixed at the left and the pills travel
+   sideways beside it, the last one cut by the edge to say there are more.
+
+   This was the phone rule and nothing else. Above that breakpoint the pills
+   were direct children of the line and wrapped with it, which on a desktop
+   with five or six tags is a label and then two ragged rows of pills. The
+   mechanism is not width-specific - a fixed label, a scroll box allowed to be
+   narrower than its contents, and pills that keep their own width - so it is
+   the base rule now and the media query that held it is gone.
+
+   The one thing a desktop loses with it: there is no touch to swipe with and
+   the scrollbar is hidden, so the row is dragged or shift-scrolled, and the
+   cut-off last pill is the only sign there is more. That is the same signal
+   the phone had; it is just the only one here. */
 .hp-foot-open {
   display: flex;
-  flex-wrap: wrap;
+  /* Nothing in this line may wrap: the label, the pencil that sits beside it
+     in Edit, and the row of pills are one line. */
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
   margin: 0;
   min-width: 0;
 }
 
+/* Fixed at the left. Everything that moves is in the box after it. */
 .hp-foot-open-label {
+  flex: 0 0 auto;
   font-size: 14px;
   font-weight: 700;
   line-height: 1.5;
@@ -2146,10 +2185,25 @@
   white-space: nowrap;
 }
 
-/* No box of its own: the pills are children of the line and wrap with it,
-   which is the arrangement this section was designed around. The element
-   exists for the phone rule below, where they need something to scroll in. */
-.hp-open-tags { display: contents; }
+/* The box the pills scroll inside. It was `display: contents` above the phone
+   breakpoint, which made the pills children of the line and let them wrap with
+   it. min-width: 0 is what lets the box be narrower than the pills inside it -
+   without it a flex item refuses to shrink below its content and the row
+   pushes the line wide instead of scrolling. */
+.hp-open-tags {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hp-open-tags::-webkit-scrollbar { display: none; }
 
 .hp-open-tag {
   font-size: 14px;
@@ -2160,46 +2214,48 @@
   padding: 7px 16px;
 }
 
-/* ---- Open to, on a phone ----
-   The query is the one in _lib/useNarrow.js, repeated character for
-   character; see the note at the head of the Skills block below.
+/* A pill keeps its own width in a row that scrolls. Left to shrink it would
+   divide the line between however many there are and wrap its own words. */
+.hp-open-tags > .hp-open-tag { flex: 0 0 auto; }
 
-   Wrapped, this line is a label and then two or three ragged rows of pills.
-   One line instead: the label stays where it is and keeps the type it has at
-   every other width, and the pills travel sideways beside it, the last one
-   cut by the edge to say there are more. Same label, same pills; the only
-   new thing is the box the pills scroll inside. */
-@media (max-width: 767px), (pointer: coarse) and (max-height: 500px) {
-  /* Nothing below this line may wrap: the label, the pencil that sits beside
-     it in Edit, and the row of pills are one line. */
-  .hp-foot-open { flex-wrap: nowrap; }
+/* ---- Reaching the rest of the Open to row ------------------------------
+   The row is one line that scrolls, which solved the wrapping but left the
+   pills past the edge unreachable by anything but a swipe - and on a desktop
+   with a mouse there is no swipe. These are the Career Directions rail's own
+   controls: .hp-rail for the positioning context, .hp-rail-step for the
+   target and .hp-rail-chevron for the glyph, all unchanged.
 
-  /* Fixed at the left. Everything that moves is in the box after it. */
-  .hp-foot-open-label { flex: 0 0 auto; }
+   WHAT IS DIFFERENT, AND WHY
+   The rail's controls select the neighbouring direction and let the rail
+   scroll itself to it. There is nothing to select here, so these scroll, and
+   they are shown at every width rather than only on a phone: a row of pills
+   can outrun its line on a wide screen too, which is the case that sent them
+   onto a second line in the first place. The rail's own rule is left alone -
+   it is still display:none above the phone breakpoint - and this one names the
+   row it belongs to. */
+.hp-foot-open .hp-rail { flex: 1 1 auto; }
 
-  .hp-open-tags {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 8px;
-    /* The rest of the line, and `min-width: 0` is what lets it be narrower
-       than the pills inside it - without it a flex item refuses to shrink
-       below its content and the row pushes the line wide instead of
-       scrolling. */
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
+:is(.hp-profile, .hp-ed, .hp-ed-portal) .hp-foot-open .hp-rail-step { display: flex; }
 
-  .hp-open-tags::-webkit-scrollbar { display: none; }
+/* The gutters the controls stand in, held whether or not a control is showing
+   so the row does not shuffle sideways as one appears. Only when there is
+   something past an edge: a row that fits keeps the whole line for its pills.
+   38px of gutter plus the 8px of negative inline margin the track carries for
+   its focus ring, the same arithmetic the directions rail uses. */
+.hp-foot-open .hp-rail[data-steps="true"] { padding-inline: 38px; }
 
-  /* A pill keeps its own width in a row that scrolls. Left to shrink it would
-     divide the line between however many there are and wrap its own words. */
-  .hp-open-tags > .hp-open-tag { flex: 0 0 auto; }
+/* The track's own focus-ring room, which is what lets a pill's ring draw
+   without the scroll container clipping it into an L. */
+.hp-foot-open .hp-open-tags {
+  padding: 6px 8px;
+  margin: -6px -8px;
+  scroll-padding-inline: 8px;
 }
+
+/* On the pill's optical line rather than the middle of the rail box: the
+   track carries 6px of top padding for the ring. */
+.hp-foot-open .hp-rail-step { top: calc(50% + 3px); }
+
 
 .hp-foot-actions {
   display: inline-flex;
@@ -5633,6 +5689,7 @@
 }
 
 :is(.hp-manage, .hp-manage-pane, .hp-ed-imow-tabs) .hp-bar-item:disabled { cursor: default; }
+
 
 /* A direction Save refused. Marked rather than announced: the panel has
    already moved to this tab and the sentence under its rows says what is

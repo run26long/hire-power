@@ -1,11 +1,16 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { createClient } from '@/utils/supabase/client'
 import { fetchJSON } from '@/lib/fetchJSON'
 
 export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  // There is no document to portal into until this has mounted, which is
+  // the same guard app/components/Popover.js uses for the same reason.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   useEffect(() => {
     if (!isOpen) return
@@ -84,12 +89,21 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
     }
   }
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{backgroundColor:'rgba(0,0,0,0.6)'}}
+      className="fixed inset-0 flex items-center justify-center p-4"
+      // ---- IN FRONT OF WHATEVER IT WAS OPENED FROM ----
+      // The Career Profile stacks its sticky bar at 45, its settings
+      // drawer at 55, dialogs at 60 and 160, the evidence viewer and the
+      // portfolio lightbox at 120, and a select menu inside a dialog at
+      // 200. At Tailwind's z-50 this landed under all but the first, so a
+      // lock pressed inside a panel opened the modal behind the panel -
+      // which reads as a control that does nothing. Above every one of
+      // them, and above the question-mark popover's 10001, because this
+      // dialog is the end of the line: nothing is ever in front of it.
+      style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 10050 }}
       onClick={onClose}
     >
       <div
@@ -108,8 +122,8 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
           <div className="flex items-center gap-3">
             <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
             <div>
-              <h2 className="text-base md:text-xl font-bold text-white">Unlock the full coaching experience</h2>
-              <p className="text-purple-100 text-xs">Free tells you what to fix. Pro fixes it for you.</p>
+              <h2 className="text-base md:text-xl font-bold text-white">Go further with Pro</h2>
+              <p className="text-purple-100 text-xs">Bulletproof your resume. Level up your interviews. Build your career.</p>
             </div>
           </div>
         </div>
@@ -123,9 +137,7 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
 
           <div className="space-y-3 mb-5">
             {[
-              { icon: '💬', title: 'Coaching conversation', desc: 'We interview you like a professional resume writer — uncovering achievements you forgot to include.' },
-              { icon: '⚡', title: 'Improvements applied automatically', desc: 'No guessing how to rewrite bullets. Pro does it for you in under a minute.' },
-              { icon: '🎯', title: 'Tailored for every job', desc: 'Unlimited job-specific resumes and cover letters.' },
+              { icon: '🎯', title: 'Tailored and coached for every job', desc: 'Unlimited job-specific resumes, cover letters, and job match scores, with a coaching conversation for every resume.' },
               { icon: '🎤', title: 'Interview Practice included', desc: 'Unlimited Power Analysis and spoken practice against your resume and target job.' },
               { icon: '📇', title: 'Career Profile with recruiter tools', desc: 'A page recruiters can read, with your evidence, testimonials and portfolio on it.' },
               { icon: '🧭', title: 'Up to 3 Career Directions', desc: 'One profile, written three ways, so you are not one job title to everybody.' },
@@ -141,12 +153,6 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
             ))}
           </div>
 
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3 mb-5">
-            <p className="text-sm text-gray-800 font-medium">
-              Free tells you what to fix. Pro fixes it for you.
-            </p>
-          </div>
-
           <button
             onClick={handleUpgrade}
             disabled={loading}
@@ -158,7 +164,7 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"/>
                 Redirecting to checkout...
               </span>
-            ) : 'Upgrade to Pro — $29.99/mo'}
+            ) : 'Upgrade to Pro for $29.99/mo'}
           </button>
 
           <button
@@ -169,6 +175,7 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

@@ -135,7 +135,7 @@ export async function POST(request) {
       if (resumeId) {
         const gate = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
         const [{ data: subject, error: subjectError }, { data: cores }, { data: account }] = await Promise.all([
-          gate.from('resumes').select('id, user_id, resume_type').eq('id', resumeId).maybeSingle(),
+          gate.from('resumes').select('id, user_id, resume_type, created_tier').eq('id', resumeId).maybeSingle(),
           gate.from('resumes')
             .select('id, resume_type, is_active, is_priority_core, created_at')
             .eq('user_id', caller.id).eq('resume_type', 'core').eq('is_active', true),

@@ -18,6 +18,41 @@ function getTierForPriceId(priceId) {
 }
 
 // Sync tier change to Loops (non-blocking — failure shouldn't break webhook)
+// ---- THE TIER LOG ----
+//
+// Every plan change, appended. Nothing reads it yet; it exists because the
+// only way to have a subscription history later is to start keeping one now,
+// and this route already holds every transition and currently throws them
+// away. `profiles.cancelled_at` is what had to stand in, and it is one
+// boundary that the next cancellation overwrites - see the backfill in
+// scripts/add-created-tier-and-subscription-events.sql, which infers an
+// origin from it and says what it gets wrong.
+//
+// Non-blocking, and deliberately so. A failed write to a log nothing reads
+// must never be the reason a paid subscription does not land. The id is
+// Stripe's own event id, which the table holds unique, so a webhook delivered
+// twice appends once.
+async function recordTierChange(userId, fromTier, toTier, stripeEventId) {
+  if (!userId || fromTier === toTier) return;
+  try {
+    const { error } = await supabase
+      .from('subscription_events')
+      .insert({
+        user_id: userId,
+        from_tier: fromTier || null,
+        to_tier: toTier || null,
+        stripe_event_id: stripeEventId || null
+      });
+    // 23505 is the unique violation on stripe_event_id: Stripe retried and the
+    // row is already there, which is the thing the constraint is for.
+    if (error && error.code !== '23505') {
+      console.error('subscription_events insert failed (non-blocking):', error);
+    }
+  } catch (e) {
+    console.error('subscription_events insert threw (non-blocking):', e);
+  }
+}
+
 async function syncTierToLoops(userId, tier, previousTier) {
   try {
     const { data: profile, error } = await supabase
@@ -166,6 +201,7 @@ export async function POST(req) {
         return Response.json({ error: 'DB update failed' }, { status: 500 });
       }
 
+      await recordTierChange(userId, previousTier, tier, event.id);
       await syncTierToLoops(userId, tier, previousTier);
 
       break;
@@ -210,6 +246,7 @@ export async function POST(req) {
           return Response.json({ error: 'DB update failed' }, { status: 500 });
         }
 
+        if (updated?.id) await recordTierChange(updated.id, existing.subscription_tier, newTier, event.id);
         if (updated?.id) await syncTierToLoops(updated.id, newTier, existing.subscription_tier);
       }
 
@@ -257,6 +294,7 @@ export async function POST(req) {
           }
 
           if (existingProfile?.id) {
+            await recordTierChange(existingProfile.id, 'pro', 'vault', event.id);
             await archiveProContent(existingProfile.id);
             await syncTierToLoops(existingProfile.id, 'vault', 'pro');
           }
@@ -287,6 +325,7 @@ export async function POST(req) {
           }
 
           if (existingProfile?.id) {
+            await recordTierChange(existingProfile.id, 'pro', 'free', event.id);
             await archiveProContent(existingProfile.id);
             await syncTierToLoops(existingProfile.id, 'free', 'pro');
           }
@@ -315,6 +354,7 @@ export async function POST(req) {
         }
 
         if (cancelledProfile?.id) {
+          await recordTierChange(cancelledProfile.id, 'pro', 'free', event.id);
           await archiveProContent(cancelledProfile.id);
           await syncTierToLoops(cancelledProfile.id, 'free', 'pro');
         }
